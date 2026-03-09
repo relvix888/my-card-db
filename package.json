@@ -8,6 +8,8 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
     "firebase": "^12.9.0",
+    "html2canvas": "^1.4.1",
+    "puppeteer": "^24.37.5",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-scripts": "5.0.1",
@@ -36,5 +38,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1"
   }
 }
