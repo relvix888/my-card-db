@@ -23,3 +23,13 @@ yarn-debug.log*
 yarn-error.log*
 
 .env
+
+# Firebase Service Account Key
+serviceAccountKey.json
+
+# Virtual Environments
+.venv/
+venv/
+venv-1/
+__pycache__/
+*.pyc

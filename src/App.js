@@ -8,7 +8,18 @@ import {
   setDoc,
   onSnapshot,
 } from "firebase/firestore";
-import CardQA from "./components/CardQA"; // Import the component
+
+import CardQA from "./components/CardQA";
+import cardPrices from "./data/price_final.json";
+import { BLOCK_1_EXCEPTIONS } from "./data/rotation";
+import { BANNED_LIST } from "./data/rotation";
+import { RESTRICTED_PAIRS } from "./data/rotation";
+import topDecksData from "./data/deck_final.json";
+import { getSafeImageUrl } from "./utils/cardHelpers";
+import ImportView from "./components/ImportView";
+import SearchView from "./components/SearchView";
+import DeckView from "./components/DeckView";
+import MarketplaceView from "./components/MarketplaceView";
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -163,6 +174,7 @@ const rules = [
       "【主要】",
       "【啟動主要】",
       "【攻擊時】",
+      "【防禦時】",
       "【對方攻擊時】",
       "【KO時】",
       "【我方回合中】",
@@ -218,211 +230,6 @@ const rules = [
   },
 ];
 
-const PlayCurve = ({
-  title,
-  turns,
-  setTurns,
-  availableCards,
-  getSafeImageUrl,
-  defaultTurns,
-}) => {
-  const handleClearAll = () => {
-    if (window.confirm(`確定要清空 ${title} 的所有設定嗎？`)) {
-      // Create a fresh blank state for this specific curve
-      const reset = defaultTurns.map((don) => ({
-        don,
-        slots: [null, null, null, null, null],
-        operators: ["or", "or", "or", "or"],
-      }));
-      setTurns(reset);
-    }
-  };
-
-  const updateTurnDon = (index, val) => {
-    const newTurns = [...turns];
-    newTurns[index].don = parseInt(val);
-    setTurns(newTurns);
-  };
-
-  const updateSlot = (turnIdx, slotIdx, cardId) => {
-    const newTurns = [...turns];
-    // Normalize empty string to null for consistent data
-    const normalizedId = cardId === "" ? null : cardId;
-    newTurns[turnIdx].slots[slotIdx] = normalizedId;
-
-    // Clear children if parent is removed
-    if (!normalizedId) {
-      for (let i = slotIdx + 1; i < 5; i++) {
-        newTurns[turnIdx].slots[i] = null;
-        newTurns[turnIdx].operators[i - 1] = "or";
-      }
-    }
-    setTurns(newTurns);
-  };
-
-  const updateOp = (turnIdx, opIdx, op) => {
-    const newTurns = [...turns];
-    newTurns[turnIdx].operators[opIdx] = op;
-    setTurns(newTurns);
-  };
-
-  return (
-    <div className="mb-6 w-full">
-      {/* Header with Title and Clear Button */}
-      <div className="flex justify-between items-center mb-2 px-1">
-        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-          <span
-            className={`w-1 h-3 ${title.includes("先") ? "bg-orange-500" : "bg-sky-500"}`}
-          />
-          {title}
-        </h3>
-        <button
-          onClick={handleClearAll}
-          className="text-[9px] font-bold text-rose-500/70 hover:text-rose-400 uppercase tracking-tighter border border-rose-500/20 px-2 py-0.5 rounded transition-colors"
-        >
-          Clear All
-        </button>
-      </div>
-
-      <div className="grid grid-cols-5 gap-1 sm:gap-2 w-full">
-        {turns.map((turn, tIdx) => (
-          <div
-            key={tIdx}
-            className="bg-slate-900/60 border border-slate-800 rounded-lg p-1 sm:p-2 flex flex-col gap-1 sm:gap-2"
-          >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-1">
-              <span className="text-[8px] font-bold text-slate-500">D!</span>
-              <select
-                value={turn.don}
-                onChange={(e) => updateTurnDon(tIdx, e.target.value)}
-                className="bg-transparent text-white text-[9px] rounded outline-none border-none appearance-none cursor-pointer"
-              >
-                {[...Array(10)].map((_, i) => (
-                  <option key={i + 1} value={i + 1} className="bg-slate-900">
-                    {i + 1}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col items-center">
-              {[0, 1, 2, 3, 4].map((sIdx) => {
-                // Use a helper to check if the previous slot is "truly" empty
-                const prevSlotValue = turn.slots[sIdx - 1];
-                const isPrevOccupied =
-                  prevSlotValue !== null && prevSlotValue !== "";
-
-                // Logic: Always show first 3. Show 4th if 3rd is occupied. Show 5th if 4th is occupied.
-                const isVisible = sIdx < 2 || isPrevOccupied;
-
-                if (!isVisible) return null;
-
-                const cardId = turn.slots[sIdx];
-                const card = availableCards.find((c) => c.id === cardId);
-
-                const isStacked =
-                  sIdx > 0 && turn.operators[sIdx - 1] === "with";
-                const isFree = sIdx > 0 && turn.operators[sIdx - 1] === "free";
-                const isAnyCombo = isStacked || isFree;
-
-                return (
-                  <React.Fragment key={sIdx}>
-                    <div
-                      className={`
-            relative w-full transition-all duration-300
-            /* Responsive overlap for iPhone & Desktop */
-            ${isAnyCombo ? "-mt-[70%] z-10" : "z-0"}
-            ${isAnyCombo ? "rotate-1 translate-x-0.5" : ""}
-          `}
-                    >
-                      <div
-                        className={`
-              relative aspect-[2.5/3.5] rounded-lg border-2 shadow-md overflow-hidden
-              ${cardId ? "border-slate-700" : "border-dashed border-slate-800 bg-slate-950/40"}
-              ${isStacked ? "border-sky-500 ring-1 ring-sky-500/30" : ""}
-              ${isFree ? "border-amber-500 ring-1 ring-amber-500/30" : ""}
-            `}
-                      >
-                        {cardId ? (
-                          <>
-                            <img
-                              src={getSafeImageUrl(card)}
-                              className="w-full h-full object-cover"
-                              alt=""
-                            />
-                            {isFree && (
-                              <div className="absolute top-1 right-1 bg-amber-500 text-[8px] font-black text-black px-1 rounded-sm uppercase shadow-sm">
-                                FREE
-                              </div>
-                            )}
-                            {isStacked && (
-                              <div className="absolute top-1 right-1 bg-sky-500 text-[8px] font-black text-white px-1 rounded-sm uppercase shadow-sm">
-                                COMBO
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-800 text-[10px] font-bold">
-                            SLOT {sIdx + 1}
-                          </div>
-                        )}
-
-                        <select
-                          value={cardId || ""}
-                          onChange={(e) =>
-                            updateSlot(tIdx, sIdx, e.target.value)
-                          }
-                          className="absolute inset-0 w-full h-full opacity-0 z-30 cursor-pointer"
-                        >
-                          <option value="">移除卡片 (Remove)</option>
-                          {availableCards.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.cost}c | {c.id} {c.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Operator Selector - Only show if current card is filled AND we aren't at the max slot */}
-                    {sIdx < 4 && cardId && (
-                      <div
-                        className={`relative z-40 -my-1 transition-opacity duration-300 ${turn.operators[sIdx] !== "or" ? "opacity-30 hover:opacity-100" : "opacity-100"}`}
-                      >
-                        <select
-                          value={turn.operators[sIdx]}
-                          onChange={(e) => updateOp(tIdx, sIdx, e.target.value)}
-                          className={`
-                text-[7px] font-black px-2 py-0.5 rounded-full border shadow-sm uppercase tracking-tighter cursor-pointer
-                ${
-                  turn.operators[sIdx] === "with"
-                    ? "bg-sky-600 border-sky-400 text-white"
-                    : turn.operators[sIdx] === "free"
-                      ? "bg-amber-600 border-amber-400 text-white"
-                      : turn.operators[sIdx] === "and"
-                        ? "bg-emerald-600 border-emerald-400 text-white"
-                        : "bg-slate-800 border-slate-700 text-white"
-                }
-              `}
-                        >
-                          <option value="or">OR</option>
-                          <option value="and">AND</option>
-                          <option value="with">COMBO</option>
-                          <option value="free">FREE</option>
-                        </select>
-                      </div>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const initialTurns = (dons) =>
   dons.map((don) => ({
     don,
@@ -436,99 +243,20 @@ const getBaseId = (id) => {
   return id.split(/_[pr]\d+$/i)[0].toUpperCase();
 };
 
-const SimpleBarChart = ({ data, labels, title, color = "bg-blue-500" }) => {
-  const maxVal = Math.max(...data, 1);
-  return (
-    <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 h-full flex flex-col">
-      <h4 className="text-xs font-bold text-slate-400 mb-6 uppercase tracking-widest">
-        {title}
-      </h4>
-      <div className="flex items-end gap-1.5 h-32 mt-auto">
-        {data.map((val, i) => (
-          <div
-            key={i}
-            className="flex-1 flex flex-col items-center group relative h-full justify-end"
-          >
-            <span className="text-[10px] font-black text-slate-300 mb-1">
-              {val}
-            </span>
-            <div
-              className={`w-full ${color} rounded-t transition-all duration-700 ease-out`}
-              style={{
-                height: `${(val / maxVal) * 80}%`,
-                minHeight: val > 0 ? "4px" : "0px",
-              }}
-            />
-            <span className="text-[10px] text-slate-500 mt-2 font-mono font-bold">
-              {labels[i]}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+// 1. Create a function to turn the array into a searchable Map
+const initializeMarketData = (rawData) => {
+  const map = {};
+  // Assuming rawData.prices is the array containing your EB02-061_p2 object
+  const priceArray = Array.isArray(rawData) ? rawData : rawData.prices || [];
 
-const SimplePieChart = ({ data, labels, title }) => {
-  const total = data.reduce((a, b) => a + b, 0);
-  const colorHex = ["#3b82f6", "#a855f7", "#10b981", "#f59e0b"];
-  const colorsBg = [
-    "bg-blue-500",
-    "bg-purple-500",
-    "bg-emerald-500",
-    "bg-amber-500",
-  ];
-  let cumulative = 0;
-  const gradientParts = data.map((val, i) => {
-    const start = (cumulative / total) * 100;
-    cumulative += val;
-    const end = (cumulative / total) * 100;
-    return `${colorHex[i % colorHex.length]} ${start}% ${end}%`;
+  priceArray.forEach((item) => {
+    map[item.id] = {
+      ...item,
+      type: "SELL", // Default to WTS
+      price: item.hkd ? String(item.hkd) : "", // This populates your input box
+    };
   });
-  const gradient =
-    total > 0 ? `conic-gradient(${gradientParts.join(", ")})` : `transparent`;
-  return (
-    <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 h-full">
-      <h4 className="text-xs font-bold text-slate-400 mb-6 uppercase tracking-widest">
-        {title}
-      </h4>
-      <div className="flex items-center gap-6">
-        <div
-          className="relative w-24 h-24 rounded-full border-4 border-slate-700 flex items-center justify-center bg-slate-900/50 shadow-inner flex-shrink-0"
-          style={{ background: gradient }}
-        >
-          <div className="absolute inset-2 bg-slate-900 rounded-full flex items-center justify-center border border-slate-700/50 shadow-lg">
-            <span className="text-xl font-black text-white">{total}</span>
-          </div>
-        </div>
-        <div className="flex-1 space-y-2">
-          {data.map((val, i) => (
-            <div key={i} className="flex flex-col text-[11px]">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-2 h-2 rounded-full ${colorsBg[i % colorsBg.length]}`}
-                  ></div>
-                  <span className="text-slate-300 font-medium">
-                    {labels[i]}
-                  </span>
-                </div>
-                <span className="font-bold text-slate-400">{val}</span>
-              </div>
-              <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${colorsBg[i % colorsBg.length]}`}
-                  style={{
-                    width: total > 0 ? `${(val / total) * 100}%` : "0%",
-                  }}
-                ></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  return map;
 };
 
 const App = () => {
@@ -546,24 +274,205 @@ const App = () => {
   const [typeLogic, setTypeLogic] = useState("AND"); // 'AND' 或 'OR'
   const [filterPackId, setFilterPackId] = useState("554115"); // 新增卡包篩選狀態
   const [hideReprint, setHideReprint] = useState(true); // 新增：隱藏再錄卡狀態
+  const [hidePromo, setHidePromo] = useState(true); // 新增：隱藏促銷卡狀態
   const [selectedBlocks, setSelectedBlocks] = useState([]);
   const [isImporting, setIsImporting] = useState(false);
   const [isImportingDeck, setIsImportingDeck] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
   const [deckInput, setDeckInput] = useState("");
   const [selectedCard, setSelectedCard] = useState(null);
-  const [appMode, setAppMode] = useState("SEARCH");
+  const [appMode, setAppMode] = useState("IMPORT");
   const [deckList, setDeckList] = useState({});
+  const [isMarketMode, setIsMarketMode] = useState(false);
+  const [marketList, setMarketList] = useState({});
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [marketData, setMarketData] = useState({});
+  const [marketData, setMarketData] = useState(() =>
+    initializeMarketData(cardPrices),
+  );
   const [firstCurveTurns, setFirstCurveTurns] = useState(
     initialTurns([1, 3, 5, 7, 9]),
   );
   const [secondCurveTurns, setSecondCurveTurns] = useState(
     initialTurns([2, 4, 6, 8, 10]),
   );
-  const [showCurve, setShowCurve] = useState(true);
+  const [showCurve, setShowCurve] = useState(false);
   const [selectedLeader, setSelectedLeader] = useState(null);
+  const [leaderStats, setLeaderStats] = useState({}); // Stores { "ID": count }
+
+  const activeList = isMarketMode ? marketList : deckList;
+  const updateActiveList = isMarketMode ? setMarketList : setDeckList;
+
+  const renderContent = () => {
+    const advancedSearchProps = {
+      showAdvanced,
+      setShowAdvanced,
+      typeLogic,
+      setTypeLogic,
+      filterType1,
+      setFilterType1,
+      filterType2,
+      setFilterType2,
+      typeOptions,
+      filterCategory,
+      setFilterCategory,
+      selectedColors,
+      toggleColor,
+      selectedRarity,
+      setSelectedRarity,
+      selectedAttributes,
+      setSelectedAttributes,
+      selectedKeywords,
+      toggleKeyword,
+      quickKeywords,
+      getKeywordStyle,
+      selectedBlocks,
+      setSelectedBlocks,
+      isExcludeMode,
+      setIsExcludeMode,
+      searchTerm,
+      setSearchTerm,
+      filterPackId,
+      setFilterPackId,
+      sortedPackList,
+      hideReprint,
+      setHideReprint,
+      hidePromo,
+      setHidePromo,
+    };
+
+    const commonProps = {
+      setSelectedCard,
+      updateDeckCount,
+      appMode,
+      marketData,
+      toggleMarketType,
+      updatePrice,
+      deckList,
+      marketList,
+      isMarketMode,
+      totalDeckCount,
+    };
+
+    switch (appMode) {
+      case "IMPORT":
+        return (
+          <ImportView
+            cards={cards}
+            topDecksData={topDecksData}
+            getSafeImageUrl={getSafeImageUrl}
+            generateMetaDeck={generateMetaDeck}
+            deckInput={deckInput}
+            setDeckInput={setDeckInput}
+            handleImportDeckCode={handleImportDeckCode}
+            setAppMode={setAppMode}
+            legalityWarning={legalityWarning}
+          />
+        );
+
+      case "SEARCH":
+        return (
+          <SearchView
+            key={isMarketMode ? "market-search" : "deck-search"}
+            filteredCards={filteredCards}
+            resetFilters={resetFilters}
+            {...advancedSearchProps} // This spreads all 25+ props automatically!
+            {...commonProps}
+          />
+        );
+
+      case "DECK":
+        return (
+          <DeckView
+            orderedDeck={orderedDeck}
+            selectedLeader={selectedLeader}
+            totalDeckCount={totalDeckCount}
+            setDeckList={setDeckList}
+            setSelectedCard={setSelectedCard}
+            updateDeckCount={updateDeckCount}
+            generateShareUrl={generateShareUrl}
+            legalityWarning={legalityWarning}
+            // NEW ANALYSIS PROPS
+            deckAnalysis={deckAnalysis}
+            showCurve={showCurve}
+            setShowCurve={setShowCurve}
+            firstCurveTurns={firstCurveTurns}
+            setFirstCurveTurns={setFirstCurveTurns}
+            secondCurveTurns={secondCurveTurns}
+            setSecondCurveTurns={setSecondCurveTurns}
+            cards={cards} // Main card database
+            deckList={deckList}
+            getSafeImageUrl={getSafeImageUrl}
+            hoveredTrait={hoveredTrait}
+            setHoveredTrait={setHoveredTrait}
+            {...commonProps}
+          />
+        );
+
+      case "MARKETPLACE":
+        return (
+          <MarketplaceView
+            orderedDeck={orderedDeck}
+            selectedLeader={selectedLeader}
+            totalDeckCount={totalDeckCount}
+            setDeckList={setDeckList}
+            setSelectedCard={setSelectedCard}
+            marketData={marketData}
+            toggleMarketType={toggleMarketType}
+            updatePrice={updatePrice}
+            deckTableData={deckTableData}
+            deckValuation={deckValuation}
+            bulkUpdateRarity={bulkUpdateRarity}
+            deckList={deckList}
+            generateMarketShareUrl={generateMarketShareUrl}
+            cards={cards}
+            legalityWarning={legalityWarning}
+            dataIntegrityWarning={dataIntegrityWarning}
+            isMarketMode={isMarketMode}
+            setIsMarketMode={setIsMarketMode}
+            setMarketList={setMarketList}
+            {...commonProps}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const generateMetaDeck = (leader) => {
+    if (!leader || !leader.id) return;
+
+    const leaderId = leader.id.toUpperCase();
+    const entry = topDecksData[leaderId];
+
+    // 1. Handle the new structure: entry might be { deck: "...", count: 5 }
+    // or the old structure: entry might be "4xID,1xID..."
+    let deckString = typeof entry === "object" ? entry.deck : entry;
+
+    if (deckString) {
+      console.log(`Found Meta Deck for ${leaderId}:`, deckString);
+
+      // 2. Load the cards into your deck state
+      handleImportDeckCode(deckString);
+
+      // 3. Switch UI to Deck View
+      setAppMode("DECK");
+
+      // 4. Smooth scroll to top for better UX
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Optional: Log the popularity if it exists
+      if (entry.count) {
+        console.log(
+          `This leader has appeared ${entry.count} times in the meta.`,
+        );
+      }
+    } else {
+      console.warn("No deck data found for Leader ID:", leaderId);
+      // Optional: Alert the user in their native language
+      alert(`暫無 ${leaderId} 的熱門牌組資料 / No meta data found.`);
+    }
+  };
 
   const typeOptions = [
     "所有",
@@ -759,6 +668,7 @@ const App = () => {
     "【啟動主要】",
     "【每回合1次】",
     "【攻擊時】",
+    "【防禦時】",
     "【我方回合中】",
     "【我方回合結束時】",
     "【反擊】",
@@ -822,7 +732,8 @@ const App = () => {
     filterType2: "所有",
     typeLogic: "AND",
     filterPackId: "554115",
-    hideReprint: false,
+    hideReprint: true,
+    hidePromo: true,
     showCurve: false,
   };
 
@@ -838,12 +749,12 @@ const App = () => {
     setTypeLogic(defaultFilters.typeLogic);
     setFilterPackId(defaultFilters.filterPackId);
     setHideReprint(defaultFilters.hideReprint);
+    setHidePromo(defaultFilters.hidePromo);
     setShowCurve(defaultFilters.showCurve);
 
     // Optional: also clear selected card detail view if you want full reset
     // setSelectedCard(null);
   };
-
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -906,36 +817,64 @@ const App = () => {
     setSelectedLeader(leaderCard || null);
   }, [deckList, cards]);
 
-  // 計算特定基礎 ID 在牌組中的總數 (用於處理異圖合併)
+  useEffect(() => {
+    // 1. Instead of fetching, we look at the IDs inside your top_decks.json
+    const leaderIds = Object.keys(topDecksData);
+
+    if (leaderIds.length > 0) {
+      console.log(
+        `Successfully loaded ${leaderIds.length} Meta Leaders from static data.`,
+      );
+
+      // 2. We create a simulated stats object.
+      // Since we don't have the real 'counts' from the DB anymore,
+      // we assign a default count (like 1) so the UI logic still works.
+      const staticStats = {};
+      leaderIds.forEach((id) => {
+        // Use the ID as the key, standardized to Uppercase
+        staticStats[id.toUpperCase()] = 1;
+      });
+
+      setLeaderStats(staticStats);
+    } else {
+      console.warn("No leader data found in top_decks.json");
+    }
+  }, []);
+
   const getBaseIdCount = useCallback(
     (cardId) => {
       const baseId = getBaseId(cardId);
-      return Object.entries(deckList).reduce((total, [id, count]) => {
+      // Determine which list to scan based on the current mode
+      const currentList = isMarketMode ? marketList : deckList;
+
+      return Object.entries(currentList).reduce((total, [id, count]) => {
         return getBaseId(id) === baseId ? total + count : total;
       }, 0);
     },
-    [deckList],
+    [isMarketMode, marketList, deckList], // Added isMarketMode and marketList
   );
 
-  // 1. Generate the URL from the deckList object
   const generateShareUrl = () => {
-    const entries = Object.entries(deckList);
+    const entries = Object.entries(deckList).filter(([_, count]) => count > 0);
     if (entries.length === 0) return alert("牌組是空的！");
 
     try {
+      // 1. Format the deck cards (4xOP01-001,1xOP01-002)
       const deckString = entries
         .map(([id, count]) => `${count}x${id}`)
         .join(",");
 
-      // Updated for 5 slots and 4 operators
+      // 2. Play Curve Serialization
+      // Updated to match your useEffect's .split(",") and .split(":") logic
       const serializeCurve = (curve) => {
         return curve
-          .map((t) => {
-            const slots = t.slots.map((s) => s || "none").join("|");
-            const ops = t.operators.join("|");
-            return `${slots}:${ops}`;
+          .map((turn) => {
+            // Use 'none' for null slots as expected by your deserializeCurve
+            const slotsPart = turn.slots.map((s) => s || "none").join("|");
+            const opsPart = turn.operators.join("|");
+            return `${slotsPart}:${opsPart}`;
           })
-          .join(",");
+          .join(","); // Use comma to separate turns
       };
 
       const fullData = {
@@ -944,52 +883,71 @@ const App = () => {
         c2: serializeCurve(secondCurveTurns),
       };
 
-      // Use encodeURIComponent to handle the longer, more complex string safely
+      // 3. Encode the JSON string
       const encodedData = btoa(encodeURIComponent(JSON.stringify(fullData)));
+
+      // 4. Using 'deckData' triggers CASE 1 in your useEffect, which runs setAppMode("DECK")
       const shareUrl = `${window.location.origin}${window.location.pathname}?deckData=${encodedData}`;
 
       navigator.clipboard.writeText(shareUrl).then(() => {
-        alert("牌組策略連結已複製！");
+        alert("牌組策略連結已複製！開啟後將進入牌組模式。");
       });
     } catch (e) {
       console.error("Share Error:", e);
+      alert("分享失敗，請縮減牌組或曲線內容。");
     }
   };
 
   const generateMarketShareUrl = () => {
-    const entries = Object.entries(deckList);
-    if (entries.length === 0) return alert("市場列表是空的！");
+    // 1. Determine which source of truth to share
+    const activeList = isMarketMode ? marketList : deckList;
+    const entries = Object.entries(activeList || {}).filter(
+      ([_, count]) => count > 0,
+    );
+
+    if (entries.length === 0) {
+      return alert(isMarketMode ? "市場清單是空的！" : "牌組清單是空的！");
+    }
 
     try {
-      // 1. Create a simple deck string: "4xOP01-001,2xOP01-002"
+      // 2. Format the card quantities (e.g., "4xOP01-001,2xOP01-016")
       const deckString = entries
         .map(([id, count]) => `${count}x${id}`)
         .join(",");
 
-      // 2. Create the market string: "ID:TypeNum:Price"
-      const marketString = Object.entries(marketData)
-        .map(([id, data]) => {
-          const typeNum = data.type === "BUY" ? 0 : 1;
-          return `${id}:${typeNum}:${data.price || 0}`;
-        })
-        .join(",");
+      /* 3. Capture the Price/Note Data
+       We only want to share prices for cards that are actually in the current list
+       to keep the URL length manageable.
+    */
+      const relevantMarketData = {};
+      entries.forEach(([id]) => {
+        if (marketData[id]) {
+          relevantMarketData[id] = marketData[id];
+        }
+      });
 
-      const marketDataObj = {
+      // 4. Build the payload
+      // 'd' = deck/list string
+      // 'm' = market/price data
+      const shareObj = {
         d: deckString,
-        m: marketString,
+        m: relevantMarketData,
       };
 
-      // 3. SAFE ENCODING for Chinese characters
-      const jsonString = JSON.stringify(marketDataObj);
+      // 5. Encode the payload
+      const jsonString = JSON.stringify(shareObj);
       const encodedData = btoa(encodeURIComponent(jsonString));
 
+      // 6. Generate the URL
+      // We use 'marketData' as the param to trigger the Marketplace view on load
       const shareUrl = `${window.location.origin}${window.location.pathname}?marketData=${encodedData}`;
 
       navigator.clipboard.writeText(shareUrl).then(() => {
-        alert("市場報價連結已複製！ / Market link copied!");
+        const modeName = isMarketMode ? "市場清單" : "牌組報價";
+        alert(`${modeName}連結已複製！開啟連結將包含您輸入的價格。`);
       });
     } catch (err) {
-      console.error("Market Share Error:", err);
+      console.error("Share Error:", err);
       alert("生成連結失敗。");
     }
   };
@@ -999,11 +957,23 @@ const App = () => {
     const deckDataParam = params.get("deckData");
     const marketDataParam = params.get("marketData");
 
-    // Only run once cards are loaded from Firebase/Data source
-    if (cards.length === 0) return;
+    // --- PHASE 1: IMMEDIATE UI SWITCHING ---
+    // We switch the view mode immediately so the user doesn't see "Search"
+    // while the data is still loading.
+    if (deckDataParam) {
+      setAppMode("DECK");
+    } else if (marketDataParam) {
+      setAppMode("MARKETPLACE");
+    }
 
-    // Helper function to process the "4xID,1xID" string format
-    const importDeckList = (deckStr) => {
+    // --- PHASE 2: DATA LOADING GUARD ---
+    // If cards (Firebase/JSON) aren't loaded yet, we stop here.
+    // The UI is already switched, and this effect will run again once 'cards' fills up.
+    if (!cards || cards.length === 0) return;
+
+    // Helper to turn "4xOP01-001,1xOP01-002" into { "OP01-001": 4, ... }
+    // Updated Helper inside your useEffect
+    const importDeckList = (deckStr, targetMode = "DECK") => {
       const newList = {};
       deckStr.split(",").forEach((pair) => {
         const [count, id] = pair.split("x");
@@ -1011,81 +981,82 @@ const App = () => {
           newList[id] = parseInt(count, 10);
         }
       });
-      setDeckList(newList);
+
+      // Use the specific targetMode passed in
+      if (targetMode === "MARKETPLACE") {
+        setMarketList(newList);
+        setIsMarketMode(true); // Automatically flip the toggle to Market
+      } else {
+        setDeckList(newList);
+        setIsMarketMode(false); // Ensure we are in Deck mode rules
+      }
+    };
+
+    // Helper to turn serialized curve strings back into the objects your UI uses
+    const deserializeCurve = (str, defaults) => {
+      if (!str)
+        return defaults.map((don) => ({
+          don,
+          slots: Array(5).fill(null),
+          operators: Array(4).fill("or"),
+        }));
+
+      return str.split(",").map((turnStr, i) => {
+        const [slotsPart, opsPart] = turnStr.split(":");
+        let slots = slotsPart.split("|").map((s) => (s === "none" ? null : s));
+        while (slots.length < 5) slots.push(null);
+        let ops = opsPart ? opsPart.split("|") : [];
+        while (ops.length < 4) ops.push("or");
+
+        return {
+          don: defaults[i],
+          slots: slots.slice(0, 5),
+          operators: ops.slice(0, 4),
+        };
+      });
     };
 
     try {
-      // --- CASE 1: DECK & PLAYCURVE IMPORT ---
-      // Inside your useEffect for [cards]
+      // --- CASE 1: DECK MODE IMPORT ---
       if (deckDataParam) {
-        // Use decodeURIComponent to match the new share function
         const decoded = JSON.parse(decodeURIComponent(atob(deckDataParam)));
 
-        if (decoded.d) importDeckList(decoded.d);
-
-        const deserializeCurve = (str, defaults) => {
-          if (!str)
-            return defaults.map((don) => ({
-              don,
-              slots: Array(5).fill(null),
-              operators: Array(4).fill("or"),
-            }));
-
-          return str.split(",").map((turnStr, i) => {
-            const [slotsPart, opsPart] = turnStr.split(":");
-
-            // Split and pad slots to exactly 5
-            let slots = slotsPart
-              .split("|")
-              .map((s) => (s === "none" ? null : s));
-            while (slots.length < 5) slots.push(null);
-
-            // Split and pad operators to exactly 4
-            let ops = opsPart ? opsPart.split("|") : [];
-            while (ops.length < 4) ops.push("or");
-
-            return {
-              don: defaults[i],
-              slots: slots.slice(0, 5),
-              operators: ops.slice(0, 4),
-            };
-          });
-        };
+        if (decoded.d) importDeckList(decoded.d, "DECK");
 
         if (decoded.c1)
           setFirstCurveTurns(deserializeCurve(decoded.c1, [1, 3, 5, 7, 9]));
         if (decoded.c2)
           setSecondCurveTurns(deserializeCurve(decoded.c2, [2, 4, 6, 8, 10]));
-
-        setAppMode("DECK");
       }
-      // --- CASE 2: MARKETPLACE & PRICE IMPORT ---
+
+      // --- CASE 2: MARKETPLACE MODE IMPORT ---
       if (marketDataParam) {
-        // We use decodeURIComponent because the share function encoded it to support Chinese characters
         const decoded = JSON.parse(decodeURIComponent(atob(marketDataParam)));
 
-        // Import the cards into the deck
-        if (decoded.d) importDeckList(decoded.d);
-
-        // Import the market prices and types (WTB/WTS)
-        if (decoded.m) {
-          const newMarket = {};
-          decoded.m.split(",").forEach((item) => {
-            const [id, typeNum, price] = item.split(":");
-            if (id) {
-              newMarket[id] = {
-                type: typeNum === "0" ? "BUY" : "SELL",
-                price: price,
-              };
-            }
-          });
-          setMarketData(newMarket);
+        // 1. Import the card list (Quantities x ID)
+        if (decoded.d) {
+          importDeckList(decoded.d, "MARKETPLACE");
         }
 
+        // 2. Import the Price/Market Data (Direct Object Merge)
+        if (decoded.m) {
+          /* We merge the incoming shared data with your existing local storage data.
+       This ensures if you share 5 cards, but have 100 prices saved locally,
+       you don't lose your other 95 prices.
+    */
+          setMarketData((prev) => ({
+            ...prev,
+            ...decoded.m,
+          }));
+        }
+
+        // Ensure we switch to the right view
         setAppMode("MARKETPLACE");
+        setIsMarketMode(true);
       }
 
-      // Clean up the URL after processing so refreshing doesn't reset user changes
+      // --- PHASE 3: URL CLEANUP ---
+      // Only clean up the URL once we have successfully processed the data.
       if (deckDataParam || marketDataParam) {
         window.history.replaceState(
           {},
@@ -1094,18 +1065,22 @@ const App = () => {
         );
       }
     } catch (error) {
-      console.error("Import Error Details:", error);
+      console.error("Link Import Error:", error);
     }
-  }, [cards]); // Dependency array: triggers when cards are loaded
+  }, [cards, setDeckList, setAppMode]); // Added dependencies for stability
 
-  // 更新卡牌數量的核心邏輯 (包含 Leader、4 張限制及異圖合併)
   const updateDeckCount = useCallback(
     (card, delta) => {
-      setDeckList((prev) => {
+      if (!card || !card.id) return;
+
+      // Pick the setter based on the mode
+      const setTargetList = isMarketMode ? setMarketList : setDeckList;
+
+      setTargetList((prev) => {
         const currentCount = prev[card.id] || 0;
         const newCount = currentCount + delta;
 
-        // 減少數量
+        // REMOVAL: Always allowed until 0
         if (delta < 0) {
           if (newCount <= 0) {
             const newState = { ...prev };
@@ -1115,11 +1090,14 @@ const App = () => {
           return { ...prev, [card.id]: newCount };
         }
 
-        // 增加數量規則
-        // 1. Leader 限制: 整個牌組只能有一個
+        // ADDITION: Market Mode has no restrictions
+        if (isMarketMode) {
+          return { ...prev, [card.id]: newCount };
+        }
+
+        // ADDITION: Deck Mode Strict Rules
         if (card.category === "Leader") {
           const newState = { ...prev };
-          // 移除目前所有的 Leader
           Object.keys(newState).forEach((id) => {
             const c = cards.find((item) => item.id === id);
             if (c && c.category === "Leader") delete newState[id];
@@ -1128,14 +1106,13 @@ const App = () => {
           return newState;
         }
 
-        // 2. 其他卡牌限制最多 4 張 (包含異圖合併計數)
-        const baseTotal = getBaseIdCount(card.id);
-        if (baseTotal >= 4) return prev;
+        // Check count using our new mode-aware helper
+        if (getBaseIdCount(card.id) >= 4) return prev;
 
         return { ...prev, [card.id]: newCount };
       });
     },
-    [cards, getBaseIdCount],
+    [isMarketMode, setMarketList, setDeckList, cards, getBaseIdCount],
   );
 
   const deckAnalysis = useMemo(() => {
@@ -1294,53 +1271,96 @@ const App = () => {
     }
   };
 
-  const handleImportDeckCode = () => {
-    if (!deckInput) return;
-    const lines = deckInput.split("\n");
-    const newDeck = {};
+  // const handleImportDeckCode = (importText = null) => {
+  //   const isEvent =
+  //     importText && typeof importText === "object" && importText.target;
+  //   const textToProcess = isEvent || !importText ? deckInput : importText;
+
+  //   if (!textToProcess || typeof textToProcess !== "string") {
+  //     console.warn("Import failed: No valid text string provided.");
+  //     return;
+  //   }
+
+  //   // FIX 1: Split by EITHER a newline OR a comma
+  //   const lines = textToProcess.split(/[\n,]/);
+  //   const newDeck = {};
+
+  //   lines.forEach((line) => {
+  //     // FIX 2: Relaxed regex to handle IDs with different symbols
+  //     const match = line.trim().match(/^(\d+)x(.+)$/);
+  //     if (match) {
+  //       const count = parseInt(match[1], 10);
+  //       const cardId = match[2].trim();
+  //       newDeck[cardId] = (newDeck[cardId] || 0) + count;
+  //     }
+  //   });
+
+  //   setDeckList(newDeck);
+  //   setIsImportingDeck(false);
+
+  //   if (!importText || isEvent) {
+  //     setDeckInput("");
+  //   }
+  // };
+
+  const handleImportDeckCode = (importText = null) => {
+    const isEvent =
+      importText && typeof importText === "object" && importText.target;
+    const textToProcess = isEvent || !importText ? deckInput : importText;
+
+    if (!textToProcess || typeof textToProcess !== "string") return;
+
+    const lines = textToProcess.split(/[\n,]/);
+    const newImportedData = {};
+
     lines.forEach((line) => {
-      const match = line.trim().match(/^(\d+)x([\w-]+)$/);
+      const match = line.trim().match(/^(\d+)x(.+)$/);
       if (match) {
         const count = parseInt(match[1], 10);
-        const cardId = match[2];
-        newDeck[cardId] = (newDeck[cardId] || 0) + count;
+        const cardId = match[2].trim();
+        newImportedData[cardId] = (newImportedData[cardId] || 0) + count;
       }
     });
-    setDeckList(newDeck);
+
+    // TARGET THE CORRECT LIST
+    if (isMarketMode) {
+      setMarketList(newImportedData); // Allows any number of cards/leaders
+    } else {
+      setDeckList(newImportedData); // Subject to your 1+50 validation elsewhere
+    }
+
     setIsImportingDeck(false);
     setDeckInput("");
   };
 
-  /**
-   * 修正後的圖片路徑邏輯
-   * 根據使用者提供的正確網域：asia-tc.onepiece-cardgame.com
-   */
-  const getSafeImageUrl = (card) => {
-    if (!card) return "";
+  // const getSafeImageUrl = (card) => {
+  //   if (!card) return "";
 
-    const targetDomain = "https://asia-tc.onepiece-cardgame.com";
+  //   const targetDomain = "https://asia-tc.onepiece-cardgame.com";
+  //   const id = card.id || "";
 
-    // 1. 如果有 img_full_url，將其 domain 替換成正確的 asia-tc
-    if (card.img_full_url) {
-      if (card.img_full_url.includes("onepiece-cardgame.com")) {
-        return card.img_full_url.replace(/https?:\/\/[^\/]+/, targetDomain);
-      }
-      return card.img_full_url;
-    }
+  //   // 1. Check if the ID has a suffix (Parallel/Promo/Reprint)
+  //   // If it does, we MUST build the URL from the ID to get the right art
+  //   if (id.includes("_p") || id.includes("_r")) {
+  //     return `${targetDomain}/images/cardlist/card/${id}.png`;
+  //   }
 
-    // 2. 如果只有相對路徑 img_url (例如 ../images/...)
-    if (card.img_url && card.img_url.includes("images/cardlist/")) {
-      const pathOnly = card.img_url.substring(card.img_url.indexOf("images/"));
-      return `${targetDomain}/${pathOnly}`;
-    }
+  //   // 2. If no suffix, fall back to your existing logic
+  //   if (card.img_full_url) {
+  //     if (card.img_full_url.includes("onepiece-cardgame.com")) {
+  //       return card.img_full_url.replace(/https?:\/\/[^/]+/, targetDomain);
+  //     }
+  //     return card.img_full_url;
+  //   }
 
-    // 3. 兜底方案：利用 ID 構造
-    if (card.id) {
-      return `${targetDomain}/images/cardlist/card/${card.id}.png`;
-    }
+  //   if (card.img_url && card.img_url.includes("images/cardlist/")) {
+  //     const pathOnly = card.img_url.substring(card.img_url.indexOf("images/"));
+  //     return `${targetDomain}/${pathOnly}`;
+  //   }
 
-    return "https://via.placeholder.com/300x420?text=No+Image";
-  };
+  //   // 3. Final fallback using the ID
+  //   return `${targetDomain}/images/cardlist/card/${id}.png`;
+  // };
 
   const parseNumericFilter = (term) => {
     const match = term.match(/^([><]=?|=)?(\d+)$/);
@@ -1371,9 +1391,18 @@ const App = () => {
   const filteredCards = useMemo(() => {
     const conditions = searchTerm.split(/[,，]/).filter((c) => c.trim() !== "");
     return cards.filter((card) => {
-      // 再錄卡過濾邏輯：ID 結尾包含 _p 或 _r 加數字
+      // 1. Hide Reprints (Ends with _r + digits)
+      // Example: OP01-001_r1
       if (hideReprint) {
-        if (card.id && /_[pr]\d+$/i.test(card.id)) {
+        if (card.id && /_r\d+$/i.test(card.id)) {
+          return false;
+        }
+      }
+
+      // 2. Hide Parallels/Promos (Ends with _p + digits)
+      // Example: OP01-001_p1
+      if (hidePromo) {
+        if (card.id && /_p\d+$/i.test(card.id)) {
           return false;
         }
       }
@@ -1500,7 +1529,15 @@ const App = () => {
         selectedBlocks.length === 0 || selectedBlocks.includes("所有")
           ? true
           : selectedBlocks.some((block) => {
-              // Convert the button label (string) to a number for exact comparison
+              // Handle the special "1 (Legal)" case
+              if (block === "1 (Legal)") {
+                return (
+                  card.block_number === 1 &&
+                  BLOCK_1_EXCEPTIONS.includes(card.id)
+                );
+              }
+
+              // Standard numeric check for 1, 2, 3, 4
               const blockNum = parseInt(block, 10);
               return card.block_number === blockNum;
             });
@@ -1514,7 +1551,6 @@ const App = () => {
         matchesType &&
         matchesPack &&
         matchesAttribute &&
-        matchesBlock &&
         matchesBlock
       );
     });
@@ -1531,21 +1567,243 @@ const App = () => {
     typeLogic,
     filterPackId,
     hideReprint,
+    hidePromo,
     selectedAttributes,
     selectedBlocks,
   ]);
 
+  const legalityWarning = useMemo(() => {
+    if (!cards)
+      return { hasIssue: false, messages: [], illegalIds: [], missingIds: [] };
+
+    // --- LOGIC SWITCH: Check Marketplace if MarketMode is active, otherwise check Deck ---
+    // If your app has an 'isMarketMode' state, use it here.
+    // Otherwise, we check if marketData has entries.
+    const isMarketActive =
+      Object.keys(marketData || {}).length > 0 && isMarketMode;
+
+    const dataSource = isMarketActive ? marketData : deckList;
+
+    if (!dataSource)
+      return { hasIssue: false, messages: [], illegalIds: [], missingIds: [] };
+
+    // Normalize entries: Deck has 'count', Marketplace has 'data.count'
+    const activeEntries = Object.entries(dataSource).filter(([_, val]) => {
+      const count = typeof val === "object" ? val.count : val;
+      return count > 0;
+    });
+
+    const activeIds = activeEntries.map(([id]) => id.split("_")[0]);
+    const messages = [];
+    const illegalIds = [];
+    const missingIds = [];
+
+    // 1. Check for Missing Data
+    activeIds.forEach((baseId) => {
+      if (!cards.some((c) => c.id === baseId)) {
+        missingIds.push(baseId);
+      }
+    });
+
+    if (missingIds.length > 0) {
+      messages.push(`找不到卡牌資料: ${missingIds.join(", ")}`);
+    }
+
+    // 2. Check Block 1
+    const blockOneCount = activeEntries
+      .filter(([id, val]) => {
+        const baseId = id.split("_")[0];
+        const cardData = cards.find((c) => c.id === baseId);
+        const isIllegal =
+          cardData?.block_number === 1 && !BLOCK_1_EXCEPTIONS.includes(baseId);
+        if (isIllegal) illegalIds.push(baseId);
+        return isIllegal;
+      })
+      .reduce((acc, [_, val]) => {
+        const count = typeof val === "object" ? val.count : val;
+        return acc + count;
+      }, 0);
+
+    if (blockOneCount > 0)
+      messages.push(`包含 ${blockOneCount} 張擴張記號①卡牌。`);
+
+    // 3. Check Banned List
+    const bannedInList = activeIds.filter((id) => BANNED_LIST.includes(id));
+    if (bannedInList.length > 0) {
+      messages.push(`禁止卡牌: ${bannedInList.join(", ")}`);
+      illegalIds.push(...bannedInList);
+    }
+
+    // 4. Check Pairs (Only relevant for Deck Mode usually)
+    if (!isMarketActive) {
+      RESTRICTED_PAIRS.forEach(([cardA, cardB]) => {
+        if (activeIds.includes(cardA) && activeIds.includes(cardB)) {
+          messages.push(`禁止組合: ${cardA} 與 ${cardB}`);
+          illegalIds.push(cardA, cardB);
+        }
+      });
+    }
+
+    return {
+      hasIssue: messages.length > 0,
+      messages,
+      illegalIds: [...new Set(illegalIds)],
+      missingIds: [...new Set(missingIds)],
+    };
+    // Add marketData and isMarketMode to dependencies!
+  }, [deckList, marketData, cards, isMarketMode]);
+
+  const dataIntegrityWarning = useMemo(() => {
+    // 1. Determine which list we are currently auditing
+    // (Match this to whatever state variable controls your View Mode)
+    const dataSource = isMarketMode ? marketList : deckList;
+
+    if (!dataSource || !cards || cards.length === 0) {
+      return { hasIssue: false, missingData: [], missingPrices: [] };
+    }
+
+    const missingData = [];
+    const missingPrices = [];
+
+    // 2. Audit the ACTIVE data source
+    Object.entries(dataSource).forEach(([id, count]) => {
+      if (count <= 0) return;
+
+      const baseId = id.split("_")[0].toUpperCase();
+      const cardData = cards.find((c) => c.id.toUpperCase() === baseId);
+
+      // If the card doesn't exist in the DB, it's a critical data issue
+      if (!cardData) {
+        missingData.push(id);
+      } else {
+        // If it exists in DB, check if the user has provided a price in marketData
+        const priceValue = marketData[id]?.price;
+        const isPriceEmpty = !priceValue || String(priceValue).trim() === "";
+
+        if (isPriceEmpty) {
+          missingPrices.push(id);
+        }
+      }
+    });
+
+    return {
+      hasIssue: missingData.length > 0 || missingPrices.length > 0,
+      missingData,
+      missingPrices,
+    };
+    // 3. Ensure all relevant states are in the dependency array
+  }, [isMarketMode, marketList, deckList, cards, marketData]);
+
   // DECK CARDS (ONLY THOSE IN DECKLIST)
   const deckBuildingCards = useMemo(() => {
-    return Object.keys(deckList)
-      .map((id) => cards.find((c) => c.id === id))
-      .filter((c) => !!c); // Ensure card exists in DB
-  }, [deckList, cards]);
+    return Object.entries(deckList)
+      .filter(([id, count]) => count > 0)
+      .map(([id, count]) => {
+        const baseId = id.split("_")[0];
+        const baseInfo = cards.find((c) => c.id === baseId);
+        const marketInfo = marketData.prices?.find((p) => p.id === id);
+
+        return {
+          ...baseInfo,
+          ...marketInfo,
+          id: id, // Ensures the ID is the specific one (e.g., _p1)
+        };
+      })
+      .filter((c) => !!c.name); // Final check to ensure card data was found
+  }, [deckList, cards, marketData]);
+
+  const deckValuation = useMemo(() => {
+    let totalHKD = 0;
+    let totalJPY = 0;
+    let missingCount = 0; // Track missing prices
+
+    Object.entries(activeList).forEach(([id, count]) => {
+      if (count <= 0) return;
+
+      const priceEntry = marketData[id];
+
+      // Check if price exists and is non-zero
+      const unitHKD = priceEntry
+        ? parseFloat(priceEntry.price) || parseFloat(priceEntry.hkd) || 0
+        : 0;
+      const unitJPY = priceEntry ? parseFloat(priceEntry.jpy) || 0 : 0;
+
+      if (unitHKD === 0) {
+        missingCount += 1; // Increment if no price found
+      }
+
+      totalHKD += unitHKD * count;
+      totalJPY += unitJPY * count;
+    });
+
+    return {
+      totalHKD,
+      totalJPY,
+      missingCount, // Return this for the UI
+    };
+  }, [activeList, marketData]);
+
+  const deckTableData = useMemo(() => {
+    // 1. Determine source of truth
+    const activeList = isMarketMode ? marketList : deckList;
+
+    if (!activeList || !cards) return [];
+
+    return Object.entries(activeList)
+      .filter(([_, count]) => count > 0)
+      .map(([id, quantity]) => {
+        const baseId = id.split("_")[0];
+        const cardBase = cards.find((c) => c.id === baseId) || {};
+        const priceEntry = marketData[id] || {};
+
+        const unitPrice =
+          parseFloat(priceEntry.price) || parseFloat(priceEntry.hkd) || 0;
+        const totalPrice = unitPrice * quantity;
+
+        return {
+          id,
+          name: cardBase.name || "Unknown Card",
+          category: cardBase.category || "Unknown", // "Leader", "Character", etc.
+          quantity,
+          unitPrice,
+          totalPrice,
+        };
+      })
+      .sort((a, b) => {
+        // 2. ONLY prioritize the Leader
+        const isALeader = a.category === "Leader";
+        const isBLeader = b.category === "Leader";
+
+        if (isALeader && !isBLeader) return -1;
+        if (!isALeader && isBLeader) return 1;
+
+        // 3. For everything else, return 0 to keep the original import order
+        return 0;
+      });
+  }, [isMarketMode, marketList, deckList, cards, marketData]);
 
   // NAVIGATION LOGIC FOR MODAL
   const activeCardsList = useMemo(() => {
+    if (appMode === "MARKETPLACE") {
+      // Map the IDs from your table back to full card objects
+      // to ensure navigateCard can find the current ID
+      return deckTableData.map((item) => {
+        const baseInfo =
+          cards.find((c) => c.id === item.id.split("_")[0]) || {};
+        const marketInfo =
+          marketData.prices?.find((p) => p.id === item.id) || {};
+        return { ...baseInfo, ...marketInfo, id: item.id };
+      });
+    }
     return appMode === "DECK" ? deckBuildingCards : filteredCards;
-  }, [appMode, deckBuildingCards, filteredCards]);
+  }, [
+    appMode,
+    deckTableData,
+    deckBuildingCards,
+    filteredCards,
+    cards,
+    marketData,
+  ]);
 
   const navigateCard = useCallback(
     (direction) => {
@@ -1564,40 +1822,189 @@ const App = () => {
     [selectedCard, activeCardsList],
   );
 
+  // Note: cycle throuhgh all versions of cards in database
+  const cycleParallel = useCallback(
+    (direction) => {
+      if (!selectedCard || !cards) return;
+
+      // 1. Get the Base ID (e.g., "ST02-007")
+      const baseId = selectedCard.id.split("_")[0];
+
+      // 2. Filter: Only base cards or suffixes starting with 'P'
+      const versions = cards
+        .filter((c) => {
+          if (!c.id || !String(c.id).startsWith(baseId)) return false;
+
+          const parts = c.id.split("_");
+          // If no underscore, it's the base card (e.g., "ST02-007")
+          if (parts.length === 1) return true;
+
+          // If there's a suffix, only keep it if it starts with 'P'
+          const suffix = parts[1].toLowerCase();
+          return suffix.startsWith("p");
+        })
+        .sort((a, b) => a.id.localeCompare(b.id));
+
+      if (versions.length <= 1) return;
+
+      // 3. Find where we are currently
+      const currentIndex = versions.findIndex((v) => v.id === selectedCard.id);
+
+      // 4. Calculate next index (The "Four-Liner")
+      const nextIndex =
+        (currentIndex + direction + versions.length) % versions.length;
+      const nextCard = versions[nextIndex];
+
+      const newId = nextCard.id;
+      const oldId = selectedCard.id;
+
+      // 5. Update Deck List
+      setDeckList((prev) => {
+        const newDeck = { ...prev };
+        if (newDeck[oldId]) {
+          const currentCount = newDeck[oldId];
+          delete newDeck[oldId];
+          newDeck[newId] = currentCount;
+        }
+        return newDeck;
+      });
+
+      // 6. Update Modal View
+      // We merge the master card info with any price data we have in marketData
+      setSelectedCard({
+        ...nextCard,
+        ...(marketData[newId] || {}), // If no price, this just adds nothing
+        id: newId,
+      });
+    },
+    [selectedCard, cards, marketData, setDeckList],
+  );
+
+  // Note: only cycle through versions that have price data.
+  // const cycleParallel = useCallback(
+  //   (direction) => {
+  //     // 1. Get the array of versions
+  //     const allPrices = Array.isArray(cardPrices)
+  //       ? cardPrices
+  //       : cardPrices?.prices;
+  //     if (!selectedCard || !allPrices) return;
+
+  //     const baseId = selectedCard.id.split("_")[0];
+  //     const versions = allPrices.filter(
+  //       (p) => p.id && String(p.id).startsWith(baseId),
+  //     );
+
+  //     if (versions.length <= 1) return;
+
+  //     // --- START OF THE "FOUR-LINER" LOGIC ---
+  //     const currentIndex = versions.findIndex((v) => v.id === selectedCard.id);
+  //     // This formula handles the looping perfectly for a single button (direction = 1)
+  //     const nextIndex =
+  //       (currentIndex + direction + versions.length) % versions.length;
+  //     const nextCard = versions[nextIndex];
+  //     // --- END OF THE "FOUR-LINER" LOGIC ---
+
+  //     const originalInfo = cards.find((c) => c.id === baseId) || {};
+  //     const newId = nextCard.id;
+  //     const oldId = selectedCard.id;
+
+  //     // 3. Update Deck List
+  //     setDeckList((prev) => {
+  //       const newDeck = { ...prev };
+  //       if (newDeck[oldId]) {
+  //         const currentCount = newDeck[oldId];
+  //         delete newDeck[oldId];
+  //         newDeck[newId] = currentCount;
+  //       }
+  //       return newDeck;
+  //     });
+
+  //     // 4. Update Modal View using the ID-indexed marketData we built earlier
+  //     setSelectedCard({
+  //       ...originalInfo,
+  //       ...(marketData[newId] || nextCard),
+  //       id: newId,
+  //     });
+  //   },
+  //   [selectedCard, cards, marketData, setDeckList],
+  // );
+  const bulkUpdateRarity = useCallback(
+    (type) => {
+      const allPrices = Array.isArray(cardPrices)
+        ? cardPrices
+        : cardPrices?.prices || [];
+
+      // Determine which setter to use based on mode
+      const setter = isMarketMode ? setMarketList : setDeckList;
+
+      setter((prev) => {
+        const newList = {};
+
+        Object.entries(prev).forEach(([currentId, count]) => {
+          if (count <= 0) return;
+          const baseId = String(currentId).split("_")[0];
+
+          if (type === "BASIC") {
+            newList[baseId] = (newList[baseId] || 0) + count;
+          } else if (type === "MAX") {
+            const versions = allPrices
+              .filter((p) => p.id && String(p.id).startsWith(baseId))
+              .sort((a, b) => {
+                const getNum = (fullId) => {
+                  const strId = String(fullId);
+                  return strId.includes("_p")
+                    ? parseInt(strId.split("_p")[1], 10) || 0
+                    : 0;
+                };
+                return getNum(b) - getNum(a);
+              });
+
+            const highestId = versions.length > 0 ? versions[0].id : baseId;
+            newList[highestId] = (newList[highestId] || 0) + count;
+          }
+        });
+        return newList;
+      });
+    },
+    [isMarketMode, setDeckList, setMarketList, cardPrices], // Added necessary dependencies
+  );
+
+  const getHelpContent = () => {
+    switch (appMode) {
+      case "IMPORT":
+        return {
+          deck: "請選擇牌組模式。",
+          single: "",
+        };
+      case "DECK":
+        return {
+          deck: "點擊加減按鈕將會更新您的牌組。",
+          single: "點擊加減按鈕將會更新您的單卡清單，而非此處看到的牌組。",
+        };
+      case "MARKETPLACE":
+        return {
+          deck: "對牌組進行報價。",
+          single: "管理您的收購/出售清單，對單卡進行報價。",
+        };
+      case "SEARCH":
+        return {
+          deck: "搜尋卡牌並加入您的牌組。",
+          single: "搜尋卡牌並加入單卡報價清單。",
+        };
+
+      default:
+        return { deck: "牌組", single: "單卡" };
+    }
+  };
+
+  const help = getHelpContent();
+
   // --- 效果文字格式化渲染邏輯 ---
   const renderFormattedEffect = (text) => {
     if (!text) return null;
 
     // 預處理換行與移除 HTML 標籤
     const plainText = text.replace(/<br>/g, "\n");
-
-    // 定義各類別關鍵字與其對應樣式
-    // const rules = [
-    //   {
-    //     keywords: ["【主要】", "【啟動主要】", "【攻擊時】","【對方攻擊時】", "【KO時】", "【我方回合中】", "【對方回合中】", "【我方回合結束時】", "【登場時】"],
-    //     style: "bg-blue-600 text-white px-0 py-0.5 rounded text-[13px] leading-tight font-bold mx-0.5 inline-block"
-    //   },
-    //   {
-    //     keywords: ["【每回合1次】"],
-    //     style: "bg-red-600 text-white px-0 py-0.5 rounded-full text-[13px] leading-tight font-bold mx-0.5 inline-block"
-    //   },
-    //   {
-    //     keywords: ["【反擊】"],
-    //     style: "bg-red-600 text-white px-0 py-0.5 rounded text-[13px] leading-tight font-bold mx-0.5 inline-block"
-    //   },
-    //   {
-    //     keywords: ["【速攻】", "【防禦】", "【速攻：角色】", "【防禦不可】", "【雙重攻擊】", "【消失】"],
-    //     style: "bg-orange-500 text-white px-0 py-0.5 text-[13px] leading-tight font-bold mx-0.5 inline-block [clip-path:polygon(10%_0%,_90%_0%,_100%_50%,_90%_100%,_10%_100%,_0%_50%)]"
-    //   },
-    //   {
-    //     keywords: ["【咚‼×1】", "【咚‼×2】", "【咚‼×3】", "【咚‼×4】", "【咚‼×5】", "【咚‼×6】", "【咚‼×7】", "【咚‼×8】", "【咚‼×9】", "【咚‼×10】"],
-    //     style: "bg-slate-900 text-white px-0 py-0.5 rounded text-[13px] leading-tight font-bold mx-0.5 inline-block [clip-path:polygon(10%_0%,_90%_0%,_100%_10%,_100%_90%,_90%_100%,_10%_100%,_0%_90%,_0%_10%)]"
-    //   },
-    //   {
-    //     keywords: ["【觸發器】"],
-    //     style: "bg-yellow-200 text-black pl-0 pr-2 py-0.5 rounded text-[13px] leading-tight font-bold mx-0.5 inline-block [clip-path:polygon(0%_0%,_100%_0%,_85%_100%,_0%_100%)]"
-    //   }
-    // ];
 
     const allKeywords = rules.flatMap((r) => r.keywords);
     const keywordRegexPart = allKeywords
@@ -1653,7 +2060,7 @@ const App = () => {
         const match = part.match(/^([^()]+)(\([^)]*\))?([:：])$/);
 
         if (match) {
-          const [_, mainText, parens, colon] = match;
+          const [, mainText, parens, colon] = match;
           return (
             <span key={index}>
               {/* 1. Bold White Text (Main Cost) */}
@@ -1698,26 +2105,23 @@ const App = () => {
     });
   };
 
-  // const navigateCard = useCallback((direction) => {
-  //   if (!selectedCard) return;
-  //   const currentIndex = filteredCards.findIndex(c => c.id === selectedCard.id);
-  //   if (currentIndex === -1) return;
-  //   const nextIndex = currentIndex + direction;
-  //   if (nextIndex >= 0 && nextIndex < filteredCards.length) {
-  //     setSelectedCard(filteredCards[nextIndex]);
-  //   }
-  // }, [selectedCard, filteredCards]);
-
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!selectedCard) return;
       if (e.key === "ArrowLeft") navigateCard(-1);
       if (e.key === "ArrowRight") navigateCard(1);
+
+      // Up/Down: Now both cycle "Forward" to match your single-button UI
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault(); // Prevents the page from scrolling while in the modal
+        cycleParallel(1);
+      }
+
       if (e.key === "Escape") setSelectedCard(null);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedCard, navigateCard]);
+  }, [selectedCard, navigateCard, cycleParallel]);
 
   const totalDeckCount = useMemo(
     () => Object.values(deckList).reduce((a, b) => a + b, 0),
@@ -1766,10 +2170,13 @@ const App = () => {
     return leader ? [leader, ...nonLeaders] : nonLeaders;
   }, [deckList, cards]);
 
-  const updatePrice = (id, price) => {
+  const updatePrice = (id, newPrice) => {
     setMarketData((prev) => ({
       ...prev,
-      [id]: { ...prev[id], price },
+      [id]: {
+        ...prev[id],
+        price: newPrice, // Updates the value as you type
+      },
     }));
   };
 
@@ -1778,61 +2185,6 @@ const App = () => {
       ...prev,
       [id]: { ...prev[id], type: prev[id]?.type === "BUY" ? "SELL" : "BUY" },
     }));
-  };
-
-  // 獨立組件：卡片快速控制面板
-  const QuickController = ({ card, isDeckMode = false }) => {
-    if (appMode === "MARKETPLACE") return null;
-
-    const count = deckList[card.id] || 0;
-    const baseTotal = getBaseIdCount(card.id);
-    const isLeader = card.category === "Leader";
-    const canAdd = isLeader ? count === 0 : baseTotal < 4;
-
-    return (
-      <div
-        className={`
-        flex items-center bg-black/80 backdrop-blur-md 
-        rounded-full border border-white/20 
-        p-1.5 sm:p-2
-        opacity-80 group-hover:opacity-100 
-        transition-opacity duration-200 shadow-lg
-        ${
-          isDeckMode
-            ? "" // no absolute positioning in deck mode
-            : "absolute bottom-3 left-1/2 -translate-x-1/2 z-20"
-        }
-      `}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={() => updateDeckCount(card, -1)}
-          className="w-4 h-4 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors font-bold text-lg"
-        >
-          −
-        </button>
-
-        <span
-          className={`
-          px-2.5 text-sm font-black min-w-[28px] text-center
-          ${count > 0 ? "text-yellow-300" : "text-white"}
-        `}
-        >
-          {count}
-        </span>
-
-        <button
-          onClick={() => updateDeckCount(card, 1)}
-          disabled={!canAdd}
-          className={`
-          w-4 h-4 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors font-bold text-lg
-          ${!canAdd ? "opacity-40 cursor-not-allowed" : ""}
-        `}
-        >
-          +
-        </button>
-      </div>
-    );
   };
 
   // this is for the format matching for the keyword badges in the card effect text. It checks if the keyword exists in the rules and returns the corresponding style. If not found, it defaults to a standard blue badge style.
@@ -1862,7 +2214,7 @@ const App = () => {
           {/* Left: title */}
           <h1
             className="
-                text-lg sm:text-2xl md:text-3xl lg:text-4xl 
+                text-xl sm:text-2xl md:text-3xl lg:text-4xl 
                 font-bold bg-gradient-to-r from-yellow-400 to-red-500 
                 bg-clip-text text-transparent 
                 tracking-tight uppercase
@@ -1870,71 +2222,78 @@ const App = () => {
                 flex-shrink-1 min-w-0
           "
           >
-            One Piece卡牌卡表
+            齊齊砌
           </h1>
 
-          {/* Right: all three buttons in one row */}
-          <div
-            className="
-            flex items-center gap-3 sm:gap-4 lg:gap-6 
-            flex-shrink-0 ml-auto
-          "
-          >
+          <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 flex-shrink-0 ml-auto">
+            {/* 1. Import Button */}
             <button
-              onClick={() => setAppMode("SEARCH")}
+              onClick={() => {
+                // 1. Set the mode to IMPORT
+                setAppMode("IMPORT");
+
+                // 2. Clean up the old boolean if it's still being used for logic elsewhere
+                if (typeof setIsImportingDeck === "function") {
+                  setIsImportingDeck(false);
+                }
+              }}
               className={`
-                px-3 py-2 rounded-md text-sm font-bold transition-all
-                flex items-center justify-center
+                px-3 py-2 rounded-md transition-all flex items-center justify-center
                 ${
-                  appMode === "SEARCH"
+                  // FIX: Check for the IMPORT mode string, not the boolean
+                  appMode === "IMPORT"
                     ? "bg-blue-600 text-white shadow-lg"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
                 }
               `}
-              title="卡牌搜尋" // ← tooltip when hovering
-              aria-label="卡牌搜尋" // ← accessibility
+              title="導入牌組代碼"
+              aria-label="導入牌組代碼"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 640 640"
-                className={`
-                  w-5 h-5               // adjust size as needed
-                  ${appMode === "SEARCH" ? "text-white" : "text-slate-400 group-hover:text-slate-200"}
-                `}
-                fill="currentColor" // makes it inherit the button's text color
-              >
-                <path d="M480 272C480 317.9 465.1 360.3 440 394.7L566.6 521.4C579.1 533.9 579.1 554.2 566.6 566.7C554.1 579.2 533.8 579.2 521.3 566.7L394.7 440C360.3 465.1 317.9 480 272 480C157.1 480 64 386.9 64 272C64 157.1 157.1 64 272 64C386.9 64 480 157.1 480 272zM272 416C351.5 416 416 351.5 416 272C416 192.5 351.5 128 272 128C192.5 128 128 192.5 128 272C128 351.5 192.5 416 272 416z" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setAppMode("DECK")}
-              className={`
-                px-3 py-2 rounded-md transition-all
-                flex items-center justify-center
-                ${
-                  appMode === "DECK"
-                    ? "bg-blue-600 text-white shadow-lg"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
-                }
-              `}
-              title="製作牌組" // tooltip on hover
-              aria-label="製作牌組" // accessibility
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 640 640"
-                className={`
-                  w-5 h-5
-                  ${appMode === "DECK" ? "text-white" : "text-slate-400 group-hover:text-slate-200"}
-                `}
+                // FIX: Icon color now also respects the IMPORT mode
+                className={`w-5 h-5 ${appMode === "IMPORT" ? "text-white" : "text-slate-400"}`}
                 fill="currentColor"
               >
-                <path d="M246.9 82.3L271 67.8C292.6 54.8 317.3 48 342.5 48C379.3 48 414.7 62.6 440.7 88.7L504.6 152.6C519.6 167.6 528 188 528 209.2L528 240.1L547.7 259.8L547.7 259.8C563.3 244.2 588.6 244.2 604.3 259.8C620 275.4 619.9 300.7 604.3 316.4L540.3 380.4C524.7 396 499.4 396 483.7 380.4C468 364.8 468.1 339.5 483.7 323.8L464 304L433.1 304C411.9 304 391.5 295.6 376.5 280.6L327.4 231.5C312.4 216.5 304 196.1 304 174.9L304 162.2C304 151 298.1 140.5 288.5 134.8L246.9 109.8C236.5 103.6 236.5 88.6 246.9 82.4zM50.7 466.7L272.8 244.6L363.3 335.1L141.2 557.2C116.2 582.2 75.7 582.2 50.7 557.2C25.7 532.2 25.7 491.7 50.7 466.7z" />
+                <path d="M342.6 73.4C330.1 60.9 309.8 60.9 297.3 73.4L169.3 201.4C156.8 213.9 156.8 234.2 169.3 246.7C181.8 259.2 202.1 259.2 214.6 246.7L288 173.3L288 384C288 401.7 302.3 416 320 416C337.7 416 352 401.7 352 384L352 173.3L425.4 246.7C437.9 259.2 458.2 259.2 470.7 246.7C483.2 234.2 483.2 213.9 470.7 201.4L342.7 73.4zM160 416C160 398.3 145.7 384 128 384C110.3 384 96 398.3 96 416L96 480C96 533 139 576 192 576L448 576C501 576 544 533 544 480L544 416C544 398.3 529.7 384 512 384C494.3 384 480 398.3 480 416L480 480C480 497.7 465.7 512 448 512L192 512C174.3 512 160 497.7 160 480L160 416z" />
               </svg>
             </button>
 
+            {/* 2. Deck Button */}
             <button
-              onClick={() => setAppMode("MARKETPLACE")}
+              onClick={() => {
+                setAppMode("DECK");
+                setIsImportingDeck(false); // Force import row to CLOSE
+              }}
+              className={`
+                px-3 py-2 rounded-md transition-all flex items-center justify-center
+                ${
+                  appMode === "DECK" && !isImportingDeck // Blue only when in Deck mode AND NOT importing
+                    ? "bg-blue-600 text-white shadow-lg"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
+                }
+              `}
+              title="製作牌組"
+              aria-label="製作牌組"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 640 640"
+                className={`w-5 h-5 ${appMode === "DECK" ? "text-white" : "text-slate-400"}`}
+                fill="currentColor"
+              >
+                <path d="M246.9 82.3L271 67.8C292.6 54.8 317.3 48 342.5 48C379.3 48 414.7 62.6 440.7 88.7L504.6 152.6C519.6 167.6 528 188 528 209.2L528 240.1L547.7 259.8L547.7 259.8C563.3 244.2 588.6 244.2 604.3 259.8C620 275.4 619.9 300.7 604.3 316.4L540.3 380.4C524.7 396 499.4 396 483.7 380.4C468 364.8 468.1 339.5 483.7 323.8L464 304L433.1 304C411.9 304 391.5 295.6 376.5 280.6L327.4 231.5C312.4 216.5 304 196.1 304 196.1L304 174.9L304 162.2C304 151 298.1 140.5 288.5 134.8L246.9 109.8C236.5 103.6 236.5 88.6 246.9 82.4zM50.7 466.7L272.8 244.6L363.3 335.1L141.2 557.2C116.2 582.2 75.7 582.2 50.7 557.2C25.7 532.2 25.7 491.7 50.7 466.7z" />
+              </svg>
+            </button>
+
+            {/* 3. Marketplace Button */}
+            <button
+              onClick={() => {
+                setAppMode("MARKETPLACE");
+                // ADD THIS LINE TO ALL THREE BUTTONS:
+                setIsImportingDeck(false); // Close the import panel and reset color
+              }}
               className={`
                 px-3 py-2 rounded-md transition-all flex items-center justify-center
                 ${
@@ -1954,32 +2313,143 @@ const App = () => {
                 <path d="M0 80C0 53.5 21.5 32 48 32h96c26.5 0 48 21.5 48 48v400c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V80zm224 0c0-26.5 21.5-48 48-48h96c26.5 0 48 21.5 48 48v400c0 26.5-21.5 48-48 48h-96c-26.5 0-48-21.5-48-48V80zm224 0c0-26.5 21.5-48 48-48h96c26.5 0 48 21.5 48 48v400c0 26.5-21.5 48-48 48h-96c-26.5 0-48-21.5-48-48V80z" />
               </svg>
             </button>
-          </div>
-          <div className="flex gap-2">
-            {["DECK", "MARKETPLACE"].includes(appMode) && (
-              <button
-                onClick={() => setIsImportingDeck(!isImportingDeck)}
-                className={`
-                  px-3 py-2 rounded-lg transition-colors
-                  flex items-center justify-center
-                  bg-indigo-600 hover:bg-indigo-500
-                  shadow-lg shadow-indigo-900/20
-                `}
-                title="導入牌組代碼" // tooltip on hover
-                aria-label="導入牌組代碼" // for screen readers
+
+            {/* 4. Search Button */}
+            <button
+              onClick={() => {
+                setAppMode("SEARCH");
+                // ADD THIS LINE TO ALL THREE BUTTONS:
+                setIsImportingDeck(false); // Close the import panel and reset color
+              }}
+              className={`
+                px-3 py-2 rounded-md text-sm font-bold transition-all
+                flex items-center justify-center
+                ${
+                  appMode === "SEARCH"
+                    ? "bg-blue-600 text-white shadow-lg"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
+                }
+              `}
+              title="卡牌搜尋"
+              aria-label="卡牌搜尋"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 640 640"
+                className={`w-5 h-5 ${appMode === "SEARCH" ? "text-white" : "text-slate-400"}`}
+                fill="currentColor"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 640 640"
-                  className="w-5 h-5 text-white" // white to match the indigo background
-                  fill="currentColor"
-                >
-                  <path d="M342.6 73.4C330.1 60.9 309.8 60.9 297.3 73.4L169.3 201.4C156.8 213.9 156.8 234.2 169.3 246.7C181.8 259.2 202.1 259.2 214.6 246.7L288 173.3L288 384C288 401.7 302.3 416 320 416C337.7 416 352 401.7 352 384L352 173.3L425.4 246.7C437.9 259.2 458.2 259.2 470.7 246.7C483.2 234.2 483.2 213.9 470.7 201.4L342.7 73.4zM160 416C160 398.3 145.7 384 128 384C110.3 384 96 398.3 96 416L96 480C96 533 139 576 192 576L448 576C501 576 544 533 544 480L544 416C544 398.3 529.7 384 512 384C494.3 384 480 398.3 480 416L480 480C480 497.7 465.7 512 448 512L192 512C174.3 512 160 497.7 160 480L160 416z" />
-                </svg>
-              </button>
-            )}
+                <path d="M480 272C480 317.9 465.1 360.3 440 394.7L566.6 521.4C579.1 533.9 579.1 554.2 566.6 566.7C554.1 579.2 533.8 579.2 521.3 566.7L394.7 440C360.3 465.1 317.9 480 272 480C157.1 480 64 386.9 64 272C64 157.1 157.1 64 272 64C386.9 64 480 157.1 480 272zM272 416C351.5 416 416 351.5 416 272C416 192.5 351.5 128 272 128C192.5 128 128 192.5 128 272C128 351.5 192.5 416 272 416z" />
+              </svg>
+            </button>
             {/* Hide the data management button for now, as it's more of an admin feature and might confuse regular users. We can reintroduce it later with proper access control. */}
             {/* <button onClick={() => setIsImporting(!isImporting)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-sm font-medium border border-slate-600 whitespace-nowrap">管理數據</button> */}
+          </div>
+          {/* Inside your Marketplace Header Div */}
+        </div>
+
+        {/* NEW SECOND ROW: Deck vs Market Toggle + Help */}
+        <div className="flex items-center justify-end gap-2 mt-2">
+          <div className="flex items-center gap-1 p-1 bg-slate-900/80 rounded-xl border border-slate-800 shadow-inner">
+            {/* Deck Mode (1+50) - Multiple Cards Icon */}
+            <button
+              onClick={() => setIsMarketMode(false)}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                !isMarketMode
+                  ? "bg-indigo-600 text-white shadow-lg"
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
+              title="Deck"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="2" y="6" width="10" height="14" rx="2" />
+                <path d="M6 2h10a2 2 0 0 1 2 2v14" />
+                <path d="M10 2h10a2 2 0 0 1 2 2v10" />
+              </svg>
+              <span className="hidden sm:inline">牌組</span>
+            </button>
+
+            {/* Market Mode (Bulk) - Single Card Icon */}
+            <button
+              onClick={() => setIsMarketMode(true)}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                isMarketMode
+                  ? "bg-amber-600 text-white shadow-lg"
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
+              title="Single"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="6" y="2" width="12" height="20" rx="2" />
+                <line x1="10" y1="6" x2="14" y2="6" />
+              </svg>
+              <span className="hidden sm:inline">單卡</span>
+            </button>
+          </div>
+
+          {/* Dynamic Help Button */}
+          <div className="relative group">
+            <button className="p-2 rounded-full bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors border border-slate-700">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </button>
+
+            {/* Tooltip Content using dynamic 'help' variable */}
+            <div className="absolute right-0 top-10 w-64 p-4 bg-slate-900 border border-blue-500/50 rounded-xl shadow-2xl invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all z-50">
+              <div className="space-y-3">
+                {/* <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-800">
+                  <span className="text-[10px] font-black text-blue-500 uppercase tracking-tighter">
+                    Current Mode: {appMode}
+                  </span>
+                </div> */}
+                <div>
+                  <p className="text-indigo-500 text-[10px] font-black uppercase mb-1">
+                    牌組模式 (Deck)
+                  </p>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    {help.deck}
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-slate-800">
+                  <p className="text-amber-500 text-[10px] font-black uppercase mb-1">
+                    單卡模式 (Single)
+                  </p>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    {help.single}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -2004,1147 +2474,8 @@ const App = () => {
         </div>
       )}
 
-      {isImportingDeck && (
-        <div className="max-w-7xl mx-auto w-full mb-8 p-6 bg-slate-800 rounded-xl border border-slate-700 shadow-2xl animate-in zoom-in-95 duration-200">
-          <h3 className="text-sm font-bold mb-3 text-slate-300">
-            導入牌組 (格式: 1xEB03-001)
-          </h3>
-          <textarea
-            className="w-full h-40 bg-slate-900 border border-slate-600 rounded-lg p-3 font-mono text-sm mb-4 focus:border-blue-500 outline-none"
-            placeholder="1xEB03-001&#10;3xOP01-006..."
-            value={deckInput}
-            onChange={(e) => setDeckInput(e.target.value)}
-          />
-          <button
-            onClick={handleImportDeckCode}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-bold transition-colors"
-          >
-            解析並導入
-          </button>
-        </div>
-      )}
-
       <main className="max-w-7xl mx-auto w-full flex flex-col md:flex-row gap-8 flex-grow">
-        {appMode === "SEARCH" ? (
-          <>
-            <aside className="w-full md:w-64 space-y-6">
-              {/* Clear Filters Button */}
-              <div className="flex justify-end mb-4">
-                <button
-                  onClick={resetFilters}
-                  className="
-                    px-2 py-1 
-                    bg-red-800 hover:bg-red-600 
-                    text-slate-200 hover:text-white
-                    rounded-lg border border-red-800
-                    text-sm font-medium transition-colors
-                    flex items-center gap-2
-                  "
-                >
-                  {/* <span>清空所有篩選</span> */}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 640 640"
-                    className="w-5 h-5 text-white"
-                    fill="currentColor"
-                  >
-                    <path d="M129.9 292.5C143.2 199.5 223.3 128 320 128C373 128 421 149.5 455.8 184.2C456 184.4 456.2 184.6 456.4 184.8L464 192L416.1 192C398.4 192 384.1 206.3 384.1 224C384.1 241.7 398.4 256 416.1 256L544.1 256C561.8 256 576.1 241.7 576.1 224L576.1 96C576.1 78.3 561.8 64 544.1 64C526.4 64 512.1 78.3 512.1 96L512.1 149.4L500.8 138.7C454.5 92.6 390.5 64 320 64C191 64 84.3 159.4 66.6 283.5C64.1 301 76.2 317.2 93.7 319.7C111.2 322.2 127.4 310 129.9 292.6zM573.4 356.5C575.9 339 563.7 322.8 546.3 320.3C528.9 317.8 512.6 330 510.1 347.4C496.8 440.4 416.7 511.9 320 511.9C267 511.9 219 490.4 184.2 455.7C184 455.5 183.8 455.3 183.6 455.1L176 447.9L223.9 447.9C241.6 447.9 255.9 433.6 255.9 415.9C255.9 398.2 241.6 383.9 223.9 383.9L96 384C87.5 384 79.3 387.4 73.3 393.5C67.3 399.6 63.9 407.7 64 416.3L65 543.3C65.1 561 79.6 575.2 97.3 575C115 574.8 129.2 560.4 129 542.7L128.6 491.2L139.3 501.3C185.6 547.4 249.5 576 320 576C449 576 555.7 480.6 573.4 356.5z" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="bg-slate-800 px-6 py-4 rounded-xl border border-slate-700 shadow-lg">
-                <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest">
-                  搜尋條件
-                </h3>
-                <input
-                  type="text"
-                  placeholder="名稱/編號/效果/>5/<=6000/+1000/ 用,分隔"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm mb-4 focus:border-blue-500 outline-none transition-colors"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <p className="text-[10px] text-slate-500 uppercase font-bold mb-2 tracking-widest">
-                  收錄卡包
-                </p>
-                <select
-                  value={filterPackId}
-                  onChange={(e) => setFilterPackId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm cursor-pointer mb-6 focus:border-blue-500 outline-none"
-                >
-                  <option value="所有">所有卡包</option>
-                  {sortedPackList.map((pack) => (
-                    <option key={pack.id} value={pack.id}>
-                      {pack.raw_title}
-                    </option>
-                  ))}
-                </select>
-                <label className="flex items-center gap-2 cursor-pointer mb-6 p-2 bg-slate-900/50 rounded-lg border border-slate-700 hover:border-slate-500 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={hideReprint}
-                    onChange={(e) => setHideReprint(e.target.checked)}
-                    className="w-4 h-4 rounded accent-blue-500"
-                  />
-                  <span className="text-xs font-bold text-slate-300">
-                    隱藏異圖和再錄卡
-                  </span>
-                </label>
-              </div>
-
-              <div className="space-y-4">
-                {/* Advanced Search Toggle Button */}
-                <button
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className={`w-full py-2.5 px-4 rounded-xl flex items-center justify-between transition-all font-bold text-sm ${
-                    showAdvanced
-                      ? "bg-slate-700 border-slate-500 text-white shadow-inner"
-                      : "bg-indigo-600/20 border-indigo-500/50 text-indigo-400 hover:bg-indigo-600/30"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{showAdvanced ? "󱊄" : "󰍉"}</span>
-                    {showAdvanced ? "隱藏進階搜尋" : "進階搜尋"}
-                  </div>
-                  <span
-                    className={`transition-transform duration-300 ${showAdvanced ? "rotate-180" : ""}`}
-                  >
-                    ▼
-                  </span>
-                </button>
-
-                {/* Advanced Filters Container */}
-                {showAdvanced && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="bg-slate-800 pt-4 pb-6 px-6 rounded-xl border border-slate-700 shadow-lg">
-                      <div className="space-y-3">
-                        <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">
-                          特徵篩選
-                        </p>
-                        <select
-                          value={filterType1}
-                          onChange={(e) => setFilterType1(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm cursor-pointer focus:border-blue-500 outline-none"
-                        >
-                          {typeOptions.map((opt) => (
-                            <option key={`t1-${opt}`} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="flex justify-center items-center gap-2 py-1">
-                          <button
-                            onClick={() => setTypeLogic("AND")}
-                            className={`flex-1 text-[10px] py-1 rounded-l border ${typeLogic === "AND" ? "bg-blue-600 border-blue-400 text-white" : "bg-slate-700 border-slate-600 text-slate-500"}`}
-                          >
-                            AND
-                          </button>
-                          <button
-                            onClick={() => setTypeLogic("OR")}
-                            className={`flex-1 text-[10px] py-1 rounded-r border ${typeLogic === "OR" ? "bg-blue-600 border-blue-400 text-white" : "bg-slate-700 border-slate-600 text-slate-500"}`}
-                          >
-                            OR
-                          </button>
-                        </div>
-                        <select
-                          value={filterType2}
-                          onChange={(e) => setFilterType2(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm cursor-pointer mb-4 focus:border-blue-500 outline-none"
-                        >
-                          {typeOptions.map((opt) => (
-                            <option key={`t2-${opt}`} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-800 pt-4 pb-6 px-6 rounded-xl border border-slate-700 shadow-lg">
-                      {/* Toggle Header */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
-                          關鍵字過濾
-                        </span>
-
-                        <div className="flex-wrap gap-1.5 mb-3">
-                          <button
-                            onClick={() => setIsExcludeMode(!isExcludeMode)}
-                            className={`flex items-center gap-2 px-3 py-1 my-1 rounded-full border transition-all text-[11px] font-bold ${
-                              isExcludeMode
-                                ? "bg-red-500/20 border-red-500/50 text-red-400"
-                                : "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
-                            }`}
-                          >
-                            <span
-                              className={`w-2 h-2 rounded-full animate-pulse ${isExcludeMode ? "bg-red-500" : "bg-emerald-500"}`}
-                            ></span>
-                            {isExcludeMode
-                              ? "排除模式 (NOT)"
-                              : "包含模式 (HAS)"}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="flex-wrap gap-1.5">
-                        {quickKeywords.map((k) => {
-                          const isSelected = selectedKeywords.includes(k);
-                          const baseStyle = getKeywordStyle(k);
-
-                          return (
-                            <button
-                              key={k}
-                              onClick={() => toggleKeyword(k)}
-                              className={`text-[13px] transition-all border shadow-sm ${
-                                isSelected
-                                  ? `${baseStyle} border-white/40 scale-105`
-                                  : "bg-slate-700/50 border-slate-600 text-slate-400 hover:border-slate-500 rounded px-2 py-1"
-                              }`}
-                              /* We use a specific style for the clip-path to ensure it renders correctly on buttons */
-                              style={
-                                isSelected && baseStyle.includes("clip-path")
-                                  ? {
-                                      clipPath: baseStyle
-                                        .split("clip-path:")[1]
-                                        .split("]")[0],
-                                    }
-                                  : {}
-                              }
-                            >
-                              {k.replace(/【|】/g, "")}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
-                      <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest">
-                        顏色 (多選)
-                      </h3>
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {[
-                          "所有",
-                          "紅色",
-                          "綠色",
-                          "藍色",
-                          "紫色",
-                          "黑色",
-                          "黃色",
-                          "多色",
-                        ].map((c) => {
-                          const isSelected =
-                            (c === "所有" && selectedColors.length === 0) ||
-                            selectedColors.includes(c);
-
-                          const colorMap = {
-                            紅色: "bg-red-600 border-red-400 text-white",
-                            綠色: "bg-emerald-600 border-emerald-400 text-white",
-                            藍色: "bg-blue-600 border-blue-400 text-white",
-                            紫色: "bg-purple-600 border-purple-400 text-white",
-                            黑色: "bg-slate-950 border-slate-500 text-white",
-                            黃色: "bg-yellow-500 border-yellow-300 text-black",
-                            多色: "bg-gradient-to-br from-red-500 via-blue-500 to-yellow-500 border-white/50 text-white",
-                            所有: "bg-indigo-600 border-indigo-400 text-white",
-                          };
-
-                          return (
-                            <button
-                              key={c}
-                              onClick={() => toggleColor(c)}
-                              className={`px-2 py-1 rounded text-[13px] font-bold border transition-all ${
-                                isSelected
-                                  ? colorMap[c] // Use the dynamic color from our map
-                                  : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600"
-                              }`}
-                            >
-                              {c}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest mt-6 border-t border-slate-700 pt-4">卡片類別</h3>
-                <div className="flex flex-wrap gap-x-4 gap-y-2">
-                  {['所有', '領航卡', '角色卡', '事件卡', '舞台卡'].map(cat => (
-                    <label key={cat} className="flex items-center gap-1.5 cursor-pointer text-sm group whitespace-nowrap">
-                      <input 
-                        type="radio" 
-                        name="category"
-                        checked={filterCategory === cat} 
-                        onChange={() => setFilterCategory(cat)} 
-                        className="w-3.5 h-3.5 accent-blue-500 cursor-pointer" 
-                      />
-                      <span className={`transition-colors ${
-                        filterCategory === cat 
-                          ? 'text-blue-400 font-bold' 
-                          : 'text-slate-400 group-hover:text-slate-200'
-                      }`}>
-                        {cat}
-                      </span>
-                    </label>
-                  ))}
-                </div> */}
-
-                      <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest mt-6 border-t border-slate-700 pt-4">
-                        卡牌種類
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {["所有", "領航卡", "角色卡", "事件卡", "舞台卡"].map(
-                          (cat) => {
-                            // Toggle logic: If "所有" is selected, filterCategory is '所有'
-                            const isSelected = filterCategory === cat;
-
-                            const categoryColorMap = {
-                              所有: "bg-indigo-600 border-indigo-400 text-white",
-                              領航卡: "bg-blue-600 border-blue-400 text-white",
-                              角色卡: "bg-blue-600 border-blue-400 text-white",
-                              事件卡: "bg-blue-600 border-blue-400 text-white",
-                              舞台卡: "bg-blue-600 border-blue-400 text-white",
-                            };
-
-                            return (
-                              <button
-                                key={cat}
-                                onClick={() => setFilterCategory(cat)}
-                                className={`px-3 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 ${
-                                  isSelected
-                                    ? categoryColorMap[cat]
-                                    : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600 hover:border-slate-500"
-                                }`}
-                              >
-                                {cat}
-                              </button>
-                            );
-                          },
-                        )}
-                      </div>
-
-                      <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest mt-6 border-t border-slate-700 pt-4">
-                        稀有度 (多選)
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          "所有",
-                          "領航卡 (L)",
-                          "普通 (C)",
-                          "不普通 (UC)",
-                          "稀有 (R)",
-                          "超級稀有 (SR)",
-                          "絕密稀有 (SEC)",
-                          "特殊卡 (SP)",
-                        ].map((rar) => {
-                          const isSelected =
-                            (rar === "所有" && selectedRarity.length === 0) ||
-                            selectedRarity.includes(rar);
-
-                          const rarityColorMap = {
-                            所有: "bg-indigo-600 border-indigo-400 text-white",
-                            "領航卡 (L)":
-                              "bg-blue-500 border-blue-300 text-white", // L
-                            "普通 (C)":
-                              "bg-blue-600 border-blue-400 text-white", // C
-                            "不普通 (UC)":
-                              "bg-blue-600 border-blue-400 text-white", // UC
-                            "稀有 (R)":
-                              "bg-blue-600 border-blue-400 text-white", // R
-                            "超級稀有 (SR)":
-                              "bg-blue-600 border-blue-400 text-white", // SR (Gold)
-                            "絕密稀有 (SEC)":
-                              "bg-blue-600 border-blue-400 text-white", // SEC (Purple/Secret)
-                            "特殊卡 (SP)":
-                              "bg-blue-600 border-blue-400 text-white", // Special (Holofoil look)
-                            // '領航卡 (L)': 'bg-red-700 border-red-500 text-white', // L
-                            // '普通 (C)': 'bg-slate-400 border-slate-400 text-white', // C
-                            // '不普通 (UC)': 'bg-slate-500 border-slate-400 text-white', // UC
-                            // '稀有 (R)': 'bg-slate-600 border-slate-400 text-white', // R
-                            // '超級稀有 (SR)': 'bg-slate-700 border-slate-400 text-white', // SR (Gold)
-                            // '絕密稀有 (SEC)': 'bg-amber-600 border-amber-400 text-white shadow-[0_0_10px_rgba(251,191,36,0.3)]', // SEC (Purple/Secret)
-                            // '特殊卡 (SP)': 'bg-gradient-to-r from-yellow-400 via-white to-yellow-400 border-slate-300 text-slate-900 font-black', // Special (Holofoil look)
-                          };
-
-                          return (
-                            <button
-                              key={rar}
-                              onClick={() => {
-                                if (rar === "所有") {
-                                  setSelectedRarity([]);
-                                } else {
-                                  if (selectedRarity.includes(rar)) {
-                                    setSelectedRarity(
-                                      selectedRarity.filter(
-                                        (item) => item !== rar,
-                                      ),
-                                    );
-                                  } else {
-                                    setSelectedRarity([
-                                      ...selectedRarity.filter(
-                                        (item) => item !== "所有",
-                                      ),
-                                      rar,
-                                    ]);
-                                  }
-                                }
-                              }}
-                              className={`px-2 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 ${
-                                isSelected
-                                  ? rarityColorMap[rar]
-                                  : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600 hover:border-slate-500"
-                              }`}
-                            >
-                              {rar}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg"> */}
-                      <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 mt-6 border-t border-slate-700 pt-4">
-                        屬性
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {["所有", "打", "斬", "特", "射", "知"].map((attr) => {
-                          const isSelected =
-                            (attr === "所有" &&
-                              selectedAttributes.length === 0) ||
-                            selectedAttributes.includes(attr);
-
-                          return (
-                            <button
-                              key={attr}
-                              onClick={() => {
-                                if (attr === "所有") {
-                                  setSelectedAttributes([]);
-                                } else {
-                                  if (selectedAttributes.includes(attr)) {
-                                    setSelectedAttributes(
-                                      selectedAttributes.filter(
-                                        (item) => item !== attr,
-                                      ),
-                                    );
-                                  } else {
-                                    setSelectedAttributes([
-                                      ...selectedAttributes.filter(
-                                        (item) => item !== "所有",
-                                      ),
-                                      attr,
-                                    ]);
-                                  }
-                                }
-                              }}
-                              className={`px-3 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 ${
-                                isSelected
-                                  ? attr === "所有"
-                                    ? "bg-indigo-600 border-indigo-400 text-white"
-                                    : "bg-blue-600 border-blue-400 text-white"
-                                  : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600 hover:border-slate-500"
-                              }`}
-                            >
-                              {attr}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 mt-6 border-t border-slate-700 pt-4">
-                        擴張記號
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {["所有", "1", "2", "3", "4"].map((block) => {
-                          const isSelected =
-                            (block === "所有" && selectedBlocks.length === 0) ||
-                            selectedBlocks.includes(block);
-
-                          return (
-                            <button
-                              key={block}
-                              onClick={() => {
-                                if (block === "所有") {
-                                  setSelectedBlocks([]);
-                                } else {
-                                  if (selectedBlocks.includes(block)) {
-                                    setSelectedBlocks(
-                                      selectedBlocks.filter(
-                                        (item) => item !== block,
-                                      ),
-                                    );
-                                  } else {
-                                    setSelectedBlocks([
-                                      ...selectedBlocks.filter(
-                                        (item) => item !== "所有",
-                                      ),
-                                      block,
-                                    ]);
-                                  }
-                                }
-                              }}
-                              className={`px-2 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 min-w-[32px] ${
-                                isSelected
-                                  ? block === "所有"
-                                    ? "bg-indigo-600 border-indigo-400 text-white"
-                                    : "bg-blue-600 border-blue-400 text-white"
-                                  : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600 hover:border-slate-500"
-                              }`}
-                            >
-                              {block}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </aside>
-
-            <section className="flex-1">
-              <p className="text-xs text-slate-400 mb-4 px-1 font-bold flex justify-between">
-                <span>
-                  符合條件:{" "}
-                  <span className="text-blue-400">{filteredCards.length}</span>{" "}
-                  張卡片
-                </span>
-                <span>
-                  牌組總計:{" "}
-                  <span
-                    className={
-                      totalDeckCount === 51
-                        ? "text-green-400"
-                        : "text-slate-300"
-                    }
-                  >
-                    {totalDeckCount} / 51
-                  </span>
-                </span>
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filteredCards.map((card) => (
-                  <div
-                    key={card.id}
-                    onClick={() => setSelectedCard(card)}
-                    className="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-blue-500 hover:shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all cursor-pointer group shadow-sm relative"
-                  >
-                    <div className="aspect-[2.5/3.5] relative overflow-hidden bg-slate-950">
-                      <img
-                        src={getSafeImageUrl(card)}
-                        alt={card.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                      />
-                      {appMode !== "MARKETPLACE" && (
-                        <QuickController
-                          card={card}
-                          isDeckMode={appMode === "DECK"}
-                        />
-                      )}
-
-                      {appMode === "MARKETPLACE" && (
-                        <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden">
-                          <div
-                            className={`absolute top-0 right-0 px-8 py-1 mt-4 -mr-8 rotate-45 text-[10px] font-black text-white shadow-md pointer-events-auto cursor-pointer transition-colors ${marketData[card.id]?.type === "BUY" ? "bg-emerald-500" : "bg-rose-600"}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleMarketType(card.id);
-                            }}
-                          >
-                            {marketData[card.id]?.type === "BUY"
-                              ? "WTB / 收"
-                              : "WTS / 賣"}
-                          </div>
-                          <div className="absolute bottom-2 left-0 right-0 px-2 pointer-events-auto">
-                            <input
-                              type="text"
-                              placeholder="價格..."
-                              value={marketData[card.id]?.price || ""}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) =>
-                                updatePrice(card.id, e.target.value)
-                              }
-                              className="w-full bg-slate-900/95 border border-slate-700 rounded text-center text-xs py-1 text-white font-mono outline-none focus:border-blue-500"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <p className="text-[10px] text-slate-500 font-mono font-bold">
-                        {card.id}
-                      </p>
-                      <h4 className="font-bold text-sm truncate text-slate-100 group-hover:text-blue-300 transition-colors">
-                        {card.name}
-                      </h4>
-                    </div>
-                    {/* Bottom section: card ID + QuickController */}
-                    {/* <div className="
-                      px-3 py-2 flex items-center justify-between 
-                      bg-slate-900/80 border-t border-slate-700
-                    "> */}
-                    {/* Left: card ID – takes available space */}
-                    {/* <p className="text-[10px] md:text-xs font-mono font-bold text-slate-400 tracking-tight">
-                        {card.id}
-                      <h4 className="font-bold text-sm truncate text-slate-100 group-hover:text-blue-300 transition-colors">
-                        {card.name}
-                      </h4>
-                      </p> */}
-
-                    {/* Right: QuickController – smaller & doesn't stretch */}
-                    {/* <QuickController card={card} isDeckMode={appMode === 'DECK'} /> */}
-                    {/* </div> */}
-                  </div>
-                ))}
-              </div>
-            </section>
-          </>
-        ) : (
-          <section className="w-full">
-            <div
-              className={`relative mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 rounded-2xl border transition-all duration-500 overflow-hidden group shadow-xl ${
-                selectedLeader
-                  ? "border-slate-700/50"
-                  : "border-dashed border-sky-500/30 bg-slate-800/40"
-              }`}
-              style={
-                selectedLeader
-                  ? {
-                      backgroundImage: `url(${getSafeImageUrl(selectedLeader)})`,
-                      backgroundSize: "110% auto",
-                      backgroundPosition: "center 10%", // Shifted slightly to show the character face better
-                      backgroundRepeat: "no-repeat",
-                    }
-                  : {}
-              }
-            >
-              {/* Overlay - Using a gradient to protect text but show the art */}
-              {selectedLeader && (
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent transition-all duration-500 group-hover:from-slate-950/80" />
-              )}
-
-              {/* Content Section */}
-              <div className="relative z-10">
-                {selectedLeader ? (
-                  <>
-                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
-                      製作牌組{" "}
-                      <span className="text-sky-400 font-mono text-sm ml-2">
-                        {selectedLeader.name}
-                      </span>
-                    </h2>
-                    <div className="flex items-center gap-3 mt-1">
-                      <p className="text-sm text-slate-300">
-                        總張數：
-                        <span
-                          className={`font-black ml-1 ${totalDeckCount === 51 ? "text-green-400" : "text-red-400"}`}
-                        >
-                          {totalDeckCount} / 51
-                        </span>
-                      </p>
-                      <div className="h-1 w-1 rounded-full bg-slate-600" />
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                        {selectedLeader.id}
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h2 className="text-xl font-bold text-sky-400 flex items-center gap-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      尚未選擇領袖 (Select a Leader)
-                    </h2>
-                    <p className="text-sm text-slate-500 mt-1">
-                      請先從卡片列表中點擊「領袖卡」以開始編輯您的牌組。
-                    </p>
-                  </>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="relative z-10 w-full sm:w-auto mt-4 sm:mt-0 flex gap-2">
-                {selectedLeader && (
-                  <button
-                    onClick={() => setDeckList({})}
-                    className="flex-1 sm:flex-none text-[10px] font-black text-red-400 hover:text-red-300 hover:bg-red-950/40 border border-red-900/50 rounded-lg transition-all uppercase tracking-widest px-4 py-2"
-                  >
-                    清空牌組 (Clear)
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2 md:gap-4 mb-2">
-              {orderedDeck.map(({ card, count }) => (
-                <div
-                  key={card.id}
-                  onClick={() => setSelectedCard(card)}
-                  className="
-                    bg-slate-800 rounded-md md:rounded-xl 
-                    overflow-hidden border border-slate-700 
-                    hover:border-indigo-500 transition-all 
-                    cursor-pointer group relative shadow-lg
-                    flex flex-col
-                  "
-                >
-                  <div className="aspect-[2.5/3.5] relative overflow-hidden bg-slate-950">
-                    <img
-                      src={getSafeImageUrl(card)}
-                      alt={card.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
-
-                    {appMode === "MARKETPLACE" && (
-                      /* Badge - Anchored to Top Right */
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleMarketType(card.id);
-                        }}
-                        className={`
-                          absolute top-0 right-0 z-30
-                          px-2 py-1 rounded-bl-md
-                          shadow-md cursor-pointer pointer-events-auto
-                          flex flex-col items-center justify-center
-                          transition-colors duration-200
-                          ${marketData[card.id]?.type === "BUY" ? "bg-emerald-500" : "bg-rose-600"}
-                        `}
-                      >
-                        <span className="text-[7px] sm:text-[9px] font-black text-white uppercase leading-none tracking-tighter">
-                          {marketData[card.id]?.type === "BUY" ? "WTB" : "WTS"}
-                        </span>
-                        <span className="text-[8px] sm:text-[10px] font-bold text-white leading-none mt-0.5">
-                          {marketData[card.id]?.type === "BUY" ? "收" : "賣"}
-                        </span>
-
-                        {/* Price Input - Compacted for mobile */}
-                        {/* <div className="absolute bottom-3 left-0 right-0 px-0.5 pointer-events-auto">
-                            <input
-                              type="text"
-                              placeholder="價格"
-                              value={marketData[card.id]?.price || ""}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) =>
-                                updatePrice(card.id, e.target.value)
-                              }
-                              className="
-                              w-full bg-slate-950/80 border border-slate-700/50 rounded-sm
-                              text-center text-[8px] sm:text-[10px] py-0
-                              h-4 sm:h-5 text-white font-mono outline-none focus:border-blue-500
-                            "
-                            />
-                          </div> */}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Leader indicator - still at top-left of image */}
-                  {card.category === "Leader" && (
-                    <div className="absolute top-2 left-2 z-10 bg-purple-600/90 text-white text-xs font-bold px-2 py-0.5 rounded shadow-md">
-                      領航
-                    </div>
-                  )}
-
-                  {/* Optional count badge - top-right of image */}
-                  {/* {count > 1 && (
-                    <div className="absolute top-2 right-2 z-10 bg-blue-600/90 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-md">
-                      ×{count}
-                    </div>
-                  )} */}
-
-                  {/* Bottom section – now handles dynamic Row 2 */}
-                  <div className="bg-slate-900/80 border-t border-slate-700">
-                    {/* Row 1: Card ID – Always visible */}
-                    <div className="px-1 pt-2 pb-1 text-center md:text-left">
-                      <p className="text-[10px] md:text-xs font-mono font-bold text-slate-400 tracking-tight whitespace-nowrap">
-                        {card.id}
-                      </p>
-                    </div>
-
-                    {/* Row 2: Dynamic Content (QuickController vs Price Input) */}
-                    <div className="px-2 pb-2.5 flex justify-center">
-                      {appMode === "MARKETPLACE" ? (
-                        /* Marketplace Mode: Price Input appears here instead of on the image */
-                        <div className="w-full px-1">
-                          <textarea
-                            type="text"
-                            placeholder="價格"
-                            value={marketData[card.id]?.price || ""}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) =>
-                              updatePrice(card.id, e.target.value)
-                            }
-                            rows={2}
-                            className="
-                              w-full bg-slate-950 border border-slate-700 rounded-sm
-                              text-center text-[9px] sm:text-[10px] p-1
-                              min-h-[34px] max-h-[50px]
-                              text-white font-mono outline-none focus:border-blue-500
-                              shadow-inner resize-none overflow-hidden
-                              leading-tight flex items-center justify-center
-                            "
-                          />
-                        </div>
-                      ) : (
-                        /* Deck Mode: QuickController appears here */
-                        <QuickController
-                          card={card}
-                          isDeckMode={appMode === "DECK"}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {orderedDeck.length === 0 && (
-                <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-800 rounded-2xl">
-                  <p className="text-slate-500 font-bold">
-                    目前牌組為空，請切換到資料庫添加卡片。
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-1 mb-2 pt-8 border-t border-slate-700/50">
-              <div className="flex flex-col items-center gap-3">
-                {appMode === "DECK" && (
-                  <button
-                    onClick={generateShareUrl}
-                    className="w-full sm:w-auto px-6 py-3 rounded-xl transition-all flex items-center justify-center gap-3 bg-sky-600 hover:bg-sky-500 shadow-lg shadow-sky-900/40 group active:scale-95"
-                    title="生成分享連結 / Share Deck & Curve"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 640 640"
-                      className="w-5 h-5 text-white transition-transform group-hover:rotate-12"
-                      fill="currentColor"
-                    >
-                      <path d="M448 256c-10.6 0-20.9 1.9-30.4 5.4L214.7 150.2c.2-2 .3-4.1 .3-6.2c0-35.3-28.7-64-64-64s-64 28.7-64 64s28.7 64 64 64c10.6 0 20.9-1.9 30.4-5.4L385.3 313.8c-.2 2-.3 4.1-.3 6.2s.1 4.2 .3 6.2L181.3 430.6c-9.5-3.5-19.8-5.4-30.4-5.4c-35.3 0-64 28.7-64 64s28.7 64 64 64s64-28.7 64-64c0-2.1-.1-4.2-.3-6.2L417.6 383.4c9.5 3.5 19.8 5.4 30.4 5.4c35.3 0 64-28.7 64-64s-28.7-64-64-64z" />
-                    </svg>
-                    <span className="font-bold text-sm tracking-wide text-white">
-                      分享牌組策略
-                    </span>
-                  </button>
-                )}
-
-                {/* MARKETPLACE MODE SHARE */}
-                {appMode === "MARKETPLACE" && (
-                  <button
-                    onClick={generateMarketShareUrl}
-                    className="w-full sm:w-auto px-6 py-3 rounded-xl transition-all flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-900/40 group active:scale-95"
-                    title="分享報價連結 / Share Market Prices"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 512 512"
-                      className="w-5 h-5 text-white transition-transform group-hover:-rotate-12"
-                      fill="currentColor"
-                    >
-                      <path d="M345 39.1L472.9 167c9.4 9.4 9.4 24.6 0 33.9L207.9 465.9c-9.4 9.4-24.6 9.4-33.9 0l-132-132c-9.4-9.4-9.4-24.6 0-33.9L311.1 31c9.4-9.4 24.6-9.4 33.9 0zM112 192a48 48 0 1 0 0-96 48 48 0 1 0 0 96z" />
-                    </svg>
-                    <span className="font-bold text-sm tracking-wide text-white">
-                      分享市場報價
-                    </span>
-                  </button>
-                )}
-                <p className="text-[11px] text-slate-500 font-medium">
-                  點擊複製專屬連結，其他人點擊連結即可查看此牌組
-                </p>
-              </div>
-            </div>
-
-            {deckAnalysis && appMode !== "MARKETPLACE" && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="h-4 w-1 bg-blue-500 rounded-full"></div>
-                  <h3 className="text-lg font-bold uppercase tracking-widest">
-                    牌組分析
-                  </h3>
-                </div>
-
-                <div className="mt-8 px-2 sm:px-4">
-                  {/* Header / Toggle Row */}
-                  <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-2">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-xs font-black text-slate-400 uppercase tracking-tighter">
-                        策略規劃 / Play Curve
-                      </h2>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        BETA
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={() => setShowCurve(!showCurve)}
-                      className="text-[10px] font-bold px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700 uppercase"
-                    >
-                      {showCurve ? "隱藏表格 Hide" : "顯示表格 Show"}
-                    </button>
-                  </div>
-
-                  {/* Collapsible Content */}
-                  {showCurve && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                      {(() => {
-                        const cardsInDeck = Object.keys(deckList)
-                          .map((id) => cards.find((c) => c.id === id))
-                          .filter(Boolean);
-
-                        return (
-                          <>
-                            <PlayCurve
-                              title="先攻 (First)"
-                              turns={firstCurveTurns}
-                              setTurns={setFirstCurveTurns}
-                              defaultTurns={[1, 3, 5, 7, 9]}
-                              availableCards={cardsInDeck}
-                              getSafeImageUrl={getSafeImageUrl}
-                            />
-
-                            <PlayCurve
-                              title="後攻 (Second)"
-                              turns={secondCurveTurns}
-                              setTurns={setSecondCurveTurns}
-                              defaultTurns={[2, 4, 6, 8, 10]}
-                              availableCards={cardsInDeck}
-                              getSafeImageUrl={getSafeImageUrl}
-                            />
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <SimpleBarChart
-                    title="費用分佈 / Cost Distribution"
-                    labels={[
-                      "0",
-                      "1",
-                      "2",
-                      "3",
-                      "4",
-                      "5",
-                      "6",
-                      "7",
-                      "8",
-                      "9",
-                      "10+",
-                    ]}
-                    data={deckAnalysis.costs}
-                  />
-                  <SimplePieChart
-                    title="卡片類別 / Category"
-                    labels={["角色卡", "事件卡", "舞台卡"]}
-                    data={[
-                      deckAnalysis.categories.Character,
-                      deckAnalysis.categories.Event,
-                      deckAnalysis.categories.Stage,
-                    ]}
-                  />
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                    {/* Left Side: Bar Chart (Spans 2 columns) */}
-                    <div className="col-span-2">
-                      <SimpleBarChart
-                        title="反擊值 / Counter"
-                        labels={["+0", "+1,000", "+2,000"]}
-                        data={[
-                          deckAnalysis.counters["0"],
-                          deckAnalysis.counters["1000"],
-                          deckAnalysis.counters["2000"],
-                        ]}
-                        color="bg-emerald-500"
-                      />
-                    </div>
-
-                    {/* Right Side: Stacked Info Boxes (Occupies 1 column) */}
-                    <div className="flex flex-col gap-2 sm:gap-3">
-                      {/* Box 1: Average Counter */}
-                      <div className="flex-1 flex flex-col px-2 py-1.5 bg-blue-500/10 border border-emerald-500/20 rounded-lg min-w-0">
-                        <span
-                          className="
-                          text-xs sm:text-xs lg:text-sm 
-                          font-bold text-emerald-400/60 uppercase tracking-tighter leading-none mb-1
-                        "
-                        >
-                          卡牌平均反擊值 /<br /> Card Avg Counter
-                        </span>
-                        <span className="text-xs sm:text-sm font-semibold truncate mt-auto">
-                          +{deckAnalysis.avgCounter.toLocaleString()}
-                        </span>
-                      </div>
-
-                      {/* Box 1a: 2k Counter */}
-                      <div className="flex-1 flex flex-col px-2 py-1.5 bg-blue-500/10 border border-emerald-500/20 rounded-lg min-w-0">
-                        <span
-                          className="
-                          text-xs sm:text-xs lg:text-sm 
-                          font-bold text-emerald-400/60 uppercase tracking-tighter leading-none mb-1
-                        "
-                        >
-                          2000反擊值比例 /<br /> 2k Counter %
-                        </span>
-                        <span className="text-xs sm:text-sm font-semibold truncate mt-auto">
-                          {deckAnalysis.twokCounter}%
-                        </span>
-                      </div>
-
-                      {/* Box 2: Counter Percentage */}
-                      <div className="flex-1 flex flex-col px-2 py-1.5 bg-blue-500/10 border border-emerald-500/20 rounded-lg min-w-0">
-                        <span
-                          className="
-                          text-xs sm:text-xs lg:text-sm 
-                          font-bold text-emerald-400/60 uppercase tracking-tighter leading-none mb-1
-                        "
-                        >
-                          牌組反擊比例 /<br /> Deck Counter %
-                        </span>
-                        <span className="text-xs sm:text-sm font-semibold truncate mt-auto">
-                          {deckAnalysis.counterQualityScore}%
-                        </span>
-                      </div>
-
-                      {/* Add this inside your analysis grid or near your stats */}
-                      <div className="flex-1 flex flex-col px-2 py-1.5 bg-blue-500/10 border border-emerald-500/20 rounded-lg min-w-0">
-                        <span
-                          className="
-                          text-xs sm:text-xs lg:text-sm 
-                          font-bold text-emerald-400/60 uppercase tracking-tighter leading-none mb-1
-                        "
-                        >
-                          防禦 / Blockers
-                        </span>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-xs font-black text-emerald-500">
-                            {deckAnalysis.blockerCount}
-                          </span>
-                          <span className="text-xs text-slate-500">
-                            / {deckAnalysis.totalNonLeader}
-                          </span>
-                        </div>
-                        {/* Visual progress bar */}
-                        <div className="w-full h-1 bg-slate-900 rounded-full mt-3 overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 transition-all duration-500"
-                            style={{
-                              width: `${(deckAnalysis.blockerCount / deckAnalysis.totalNonLeader) * 100}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-visible">
-                  <div className="p-4 border-b border-slate-700 bg-slate-800/30">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                      特徵統計 / Types Statistics
-                    </h4>
-                  </div>
-                  <div className="w-full overflow-visible">
-                    <table className="w-full text-sm text-left">
-                      <tbody className="divide-y divide-slate-700/50">
-                        {/* We map through sortedTypes. 'type' is the name, 'data' is the object {count, cards} */}
-                        {deckAnalysis.sortedTypes.map(([type, data], index) => {
-                          const isLastFew =
-                            index > deckAnalysis.sortedTypes.length - 4;
-                          return (
-                            <tr
-                              key={type}
-                              className="hover:bg-slate-700/30 transition-colors cursor-help relative"
-                              onMouseEnter={() => setHoveredTrait(type)}
-                              onMouseLeave={() => setHoveredTrait(null)}
-                            >
-                              {/* --- TRAIT NAME COLUMN (Where your provided code lives) --- */}
-                              <td className="px-6 py-4 font-bold text-slate-200">
-                                <div className="relative">
-                                  {type}
-
-                                  {/* HOVER POPOVER */}
-                                  {hoveredTrait === type && (
-                                    <div
-                                      className={`
-                                    absolute left-0 z-[100] w-64 
-                                    bg-slate-900 border border-slate-700 
-                                    rounded-lg shadow-2xl p-3 
-                                    animate-in fade-in zoom-in duration-200 
-                                    pointer-events-none
-                                    ${isLastFew ? "bottom-full mb-2" : "top-full mt-1"}
-                                  `}
-                                    >
-                                      <ul className="space-y-1.5">
-                                        {data.cards.map((c, idx) => (
-                                          <li
-                                            key={idx}
-                                            className="flex justify-between items-start text-[11px] gap-2 border-b border-white/5 pb-1 last:border-0"
-                                          >
-                                            <div className="flex flex-col min-w-0">
-                                              <span className="text-[9px] text-slate-500 font-mono leading-none mb-0.5">
-                                                {c.id}
-                                              </span>
-                                              <span className="text-slate-200 truncate leading-tight">
-                                                {c.name}
-                                              </span>
-                                            </div>
-                                            <span className="text-blue-400 font-mono font-bold shrink-0">
-                                              x{c.count}
-                                            </span>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-
-                              {/* --- TOTAL QUANTITY COLUMN --- */}
-                              <td className="px-6 py-4 text-right font-mono font-bold text-blue-400">
-                                {data.count}
-                              </td>
-
-                              {/* --- PERCENTAGE COLUMN --- */}
-                              <td className="px-6 py-4 text-right">
-                                <div className="inline-flex items-center gap-3">
-                                  <span className="text-[10px] text-slate-500 font-bold">
-                                    {Math.round(
-                                      (data.count /
-                                        deckAnalysis.totalNonLeader) *
-                                        100,
-                                    )}
-                                    %
-                                  </span>
-                                  <div className="w-24 h-1.5 bg-slate-950 rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full bg-blue-600 rounded-full"
-                                      style={{
-                                        width: `${(data.count / deckAnalysis.totalNonLeader) * 100}%`,
-                                      }}
-                                    ></div>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
-        )}
+        {renderContent()}
       </main>
 
       <footer className="max-w-7xl mx-auto w-full mt-12 py-8 border-t border-slate-800 text-center">
@@ -3157,17 +2488,19 @@ const App = () => {
         </p>
       </footer>
 
+      {/* The Back and Next Buttons   */}
       {selectedCard && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4 bg-black/95 backdrop-blur-md"
           onClick={() => setSelectedCard(null)}
         >
+          {/* LEFT NAVIGATION BUTTON - Centered Vertically */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               navigateCard(-1);
             }}
-            className="absolute left-1 md:left-6 z-[70] w-12 h-24 md:w-16 md:h-16 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-r-xl md:rounded-full transition-all border border-white/10 text-white"
+            className="absolute left-1 md:left-6 top-1/2 -translate-y-1/2 z-[70] w-12 h-24 md:w-16 md:h-16 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-r-xl md:rounded-full transition-all border border-white/10 text-white"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -3184,33 +2517,59 @@ const App = () => {
               />
             </svg>
           </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigateCard(1);
-            }}
-            className="absolute right-1 md:right-6 z-[70] w-12 h-24 md:w-16 md:h-16 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-l-xl md:rounded-full transition-all border border-white/10 text-white"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-10 w-10"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.5}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </button>
 
+          {/* RIGHT NAVIGATION GROUP - Centered Vertically */}
+          <div className="absolute right-1 md:right-6 top-1/2 -translate-y-1/2 z-[70] flex flex-col items-center">
+            {/* SINGLE CYCLE BUTTON */}
+            {/* Layers/Cycle Icon */}
+            {/* SINGLE CYCLE BUTTON */}
+            <div className="absolute bottom-full mb-4 flex flex-col items-center gap-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  cycleParallel(1);
+                }}
+                className="relative w-12 h-12 md:w-14 md:h-14 flex items-center justify-center bg-amber-500/20 hover:bg-amber-500/40 rounded-full border border-amber-500/40 text-amber-400 transition-all shadow-lg active:scale-95 group"
+                title="Cycle Parallel Version"
+              >
+                {/* The Chinese Character "異" */}
+                <span className="text-xl md:text-2xl font-black mb-0.5 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)] group-hover:scale-110 transition-transform">
+                  異
+                </span>
+              </button>
+            </div>
+
+            {/* RIGHT NAVIGATION (NEXT) BUTTON */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigateCard(1);
+              }}
+              className="w-12 h-24 md:w-16 md:h-16 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-l-xl md:rounded-full transition-all border border-white/10 text-white shadow-xl"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-10 w-10"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          </div>
+
+          {/* MAIN MODAL CONTENT */}
           <div
-            className="bg-slate-800 w-full md:max-w-4xl h-full md:h-auto md:max-h-[90vh] overflow-y-auto rounded-none md:rounded-2xl p-6 md:p-10 flex flex-col md:flex-row gap-8 relative border border-slate-700 shadow-2xl"
+            className="bg-slate-800 w-full md:max-w-5xl h-full md:h-auto md:max-h-[90vh] overflow-y-auto rounded-none md:rounded-2xl p-6 md:p-10 flex flex-col md:flex-row gap-8 relative border border-slate-700 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Close Button */}
             <button
               onClick={() => setSelectedCard(null)}
               className="absolute top-4 right-4 text-slate-400 hover:text-white transition-transform hover:scale-110 z-[80]"
@@ -3230,66 +2589,110 @@ const App = () => {
                 />
               </svg>
             </button>
-            <div className="w-full md:w-5/12 flex-shrink-0 flex justify-center">
+
+            {/* LEFT SIDE: Image */}
+            <div className="w-full md:w-5/12 flex justify-center items-start">
               <img
+                key={selectedCard.id}
                 src={getSafeImageUrl(selectedCard)}
-                className="rounded-xl shadow-2xl w-full max-w-[320px] md:max-w-none border border-slate-700 object-contain h-auto self-start"
+                className="rounded-xl shadow-2xl w-full max-w-[320px] md:max-w-none border border-slate-700 object-contain h-auto"
                 alt={selectedCard.name}
               />
             </div>
-            <div className="w-full md:w-7/12 space-y-3 text-left">
-              <div className="flex justify-between items-start gap-">
+
+            {/* RIGHT SIDE: Details */}
+            <div className="w-full md:w-7/12 space-y-4 text-left">
+              <div className="flex justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
-                  {/* Header Row: ID and Color Circles on the same line */}
                   <div className="flex items-center gap-3 mb-1">
-                    <span className="text-blue-500 font-mono font-bold tracking-widest text-xs leading-none">
+                    <span className="text-blue-500 font-mono font-bold tracking-widest text-xs">
                       {selectedCard.id}
                     </span>
                     <div className="flex gap-1.5">
                       {selectedCard.colors?.map((c) => (
                         <span
                           key={c}
-                          className="w-2.5 h-2.5 rounded-full border border-white/20 shadow-sm"
+                          className="w-2.5 h-2.5 rounded-full border border-white/20"
                           style={{ backgroundColor: c.toLowerCase() }}
                         ></span>
                       ))}
                     </div>
                   </div>
-
-                  {/* Card Name */}
-                  <h2 className="text-2xl md:text-4xl font-black leading-tight text-white break-words">
+                  <h2 className="text-2xl md:text-4xl font-black text-white">
                     {selectedCard.name}
                   </h2>
                 </div>
 
-                {/* Quantity Box - Stays on the far right */}
                 <div className="flex flex-col items-end flex-shrink-0">
                   <div className="flex gap-1.5 md:gap-2">
+                    {/* 1. MINUS BUTTON */}
                     <button
                       onClick={() => updateDeckCount(selectedCard, -1)}
-                      className="w-9 h-9 md:w-10 md:h-10 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center justify-center font-bold text-xl"
+                      className="w-9 h-9 md:w-10 md:h-10 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center justify-center font-bold text-xl text-white active:scale-90 transition-transform"
                     >
                       -
                     </button>
-                    <div className="w-9 h-9 md:w-10 md:h-10 bg-white text-black rounded-lg flex items-center justify-center font-black text-sm md:text-base">
-                      {deckList[selectedCard.id] || 0}
+
+                    {/* 2. DYNAMIC COUNTER DISPLAY */}
+                    <div
+                      className={`w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center font-black text-sm md:text-base shadow-inner ${
+                        isMarketMode
+                          ? "bg-white text-black"
+                          : "bg-white text-black"
+                      }`}
+                    >
+                      {/* Logic: Show marketList count if in Single mode, otherwise deckList */}
+                      {(isMarketMode
+                        ? marketList[selectedCard.id]
+                        : deckList[selectedCard.id]) || 0}
                     </div>
+
+                    {/* 3. PLUS BUTTON (With Mode-Based Disabling) */}
                     <button
                       onClick={() => updateDeckCount(selectedCard, 1)}
                       disabled={
-                        (selectedCard.category === "Leader" &&
+                        !isMarketMode &&
+                        ((selectedCard.category === "Leader" &&
                           deckList[selectedCard.id] === 1) ||
-                        (selectedCard.category !== "Leader" &&
-                          getBaseIdCount(selectedCard.id) >= 4)
+                          (selectedCard.category !== "Leader" &&
+                            getBaseIdCount(selectedCard.id) >= 4))
                       }
-                      className={`w-9 h-9 md:w-10 md:h-10 bg-indigo-600 hover:bg-indigo-500 rounded-lg flex items-center justify-center font-bold text-xl disabled:opacity-30 disabled:cursor-not-allowed`}
+                      className={`w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center font-bold text-xl text-white transition-all active:scale-90 ${
+                        isMarketMode
+                          ? "bg-amber-600 hover:bg-amber-500 disabled:opacity-30"
+                          : "bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30"
+                      }`}
                     >
                       +
                     </button>
                   </div>
-                  {/* <p className="text-[10px] text-slate-500 mt-1 font-bold uppercase tracking-widest">Quantity</p> */}
                 </div>
               </div>
+
+              {/* --- NEW PRICE SECTION --- */}
+              {(() => {
+                const priceInfo = cardPrices.prices?.find(
+                  (p) => p.id === selectedCard.id,
+                );
+                const lastUpdate = cardPrices.metadata?.lastUpdated;
+
+                if (priceInfo) {
+                  return (
+                    <div className="mt-2 flex items-baseline gap-2">
+                      <p className="text-sm text-white-800 opacity-90">
+                        參考價 (遊々亭)：¥{priceInfo.jpy.toLocaleString()} / HK$
+                        {Number(priceInfo.hkd).toLocaleString()}
+                      </p>
+                      {lastUpdate && (
+                        <p className="text-[9px] text-slate-400 italic">
+                          ({lastUpdate})
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {/* Card Effect and Trigger */}
               <div className="bg-slate-700/50 p-2 rounded-xl border-l-4 border-blue-500">
