@@ -8,6 +8,7 @@ import {
   setDoc,
   onSnapshot,
 } from "firebase/firestore";
+import { useTranslation } from "react-i18next";
 
 import CardQA from "./components/CardQA";
 import cardPrices from "./data/price_final.json";
@@ -37,198 +38,826 @@ const db = getFirestore(app);
 const appId = "one-piece-card-db";
 
 // --- 卡包數據對照表 (已按 PRB -> EB -> OP -> ST -> 其他 順序排列) ---
+// const packData = {
+//   554302: {
+//     id: "554302",
+//     raw_title: "高級補充包 ONE PIECE CARD THE BEST vol.2【PRB-02】",
+//   },
+//   554301: {
+//     id: "554301",
+//     raw_title: "高級補充包 ONE PIECE CARD THE BEST【PRB-01】",
+//   },
+//   554204: { id: "554204", raw_title: "特殊補充包 EGGHEAD CRISIS【EB-04】" },
+//   554203: {
+//     id: "554203",
+//     raw_title: "特殊補充包 ONE PIECE Heroines Edition【EB-03】",
+//   },
+//   554202: {
+//     id: "554202",
+//     raw_title: "特殊補充包 Anime 25th collection【EB-02】",
+//   },
+//   554201: { id: "554201", raw_title: "特殊補充包 回憶收藏【EB-01】" },
+//   554115: { id: "554115", raw_title: "補充包 神之島的冒險【OP-15】" },
+//   554114: { id: "554114", raw_title: "補充包 蒼海的七傑【OP-14】" },
+//   554113: { id: "554113", raw_title: "補充包 傳承的意志【OP-13】" },
+//   554112: { id: "554112", raw_title: "補充包 師徒的情義【OP-12】" },
+//   554111: { id: "554111", raw_title: "補充包 神速之拳【OP-11】" },
+//   554110: { id: "554110", raw_title: "補充包 王族血脈【OP-10】" },
+//   554109: { id: "554109", raw_title: "補充包 新世界的皇帝【OP-09】" },
+//   554108: { id: "554108", raw_title: "補充包 兩位傳奇【OP-08】" },
+//   554107: { id: "554107", raw_title: "補充包 500年後的未來【OP-07】" },
+//   554106: { id: "554106", raw_title: "補充包 雙壁的霸者【OP-06】" },
+//   554105: { id: "554105", raw_title: "補充包 新時代的主角【OP-05】" },
+//   554104: { id: "554104", raw_title: "補充包 陰謀王國【OP-04】" },
+//   554103: { id: "554103", raw_title: "補充包 強大的敵人【OP-03】" },
+//   554102: { id: "554102", raw_title: "補充包 頂點決戰【OP-02】" },
+//   554101: { id: "554101", raw_title: "補充包 ROMANCE DAWN【OP-01】" },
+//   554029: { id: "554029", raw_title: "起始牌組 EGGHEAD【ST-29】" },
+//   554028: { id: "554028", raw_title: "起始牌組 綠黃 大和【ST-28】" },
+//   554027: { id: "554027", raw_title: "起始牌組 黑 馬歇爾・D・汀奇【ST-27】" },
+//   554026: { id: "554026", raw_title: "起始牌組 紫黑 蒙其・D・魯夫【ST-26】" },
+//   554025: { id: "554025", raw_title: "起始牌組 藍 巴其【ST-25】" },
+//   554024: { id: "554024", raw_title: "起始牌組 綠 珠寶・波妮【ST-24】" },
+//   554023: { id: "554023", raw_title: "起始牌組 紅 傑克【ST-23】" },
+//   554022: { id: "554022", raw_title: "起始牌組 艾斯&紐蓋特【ST-22】" },
+//   554021: { id: "554021", raw_title: "起始牌組EX GEAR5【ST-21】" },
+//   554020: { id: "554020", raw_title: "起始牌組 黃 夏洛特・卡塔克利【ST-20】" },
+//   554019: { id: "554019", raw_title: "起始牌組 黑 斯摩格【ST-19】" },
+//   554018: { id: "554018", raw_title: "起始牌組 紫 蒙其・D・魯夫【ST-18】" },
+//   554017: {
+//     id: "554017",
+//     raw_title: "起始牌組 藍 唐吉訶德・多佛朗明哥【ST-17】",
+//   },
+//   554016: { id: "554016", raw_title: "起始牌組 綠 美音【ST-16】" },
+//   554015: { id: "554015", raw_title: "起始牌組 紅 艾德華・紐蓋特【ST-15】" },
+//   554014: { id: "554014", raw_title: "起始牌組 3D2Y【ST-14】" },
+//   554013: { id: "554013", raw_title: "究極牌組 三兄弟的情誼【ST-13】" },
+//   554012: { id: "554012", raw_title: "起始牌組 索隆&香吉士【ST-12】" },
+//   554011: { id: "554011", raw_title: "起始牌組 Side 美音【ST-11】" },
+//   554010: { id: "554010", raw_title: "究極牌組 “三船長”集結【ST-10】" },
+//   554009: { id: "554009", raw_title: "起始牌組 Side 大和【ST-09】" },
+//   554008: { id: "554008", raw_title: "起始牌組 Side 蒙其・D・魯夫【ST-08】" },
+//   554007: { id: "554007", raw_title: "起始牌組 BIG MOM海賊團【ST-07】" },
+//   554006: { id: "554006", raw_title: "起始牌組 海軍【ST-06】" },
+//   554005: {
+//     id: "554005",
+//     raw_title: "起始牌組 ONE PIECE FILM edition【ST-05】",
+//   },
+//   554004: { id: "554004", raw_title: "起始牌組 百獸海賊團【ST-04】" },
+//   554003: { id: "554003", raw_title: "起始牌組 王下七武海【ST-03】" },
+//   554002: { id: "554002", raw_title: "起始牌組 最可怕世代【ST-02】" },
+//   554001: { id: "554001", raw_title: "起始牌組 草帽一行人【ST-01】" },
+//   554701: { id: "554701", raw_title: "家庭牌組套裝" },
+//   554901: { id: "554901", raw_title: "推廣卡" },
+//   554801: { id: "554801", raw_title: "限定商品收錄卡牌" },
+// };
+
 const packData = {
-  554302: {
-    id: "554302",
-    raw_title: "高級補充包 ONE PIECE CARD THE BEST vol.2【PRB-02】",
+  // --- EXTRA BOOSTERS ---
+  "EB-01": {
+    code: "EB-01",
+    en: { id: "556201", title: "EXTRA BOOSTER -Memorial Collection- [EB-01]" },
+    ja: {
+      id: "550201",
+      title: "エクストラブースター メモリアルコレクション【EB-01】",
+    },
+    zh: { id: "554201", title: "特殊補充包 回憶收藏【EB-01】" },
   },
-  554301: {
-    id: "554301",
-    raw_title: "高級補充包 ONE PIECE CARD THE BEST【PRB-01】",
+  "EB-02": {
+    code: "EB-02",
+    en: {
+      id: "556202",
+      title: "EXTRA BOOSTER -Anime 25th Collection- [EB-02]",
+    },
+    ja: {
+      id: "550202",
+      title: "エクストラブースター Anime 25th collection【EB-02】",
+    },
+    zh: { id: "554202", title: "特殊補充包 Anime 25th collection【EB-02】" },
   },
-  554204: { id: "554204", raw_title: "特殊補充包 EGGHEAD CRISIS【EB-04】" },
-  554203: {
-    id: "554203",
-    raw_title: "特殊補充包 ONE PIECE Heroines Edition【EB-03】",
+  "EB-03": {
+    code: "EB-03",
+    en: {
+      id: "556203",
+      title: "EXTRA BOOSTER -ONE PIECE Heroines Edition- [EB-03]",
+    },
+    ja: {
+      id: "550203",
+      title: "エクストラブースター ONE PIECE Heroines Edition【EB-03】",
+    },
+    zh: {
+      id: "554203",
+      title: "特殊補充包 ONE PIECE Heroines Edition【EB-03】",
+    },
   },
-  554202: {
-    id: "554202",
-    raw_title: "特殊補充包 Anime 25th collection【EB-02】",
+  "EB-04": {
+    code: "EB-04",
+    en: { id: "556204", title: "EXTRA BOOSTER -EGGHEAD CRISIS- [EB-04]" },
+    ja: { id: "550204", title: "エクストラブースター EGGHEAD CRISIS【EB-04】" },
+    zh: { id: "554204", title: "特殊補充包 EGGHEAD CRISIS【EB-04】" },
   },
-  554201: { id: "554201", raw_title: "特殊補充包 回憶收藏【EB-01】" },
-  554115: { id: "554115", raw_title: "補充包 神之島的冒險【OP-15】" },
-  554114: { id: "554114", raw_title: "補充包 蒼海的七傑【OP-14】" },
-  554113: { id: "554113", raw_title: "補充包 傳承的意志【OP-13】" },
-  554112: { id: "554112", raw_title: "補充包 師徒的情義【OP-12】" },
-  554111: { id: "554111", raw_title: "補充包 神速之拳【OP-11】" },
-  554110: { id: "554110", raw_title: "補充包 王族血脈【OP-10】" },
-  554109: { id: "554109", raw_title: "補充包 新世界的皇帝【OP-09】" },
-  554108: { id: "554108", raw_title: "補充包 兩位傳奇【OP-08】" },
-  554107: { id: "554107", raw_title: "補充包 500年後的未來【OP-07】" },
-  554106: { id: "554106", raw_title: "補充包 雙壁的霸者【OP-06】" },
-  554105: { id: "554105", raw_title: "補充包 新時代的主角【OP-05】" },
-  554104: { id: "554104", raw_title: "補充包 陰謀王國【OP-04】" },
-  554103: { id: "554103", raw_title: "補充包 強大的敵人【OP-03】" },
-  554102: { id: "554102", raw_title: "補充包 頂點決戰【OP-02】" },
-  554101: { id: "554101", raw_title: "補充包 ROMANCE DAWN【OP-01】" },
-  554029: { id: "554029", raw_title: "起始牌組 EGGHEAD【ST-29】" },
-  554028: { id: "554028", raw_title: "起始牌組 綠黃 大和【ST-28】" },
-  554027: { id: "554027", raw_title: "起始牌組 黑 馬歇爾・D・汀奇【ST-27】" },
-  554026: { id: "554026", raw_title: "起始牌組 紫黑 蒙其・D・魯夫【ST-26】" },
-  554025: { id: "554025", raw_title: "起始牌組 藍 巴其【ST-25】" },
-  554024: { id: "554024", raw_title: "起始牌組 綠 珠寶・波妮【ST-24】" },
-  554023: { id: "554023", raw_title: "起始牌組 紅 傑克【ST-23】" },
-  554022: { id: "554022", raw_title: "起始牌組 艾斯&紐蓋特【ST-22】" },
-  554021: { id: "554021", raw_title: "起始牌組EX GEAR5【ST-21】" },
-  554020: { id: "554020", raw_title: "起始牌組 黃 夏洛特・卡塔克利【ST-20】" },
-  554019: { id: "554019", raw_title: "起始牌組 黑 斯摩格【ST-19】" },
-  554018: { id: "554018", raw_title: "起始牌組 紫 蒙其・D・魯夫【ST-18】" },
-  554017: {
-    id: "554017",
-    raw_title: "起始牌組 藍 唐吉訶德・多佛朗明哥【ST-17】",
+
+  // --- PREMIUM BOOSTERS ---
+  "PRB-01": {
+    code: "PRB-01",
+    en: {
+      id: "556301",
+      title: "PREMIUM BOOSTER -ONE PIECE CARD THE BEST- [PRB-01]",
+    },
+    ja: {
+      id: "550301",
+      title: "プレミアムブースター ONE PIECE CARD THE BEST【PRB-01】",
+    },
+    zh: { id: "554301", title: "高級補充包 ONE PIECE CARD THE BEST【PRB-01】" },
   },
-  554016: { id: "554016", raw_title: "起始牌組 綠 美音【ST-16】" },
-  554015: { id: "554015", raw_title: "起始牌組 紅 艾德華・紐蓋特【ST-15】" },
-  554014: { id: "554014", raw_title: "起始牌組 3D2Y【ST-14】" },
-  554013: { id: "554013", raw_title: "究極牌組 三兄弟的情誼【ST-13】" },
-  554012: { id: "554012", raw_title: "起始牌組 索隆&香吉士【ST-12】" },
-  554011: { id: "554011", raw_title: "起始牌組 Side 美音【ST-11】" },
-  554010: { id: "554010", raw_title: "究極牌組 “三船長”集結【ST-10】" },
-  554009: { id: "554009", raw_title: "起始牌組 Side 大和【ST-09】" },
-  554008: { id: "554008", raw_title: "起始牌組 Side 蒙其・D・魯夫【ST-08】" },
-  554007: { id: "554007", raw_title: "起始牌組 BIG MOM海賊團【ST-07】" },
-  554006: { id: "554006", raw_title: "起始牌組 海軍【ST-06】" },
-  554005: {
-    id: "554005",
-    raw_title: "起始牌組 ONE PIECE FILM edition【ST-05】",
+  "PRB-02": {
+    code: "PRB-02",
+    en: {
+      id: "556302",
+      title: "PREMIUM BOOSTER -ONE PIECE CARD THE BEST vol.2- [PRB-02]",
+    },
+    ja: {
+      id: "550302",
+      title: "プレミアムブースター ONE PIECE CARD THE BEST vol.2【PRB-02】",
+    },
+    zh: {
+      id: "554302",
+      title: "高級補充包 ONE PIECE CARD THE BEST vol.2【PRB-02】",
+    },
   },
-  554004: { id: "554004", raw_title: "起始牌組 百獸海賊團【ST-04】" },
-  554003: { id: "554003", raw_title: "起始牌組 王下七武海【ST-03】" },
-  554002: { id: "554002", raw_title: "起始牌組 最可怕世代【ST-02】" },
-  554001: { id: "554001", raw_title: "起始牌組 草帽一行人【ST-01】" },
-  554701: { id: "554701", raw_title: "家庭牌組套裝" },
-  554901: { id: "554901", raw_title: "推廣卡" },
-  554801: { id: "554801", raw_title: "限定商品收錄卡牌" },
+
+  // --- MAIN BOOSTER PACKS (OP Series) ---
+  "OP-15": {
+    code: "OP-15",
+    en: {
+      id: "556115",
+      title: "BOOSTER PACK -Adventure on KAMI’s Island- [OP-15]",
+    },
+    ja: { id: "550115", title: "ブースターパック 神の島の冒険【OP-15】" },
+    zh: { id: "554115", title: "補充包 神之島的冒險【OP-15】" },
+  },
+  "OP-14": {
+    code: "OP-14",
+    en: { id: "556114", title: "BOOSTER PACK -The Azure Sea’s Seven- [OP-14]" },
+    ja: { id: "550114", title: "ブースターパック 蒼海の七傑【OP-14】" },
+    zh: { id: "554114", title: "補充包 蒼海的七傑【OP-14】" },
+  },
+  "OP-13": {
+    code: "OP-13",
+    en: { id: "556113", title: "BOOSTER PACK -Carrying on His Will- [OP-13]" },
+    ja: { id: "550113", title: "ブースターパック 受け継がれる意志【OP-13】" },
+    zh: { id: "554113", title: "補充包 傳承的意志【OP-13】" },
+  },
+  "OP-12": {
+    code: "OP-12",
+    en: { id: "556112", title: "BOOSTER PACK -Legacy of the Master- [OP-12]" },
+    ja: { id: "550112", title: "ブースターパック 師弟の絆【OP-12】" },
+    zh: { id: "554112", title: "補充包 師徒的情義【OP-12】" },
+  },
+  "OP-11": {
+    code: "OP-11",
+    en: {
+      id: "556111",
+      title: "BOOSTER PACK -A Fist of Divine Speed- [OP-11]",
+    },
+    ja: { id: "550111", title: "ブースターパック 神速の拳【OP-11】" },
+    zh: { id: "554111", title: "補充包 神速之拳【OP-11】" },
+  },
+  "OP-10": {
+    code: "OP-10",
+    en: { id: "556110", title: "BOOSTER PACK -Royal Blood- [OP-10]" },
+    ja: { id: "550110", title: "ブースターパック 王族の血統【OP-10】" },
+    zh: { id: "554110", title: "補充包 王族血脈【OP-10】" },
+  },
+  "OP-09": {
+    code: "OP-09",
+    en: {
+      id: "556109",
+      title: "BOOSTER PACK -Emperors in the New World- [OP-09]",
+    },
+    ja: { id: "550109", title: "ブースターパック 新たなる皇帝【OP-09】" },
+    zh: { id: "554109", title: "補充包 新世界的皇帝【OP-09】" },
+  },
+  "OP-08": {
+    code: "OP-08",
+    en: { id: "556108", title: "BOOSTER PACK -Two Legends- [OP-08]" },
+    ja: { id: "550108", title: "ブースターパック 二つの伝説【OP-08】" },
+    zh: { id: "554108", title: "補充包 兩位傳奇【OP-08】" },
+  },
+  "OP-07": {
+    code: "OP-07",
+    en: {
+      id: "556107",
+      title: "BOOSTER PACK -500 Years in the Future- [OP-07]",
+    },
+    ja: { id: "550107", title: "ブースターパック 500年後の未来【OP-07】" },
+    zh: { id: "554107", title: "補充包 500年後的未來【OP-07】" },
+  },
+  "OP-06": {
+    code: "OP-06",
+    en: { id: "556106", title: "BOOSTER PACK -Twin Champions- [OP-06]" },
+    ja: { id: "550106", title: "ブースターパック 双璧の覇者【OP-06】" },
+    zh: { id: "554106", title: "補充包 雙壁的霸者【OP-06】" },
+  },
+  "OP-05": {
+    code: "OP-05",
+    en: {
+      id: "556105",
+      title: "BOOSTER PACK -Awakening of the New Era- [OP-05]",
+    },
+    ja: { id: "550105", title: "ブースターパック 新時代の主役【OP-05】" },
+    zh: { id: "554105", title: "補充包 新時代的主角【OP-05】" },
+  },
+  "OP-04": {
+    code: "OP-04",
+    en: { id: "556104", title: "BOOSTER PACK -Kingdoms of Intrigue- [OP-04]" },
+    ja: { id: "550104", title: "ブースターパック 謀略の王国【OP-04】" },
+    zh: { id: "554104", title: "補充包 陰謀王國【OP-04】" },
+  },
+  "OP-03": {
+    code: "OP-03",
+    en: { id: "556103", title: "BOOSTER PACK -Pillars of Strength- [OP-03]" },
+    ja: { id: "550103", title: "ブースターパック 強大な敵【OP-03】" },
+    zh: { id: "554103", title: "補充包 強大的敵人【OP-03】" },
+  },
+  "OP-02": {
+    code: "OP-02",
+    en: { id: "556102", title: "BOOSTER PACK -Paramount War- [OP-02]" },
+    ja: { id: "550102", title: "ブースターパック 頂上決戦【OP-02】" },
+    zh: { id: "554102", title: "補充包 頂點決戰【OP-02】" },
+  },
+  "OP-01": {
+    code: "OP-01",
+    en: { id: "556101", title: "BOOSTER PACK -ROMANCE DAWN- [OP-01]" },
+    ja: { id: "550101", title: "ブースターパック ROMANCE DAWN【OP-01】" },
+    zh: { id: "554101", title: "補充包 ROMANCE DAWN【OP-01】" },
+  },
+
+  // --- STARTER DECKS (ST Series) ---
+  "ST-30": {
+    code: "ST-30",
+    en: { id: "556030", title: "STARTER DECK EX -Luffy & Ace- [ST-30]" },
+    ja: { id: "550030", title: "スタートデッキEX ルフィ&エース【ST-30】" },
+    zh: { id: "554030", title: "起始牌組EX 魯夫&艾斯【ST-30】" },
+  },
+  "ST-29": {
+    code: "ST-29",
+    en: { id: "556029", title: "STARTER DECK -EGGHEAD- [ST-29]" },
+    ja: { id: "550029", title: "スタートデッキ EGGHEAD【ST-29】" },
+    zh: { id: "554029", title: "起始牌組 EGGHEAD【ST-29】" },
+  },
+  "ST-28": {
+    code: "ST-28",
+    en: { id: "556028", title: "STARTER DECK -Green/Yellow Yamato- [ST-28]" },
+    ja: { id: "550028", title: "スタートデッキ 緑黄 ヤマト【ST-28】" },
+    zh: { id: "554028", title: "起始牌組 綠黃 大和【ST-28】" },
+  },
+  "ST-27": {
+    code: "ST-27",
+    en: {
+      id: "556027",
+      title: "STARTER DECK -Black Marshall.D.Teach- [ST-27]",
+    },
+    ja: {
+      id: "550027",
+      title: "スタートデッキ 黒 マーシャル・D・ティーチ【ST-27】",
+    },
+    zh: { id: "554027", title: "起始牌組 黑 馬歇爾・D・汀奇【ST-27】" },
+  },
+  "ST-26": {
+    code: "ST-26",
+    en: {
+      id: "556026",
+      title: "STARTER DECK -Purple/Black Monkey.D.Luffy- [ST-26]",
+    },
+    ja: {
+      id: "550026",
+      title: "スタートデッキ 紫黒 モンキー・D・ルフィ【ST-26】",
+    },
+    zh: { id: "554026", title: "起始牌組 紫黑 蒙其・D・魯夫【ST-26】" },
+  },
+  "ST-25": {
+    code: "ST-25",
+    en: { id: "556025", title: "STARTER DECK -Blue Buggy- [ST-25]" },
+    ja: { id: "550025", title: "スタートデッキ 青 バギー【ST-25】" },
+    zh: { id: "554025", title: "起始牌組 藍 巴其【ST-25】" },
+  },
+  "ST-24": {
+    code: "ST-24",
+    en: { id: "556024", title: "STARTER DECK -Green Jewelry Bonney- [ST-24]" },
+    ja: {
+      id: "550024",
+      title: "スタートデッキ 緑 ジュエリー・ボニー【ST-24】",
+    },
+    zh: { id: "554024", title: "起始牌組 綠 珠寶・波妮【ST-24】" },
+  },
+  "ST-23": {
+    code: "ST-23",
+    en: { id: "556023", title: "STARTER DECK -Red Shanks- [ST-23]" },
+    ja: { id: "550023", title: "スタートデッキ 赤 シャンクス【ST-23】" },
+    zh: { id: "554023", title: "起始牌組 紅 傑克【ST-23】" },
+  },
+  "ST-22": {
+    code: "ST-22",
+    en: { id: "556022", title: "STARTER DECK -Ace & Newgate- [ST-22]" },
+    ja: { id: "550022", title: "スタートデッキ エース&ニューゲート【ST-22】" },
+    zh: { id: "554022", title: "起始牌組 艾斯&紐蓋特【ST-22】" },
+  },
+  "ST-21": {
+    code: "ST-21",
+    en: { id: "556021", title: "STARTER DECK EX -GEAR5- [ST-21]" },
+    ja: { id: "550021", title: "スタートデッキEX ギア5【ST-21】" },
+    zh: { id: "554021", title: "起始牌組EX GEAR5【ST-21】" },
+  },
+  "ST-20": {
+    code: "ST-20",
+    en: {
+      id: "556020",
+      title: "STARTER DECK -Yellow Charlotte Katakuri- [ST-20]",
+    },
+    ja: {
+      id: "550020",
+      title: "スタートデッキ 黄 シャーロット・カタクリ【ST-20】",
+    },
+    zh: { id: "554020", title: "起始牌組 黃 夏洛特・卡塔克利【ST-20】" },
+  },
+  "ST-19": {
+    code: "ST-19",
+    en: { id: "556019", title: "STARTER DECK -Black Smoker- [ST-19]" },
+    ja: { id: "550019", title: "スタートデッキ 黒 スモーカー【ST-19】" },
+    zh: { id: "554019", title: "起始牌組 黑 斯摩格【ST-19】" },
+  },
+  "ST-18": {
+    code: "ST-18",
+    en: { id: "556018", title: "STARTER DECK -Purple Monkey.D.Luffy- [ST-18]" },
+    ja: {
+      id: "550018",
+      title: "スタートデッキ 紫 モンキー・D・ルフィ【ST-18】",
+    },
+    zh: { id: "554018", title: "起始牌組 紫 蒙其・D・魯夫【ST-18】" },
+  },
+  "ST-17": {
+    code: "ST-17",
+    en: {
+      id: "556017",
+      title: "STARTER DECK -Blue Donquixote Doflamingo- [ST-17]",
+    },
+    ja: {
+      id: "550017",
+      title: "スタートデッキ 青 ドンキホーテ・ドフラミンゴ【ST-17】",
+    },
+    zh: { id: "554017", title: "起始牌組 藍 唐吉訶德・多佛朗明哥【ST-17】" },
+  },
+  "ST-16": {
+    code: "ST-16",
+    en: { id: "556016", title: "STARTER DECK -Green Uta- [ST-16]" },
+    ja: { id: "550016", title: "スタートデッキ 緑 ウタ【ST-16】" },
+    zh: { id: "554016", title: "起始牌組 綠 美音【ST-16】" },
+  },
+  "ST-15": {
+    code: "ST-15",
+    en: { id: "556015", title: "STARTER DECK -Red Edward.Newgate- [ST-15]" },
+    ja: {
+      id: "550015",
+      title: "スタートデッキ 赤 エドワード・ニューゲート【ST-15】",
+    },
+    zh: { id: "554015", title: "起始牌組 紅 艾德華・紐蓋特【ST-15】" },
+  },
+  "ST-14": {
+    code: "ST-14",
+    en: { id: "556014", title: "STARTER DECK -3D2Y- [ST-14]" },
+    ja: { id: "550014", title: "スタートデッキ 3D2Y【ST-14】" },
+    zh: { id: "554014", title: "起始牌組 3D2Y【ST-14】" },
+  },
+  "ST-13": {
+    code: "ST-13",
+    en: {
+      id: "556013",
+      title: "ULTIMATE DECK -The Three Brothers' Bond- [ST-13]",
+    },
+    ja: { id: "550013", title: "アルティメットデッキ 3兄弟の絆【ST-13】" },
+    zh: { id: "554013", title: "究極牌組 三兄弟的情誼【ST-13】" },
+  },
+  "ST-12": {
+    code: "ST-12",
+    en: { id: "556012", title: "STARTER DECK -Zoro & Sanji- [ST-12]" },
+    ja: { id: "550012", title: "スタートデッキ ゾロ&サンジ【ST-12】" },
+    zh: { id: "554012", title: "起始牌組 索隆&香吉士【ST-12】" },
+  },
+  "ST-11": {
+    code: "ST-11",
+    en: { id: "556011", title: "STARTER DECK -Side Uta- [ST-11]" },
+    ja: { id: "550011", title: "スタートデッキ Side ウタ【ST-11】" },
+    zh: { id: "554011", title: "起始牌組 Side 美音【ST-11】" },
+  },
+  "ST-10": {
+    code: "ST-10",
+    en: { id: "556010", title: "ULTIMATE DECK -The Three Captains- [ST-10]" },
+    ja: { id: "550010", title: "アルティメットデッキ “三船長”集結【ST-10】" },
+    zh: { id: "554010", title: "究極牌組 “三船長”集結【ST-10】" },
+  },
+  "ST-09": {
+    code: "ST-09",
+    en: { id: "556009", title: "STARTER DECK -Side Yamato- [ST-09]" },
+    ja: { id: "550009", title: "スタートデッキ Side ヤマト【ST-09】" },
+    zh: { id: "554009", title: "起始牌組 Side 大和【ST-09】" },
+  },
+  "ST-08": {
+    code: "ST-08",
+    en: { id: "556008", title: "STARTER DECK -Side Monkey.D.Luffy- [ST-08]" },
+    ja: {
+      id: "550008",
+      title: "スタートデッキ Side モンキー・D・ルフィ【ST-08】",
+    },
+    zh: { id: "554008", title: "起始牌組 Side 蒙其・D・魯夫【ST-08】" },
+  },
+  "ST-07": {
+    code: "ST-07",
+    en: { id: "556007", title: "STARTER DECK -Big Mom Pirates- [ST-07]" },
+    ja: { id: "550007", title: "スタートデッキ ビッグ・マム海賊団【ST-07】" },
+    zh: { id: "554007", title: "起始牌組 BIG MOM海賊團【ST-07】" },
+  },
+  "ST-06": {
+    code: "ST-06",
+    en: { id: "556006", title: "STARTER DECK -The Navy- [ST-06]" },
+    ja: { id: "550006", title: "スタートデッキ 海軍【ST-06】" },
+    zh: { id: "554006", title: "起始牌組 海軍【ST-06】" },
+  },
+  "ST-05": {
+    code: "ST-05",
+    en: {
+      id: "556005",
+      title: "STARTER DECK -ONE PIECE FILM edition- [ST-05]",
+    },
+    ja: {
+      id: "550005",
+      title: "スタートデッキ ONE PIECE FILM edition【ST-05】",
+    },
+    zh: { id: "554005", title: "起始牌組 ONE PIECE FILM edition【ST-05】" },
+  },
+  "ST-04": {
+    code: "ST-04",
+    en: {
+      id: "556004",
+      title: "STARTER DECK -Animal Kingdom Pirates- [ST-04]",
+    },
+    ja: { id: "550004", title: "スタートデッキ 百獣海賊団【ST-04】" },
+    zh: { id: "554004", title: "起始牌組 百獸海賊團【ST-04】" },
+  },
+  "ST-03": {
+    code: "ST-03",
+    en: {
+      id: "556003",
+      title: "STARTER DECK -The Seven Warlords of the Sea- [ST-03]",
+    },
+    ja: { id: "550003", title: "スタートデッキ 王下七武海【ST-03】" },
+    zh: { id: "554003", title: "起始牌組 王下七武海【ST-03】" },
+  },
+  "ST-02": {
+    code: "ST-02",
+    en: { id: "556002", title: "STARTER DECK -Worst Generation- [ST-02]" },
+    ja: { id: "550002", title: "スタートデッキ 最悪の世代【ST-02】" },
+    zh: { id: "554002", title: "起始牌組 最可怕世代【ST-02】" },
+  },
+  "ST-01": {
+    code: "ST-01",
+    en: { id: "556001", title: "STARTER DECK -Straw Hat Crew- [ST-01]" },
+    ja: { id: "550001", title: "スタートデッキ 麦わらの一味【ST-01】" },
+    zh: { id: "554001", title: "起始牌組 草帽一行人【ST-01】" },
+  },
+
+  // --- SPECIAL PRODUCTS ---
+  FAMILY: {
+    code: "FAMILY",
+    en: { id: "556701", title: "Family Deck Set" },
+    ja: { id: "550701", title: "ファミリーデッキセット" },
+    zh: { id: "554701", title: "家庭牌組套裝" },
+  },
+  PROMO: {
+    code: "PROMO",
+    en: { id: "556901", title: "Promotion card" },
+    ja: { id: "550901", title: "プロモーションカード" },
+    zh: { id: "554901", title: "推廣卡" },
+  },
+  LIMITED: {
+    code: "LIMITED",
+    en: { id: "556801", title: "Limited Product Card" },
+    ja: { id: "550801", title: "限定商品収録カード" },
+    zh: { id: "554801", title: "限定商品收錄卡牌" },
+  },
 };
 
 // --- 強制顯示順序列表 (解決 JS 對數字 Key 的自動升序問題) ---
+// const packOrder = [
+//   "554302",
+//   "554301", // PRB
+//   "554204",
+//   "554203",
+//   "554202",
+//   "554201", // EB
+//   "554115",
+//   "554114",
+//   "554113",
+//   "554112",
+//   "554111",
+//   "554110",
+//   "554109",
+//   "554108",
+//   "554107",
+//   "554106",
+//   "554105",
+//   "554104",
+//   "554103",
+//   "554102",
+//   "554101", // OP
+//   "554029",
+//   "554028",
+//   "554027",
+//   "554026",
+//   "554025",
+//   "554024",
+//   "554023",
+//   "554022",
+//   "554021",
+//   "554020",
+//   "554019",
+//   "554018",
+//   "554017",
+//   "554016",
+//   "554015",
+//   "554014",
+//   "554013",
+//   "554012",
+//   "554011",
+//   "554010",
+//   "554009",
+//   "554008",
+//   "554007",
+//   "554006",
+//   "554005",
+//   "554004",
+//   "554003",
+//   "554002",
+//   "554001", // ST
+//   "554701",
+//   "554901",
+//   "554801", // Others
+// ];
+
 const packOrder = [
-  "554302",
-  "554301", // PRB
-  "554204",
-  "554203",
-  "554202",
-  "554201", // EB
-  "554115",
-  "554114",
-  "554113",
-  "554112",
-  "554111",
-  "554110",
-  "554109",
-  "554108",
-  "554107",
-  "554106",
-  "554105",
-  "554104",
-  "554103",
-  "554102",
-  "554101", // OP
-  "554029",
-  "554028",
-  "554027",
-  "554026",
-  "554025",
-  "554024",
-  "554023",
-  "554022",
-  "554021",
-  "554020",
-  "554019",
-  "554018",
-  "554017",
-  "554016",
-  "554015",
-  "554014",
-  "554013",
-  "554012",
-  "554011",
-  "554010",
-  "554009",
-  "554008",
-  "554007",
-  "554006",
-  "554005",
-  "554004",
-  "554003",
-  "554002",
-  "554001", // ST
-  "554701",
-  "554901",
-  "554801", // Others
+  // Premium Boosters
+  "PRB-02",
+  "PRB-01",
+
+  // Extra Boosters
+  "EB-04",
+  "EB-03",
+  "EB-02",
+  "EB-01",
+
+  // Main Booster Packs
+  "OP-15",
+  "OP-14",
+  "OP-13",
+  "OP-12",
+  "OP-11",
+  "OP-10",
+  "OP-09",
+  "OP-08",
+  "OP-07",
+  "OP-06",
+  "OP-05",
+  "OP-04",
+  "OP-03",
+  "OP-02",
+  "OP-01",
+
+  // Starter Decks
+  "ST-30",
+  "ST-29",
+  "ST-28",
+  "ST-27",
+  "ST-26",
+  "ST-25",
+  "ST-24",
+  "ST-23",
+  "ST-22",
+  "ST-21",
+  "ST-20",
+  "ST-19",
+  "ST-18",
+  "ST-17",
+  "ST-16",
+  "ST-15",
+  "ST-14",
+  "ST-13",
+  "ST-12",
+  "ST-11",
+  "ST-10",
+  "ST-09",
+  "ST-08",
+  "ST-07",
+  "ST-06",
+  "ST-05",
+  "ST-04",
+  "ST-03",
+  "ST-02",
+  "ST-01",
+
+  // Special Products
+  "FAMILY",
+  "PROMO",
+  "LIMITED",
 ];
+
+const KEYWORD_MAP = {
+  main: { zh: "【主要】", en: "[Main]" },
+  activate_main: { zh: "【啟動主要】", en: "[Activate: Main]" },
+  when_attacking: { zh: "【攻擊時】", en: "[When Attacking]" },
+  on_block: { zh: "【防禦時】", en: "[On Block]" },
+  on_your_opponents_attack: {
+    zh: "【對方攻擊時】",
+    en: "[On Your Opponent's Attack]",
+  },
+  on_ko: { zh: "【KO時】", en: "[On K.O.]" },
+  your_turn: { zh: "【我方回合中】", en: "[Your Turn]" },
+  opponents_turn: { zh: "【對方回合中】", en: "[Opponent's Turn]" },
+  end_of_your_turn: { zh: "【我方回合結束時】", en: "[End of Your Turn]" },
+  on_play: { zh: "【登場時】", en: "[On Play]" },
+  once_per_turn: { zh: "【每回合1次】", en: "[Once Per Turn]" },
+  counter: { zh: "【反擊】", en: "[Counter]" },
+  rush: { zh: "【速攻】", en: "[Rush]" },
+  blocker: { zh: "【防禦】", en: "[Blocker]" },
+  rush_character: { zh: "【速攻：角色】", en: "[Rush: Character]" },
+  unblockable: { zh: "【防禦不可】", en: "[Unblockable]" },
+  double_attack: { zh: "【雙重攻擊】", en: "[Double Attack]" },
+  banish: { zh: "【消失】", en: "[Banish]" },
+  trigger: { zh: "【觸發器】", en: "[Trigger]" },
+
+  // DON!! Keywords
+  don_x1: { zh: "【咚‼×1】", en: "[DON!! x1]" },
+  don_x2: { zh: "【咚‼×2】", en: "[DON!! x2]" }, // Note: You can add x2-x9 here if needed
+  don_x3: { zh: "【咚‼×3】", en: "[DON!! x3]" },
+  don_x4: { zh: "【咚‼×4】", en: "[DON!! x4]" },
+  don_x5: { zh: "【咚‼×5】", en: "[DON!! x5]" },
+  don_x6: { zh: "【咚‼×6】", en: "[DON!! x6]" },
+  don_x7: { zh: "【咚‼×7】", en: "[DON!! x7]" },
+  don_x8: { zh: "【咚‼×8】", en: "[DON!! x8]" },
+  don_x9: { zh: "【咚‼×9】", en: "[DON!! x9]" },
+  don_x10: { zh: "【咚‼×10】", en: "[DON!! x10]" },
+};
 
 const rules = [
   {
-    keywords: [
-      "【主要】",
-      "【啟動主要】",
-      "【攻擊時】",
-      "【防禦時】",
-      "【對方攻擊時】",
-      "【KO時】",
-      "【我方回合中】",
-      "【對方回合中】",
-      "【我方回合結束時】",
-      "【登場時】",
+    ids: [
+      "main",
+      "activate_main",
+      "when_attacking",
+      "on_block",
+      "on_your_opponents_attack",
+      "on_ko",
+      "your_turn",
+      "opponents_turn",
+      "end_of_your_turn",
+      "on_play",
     ],
     style:
       "bg-blue-600 text-white px-1 py-0.5 rounded text-[13px] leading-tight font-bold mx-0.5 inline-block",
   },
   {
-    keywords: ["【每回合1次】"],
+    ids: ["once_per_turn"],
     style:
       "bg-red-600 text-white px-1 py-0.5 rounded-full text-[13px] leading-tight font-bold mx-0.5 inline-block",
   },
   {
-    keywords: ["【反擊】"],
+    ids: ["counter"],
     style:
       "bg-red-600 text-white px-1 py-0.5 rounded text-[13px] leading-tight font-bold mx-0.5 inline-block",
   },
   {
-    keywords: [
-      "【速攻】",
-      "【防禦】",
-      "【速攻：角色】",
-      "【防禦不可】",
-      "【雙重攻擊】",
-      "【消失】",
+    ids: [
+      "rush",
+      "blocker",
+      "rush_character",
+      "unblockable",
+      "double_attack",
+      "banish",
     ],
     style:
       "bg-orange-500 text-white px-1 py-0.5 text-[13px] leading-tight font-bold mx-0.5 inline-block [clip-path:polygon(10%_0%,_90%_0%,_100%_50%,_90%_100%,_10%_100%,_0%_50%)]",
   },
   {
-    keywords: [
-      "【咚‼×1】",
-      "【咚‼×2】",
-      "【咚‼×3】",
-      "【咚‼×4】",
-      "【咚‼×5】",
-      "【咚‼×6】",
-      "【咚‼×7】",
-      "【咚‼×8】",
-      "【咚‼×9】",
-      "【咚‼×10】",
+    // Pro-tip: You can use Object.keys(KEYWORD_MAP).filter(k => k.startsWith('don_'))
+    // to fill this automatically, or just list them:
+    ids: [
+      "don_x1",
+      "don_x2",
+      "don_x3",
+      "don_x4",
+      "don_x5",
+      "don_x6",
+      "don_x7",
+      "don_x8",
+      "don_x9",
+      "don_x10",
     ],
     style:
       "bg-slate-900 text-white px-1 py-0.5 rounded text-[13px] leading-tight font-bold mx-0.5 inline-block [clip-path:polygon(10%_0%,_90%_0%,_100%_10%,_100%_90%,_90%_100%,_10%_100%,_0%_90%,_0%_10%)]",
   },
   {
-    keywords: ["【觸發器】"],
+    ids: ["trigger"],
     style:
       "bg-yellow-200 text-black pl-0 pr-2 py-0.5 rounded text-[13px] leading-tight font-bold mx-0.5 inline-block [clip-path:polygon(0%_0%,_100%_0%,_85%_100%,_0%_100%)]",
   },
 ];
+
+const formatEffectText = (text, langCode) => {
+  if (!text) return "";
+  let formatted = text;
+
+  rules.forEach((rule) => {
+    rule.ids.forEach((id) => {
+      // 1. Get the word from KEYWORD_MAP (e.g., "【速攻】" or "[Rush]")
+      const word = KEYWORD_MAP[id]?.[langCode];
+
+      if (word) {
+        // 2. Escape brackets for Regex safety
+        const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(escapedWord, "g");
+
+        // 3. Wrap the word in the rule's CSS classes
+        formatted = formatted.replace(
+          regex,
+          `<span class="${rule.style}">${word}</span>`,
+        );
+      }
+    });
+  });
+
+  return formatted;
+};
+
+// const rules = [
+//   {
+//     keywords: [
+//       "【主要】",
+//       "【啟動主要】",
+//       "【攻擊時】",
+//       "【防禦時】",
+//       "【對方攻擊時】",
+//       "【KO時】",
+//       "【我方回合中】",
+//       "【對方回合中】",
+//       "【我方回合結束時】",
+//       "【登場時】",
+//     ],
+//     style:
+//       "bg-blue-600 text-white px-1 py-0.5 rounded text-[13px] leading-tight font-bold mx-0.5 inline-block",
+//   },
+//   {
+//     keywords: ["【每回合1次】"],
+//     style:
+//       "bg-red-600 text-white px-1 py-0.5 rounded-full text-[13px] leading-tight font-bold mx-0.5 inline-block",
+//   },
+//   {
+//     keywords: ["【反擊】"],
+//     style:
+//       "bg-red-600 text-white px-1 py-0.5 rounded text-[13px] leading-tight font-bold mx-0.5 inline-block",
+//   },
+//   {
+//     keywords: [
+//       "【速攻】",
+//       "【防禦】",
+//       "【速攻：角色】",
+//       "【防禦不可】",
+//       "【雙重攻擊】",
+//       "【消失】",
+//     ],
+//     style:
+//       "bg-orange-500 text-white px-1 py-0.5 text-[13px] leading-tight font-bold mx-0.5 inline-block [clip-path:polygon(10%_0%,_90%_0%,_100%_50%,_90%_100%,_10%_100%,_0%_50%)]",
+//   },
+//   {
+//     keywords: [
+//       "【咚‼×1】",
+//       "【咚‼×2】",
+//       "【咚‼×3】",
+//       "【咚‼×4】",
+//       "【咚‼×5】",
+//       "【咚‼×6】",
+//       "【咚‼×7】",
+//       "【咚‼×8】",
+//       "【咚‼×9】",
+//       "【咚‼×10】",
+//     ],
+//     style:
+//       "bg-slate-900 text-white px-1 py-0.5 rounded text-[13px] leading-tight font-bold mx-0.5 inline-block [clip-path:polygon(10%_0%,_90%_0%,_100%_10%,_100%_90%,_90%_100%,_10%_100%,_0%_90%,_0%_10%)]",
+//   },
+//   {
+//     keywords: ["【觸發器】"],
+//     style:
+//       "bg-yellow-200 text-black pl-0 pr-2 py-0.5 rounded text-[13px] leading-tight font-bold mx-0.5 inline-block [clip-path:polygon(0%_0%,_100%_0%,_85%_100%,_0%_100%)]",
+//   },
+// ];
 
 const initialTurns = (dons) =>
   dons.map((don) => ({
@@ -259,23 +888,55 @@ const initializeMarketData = (rawData) => {
   return map;
 };
 
+const defaultFilters = {
+  selectedBlocks: ["1_legal", "2", "3", "4", "5"],
+  searchTerm: "",
+  selectedKeywords: [],
+  isExcludeMode: false,
+  selectedColors: [],
+  selectedCosts: [],
+  selectedRarity: [],
+  filterCategory: "all",
+  filterType1: "all",
+  filterType2: "all",
+  typeLogic: "AND",
+  filterPackId: "554115",
+  hideReprint: true,
+  hidePromo: true,
+  showCurve: false,
+};
+
 const App = () => {
+  const { t, i18n } = useTranslation();
+  const langCode = i18n.language.split("-")[0]; // 'en', 'zh', 'ja', etc.
+  const toggleLanguage = () => {
+    const newLang = i18n.language.startsWith("en") ? "zh" : "en";
+    i18n.changeLanguage(newLang);
+  };
+
   const [cards, setCards] = useState([]);
   const [user, setUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedKeywords, setSelectedKeywords] = useState([]);
   const [isExcludeMode, setIsExcludeMode] = useState(false);
   const [selectedColors, setSelectedColors] = useState([]);
+  const [selectedCosts, setSelectedCosts] = useState([]);
   const [selectedRarity, setSelectedRarity] = useState([]);
-  const [filterCategory, setFilterCategory] = useState("所有");
+  const [filterCategory, setFilterCategory] = useState("all");
   const [selectedAttributes, setSelectedAttributes] = useState([]);
-  const [filterType1, setFilterType1] = useState("所有");
-  const [filterType2, setFilterType2] = useState("所有");
+  const [filterType1, setFilterType1] = useState("all");
+  const [filterType2, setFilterType2] = useState("all");
   const [typeLogic, setTypeLogic] = useState("AND"); // 'AND' 或 'OR'
-  const [filterPackId, setFilterPackId] = useState("554115"); // 新增卡包篩選狀態
+  const [filterPackId, setFilterPackId] = useState(defaultFilters.filterPackId);
   const [hideReprint, setHideReprint] = useState(true); // 新增：隱藏再錄卡狀態
   const [hidePromo, setHidePromo] = useState(true); // 新增：隱藏促銷卡狀態
-  const [selectedBlocks, setSelectedBlocks] = useState([]);
+  const [selectedBlocks, setSelectedBlocks] = useState([
+    "1_legal",
+    "2",
+    "3",
+    "4",
+    "5",
+  ]);
   const [isImporting, setIsImporting] = useState(false);
   const [isImportingDeck, setIsImportingDeck] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
@@ -338,6 +999,15 @@ const App = () => {
       setHideReprint,
       hidePromo,
       setHidePromo,
+      setSelectedColors,
+      colorMap,
+      categoryMap,
+      rarityMap,
+      toggleRarity,
+      attributeMap,
+      toggleAttribute,
+      selectedCosts,
+      setSelectedCosts,
     };
 
     const commonProps = {
@@ -391,6 +1061,8 @@ const App = () => {
             updateDeckCount={updateDeckCount}
             generateShareUrl={generateShareUrl}
             legalityWarning={legalityWarning}
+            deckTableData={deckTableData}
+            copySimFormat={copySimFormat}
             // NEW ANALYSIS PROPS
             deckAnalysis={deckAnalysis}
             showCurve={showCurve}
@@ -420,6 +1092,7 @@ const App = () => {
             toggleMarketType={toggleMarketType}
             updatePrice={updatePrice}
             deckTableData={deckTableData}
+            copySimFormat={copySimFormat}
             deckValuation={deckValuation}
             bulkUpdateRarity={bulkUpdateRarity}
             deckList={deckList}
@@ -664,84 +1337,150 @@ const App = () => {
   ];
 
   const quickKeywords = [
-    "【登場時】",
-    "【啟動主要】",
-    "【每回合1次】",
-    "【攻擊時】",
-    "【防禦時】",
-    "【我方回合中】",
-    "【我方回合結束時】",
-    "【反擊】",
-    "【對方攻擊時】",
-    "【對方回合中】",
-    "【KO時】",
-    "【觸發器】",
-    "【速攻】",
-    "【速攻：角色】",
-    "【防禦】",
-    "【防禦不可】",
-    "【雙重攻擊】",
-    "【消失】",
-    "沒有效果",
+    KEYWORD_MAP.on_play[langCode],
+    KEYWORD_MAP.activate_main[langCode],
+    KEYWORD_MAP.once_per_turn[langCode],
+    KEYWORD_MAP.when_attacking[langCode],
+    KEYWORD_MAP.on_block[langCode],
+    KEYWORD_MAP.your_turn[langCode],
+    KEYWORD_MAP.end_of_your_turn[langCode],
+    KEYWORD_MAP.counter[langCode],
+    KEYWORD_MAP.on_your_opponents_attack[langCode],
+    KEYWORD_MAP.opponents_turn[langCode],
+    KEYWORD_MAP.on_ko[langCode],
+    KEYWORD_MAP.trigger[langCode],
+    KEYWORD_MAP.rush[langCode],
+    KEYWORD_MAP.rush_character[langCode],
+    KEYWORD_MAP.blocker[langCode],
+    KEYWORD_MAP.unblockable[langCode],
+    KEYWORD_MAP.double_attack[langCode],
+    KEYWORD_MAP.banish[langCode],
+    langCode === "en" ? "No Effect" : "沒有效果",
   ];
 
+  // const colorMap = {
+  //   紅色: "Red",
+  //   綠色: "Green",
+  //   藍色: "Blue",
+  //   紫色: "Purple",
+  //   黑色: "Black",
+  //   黃色: "Yellow",
+  // };
+  // const categoryMap = {
+  //   領航卡: "Leader",
+  //   角色卡: "Character",
+  //   事件卡: "Event",
+  //   舞台卡: "Stage",
+  // };
+  // const rarityMap = {
+  //   "領航卡 (L)": "Leader",
+  //   "普通 (C)": "Common",
+  //   "不普通 (UC)": "Uncommon",
+  //   "稀有 (R)": "Rare",
+  //   "超級稀有 (SR)": "SuperRare",
+  //   "絕密稀有 (SEC)": "SecretRare",
+  //   "特殊卡 (SP)": "Special",
+  // };
+  // const attributeMap = {
+  //   打: "Strike",
+  //   斬: "Slash",
+  //   特: "Special",
+  //   射: "Ranged",
+  //   知: "Wisdom",
+  // };
+
   const colorMap = {
-    紅色: "Red",
-    綠色: "Green",
-    藍色: "Blue",
-    紫色: "Purple",
-    黑色: "Black",
-    黃色: "Yellow",
+    red: t("colors.red"),
+    green: t("colors.green"),
+    blue: t("colors.blue"),
+    purple: t("colors.purple"),
+    black: t("colors.black"),
+    yellow: t("colors.yellow"),
   };
+
   const categoryMap = {
-    領航卡: "Leader",
-    角色卡: "Character",
-    事件卡: "Event",
-    舞台卡: "Stage",
+    leader: t("categories.leader"),
+    character: t("categories.character"),
+    event: t("categories.event"),
+    stage: t("categories.stage"),
   };
+
   const rarityMap = {
-    "領航卡 (L)": "Leader",
-    "普通 (C)": "Common",
-    "不普通 (UC)": "Uncommon",
-    "稀有 (R)": "Rare",
-    "超級稀有 (SR)": "SuperRare",
-    "絕密稀有 (SEC)": "SecretRare",
-    "特殊卡 (SP)": "Special",
+    leader: t("rarities.leader"),
+    common: t("rarities.common"),
+    uncommon: t("rarities.uncommon"),
+    rare: t("rarities.rare"),
+    super_rare: t("rarities.super_rare"),
+    secret_rare: t("rarities.secret_rare"),
+    special: t("rarities.special"),
   };
+
   const attributeMap = {
-    打: "Strike",
-    斬: "Slash",
-    特: "Special",
-    射: "Ranged",
-    知: "Wisdom",
+    strike: t("attributes.strike"),
+    slash: t("attributes.slash"),
+    special: t("attributes.special"),
+    ranged: t("attributes.ranged"),
+    wisdom: t("attributes.wisdom"),
+  };
+
+  const DB_MAP = {
+    // Database Value : Base Programming ID
+    紅色: "red",
+    綠色: "green",
+    藍色: "blue",
+    紫色: "purple",
+    黑色: "black",
+    黃色: "yellow",
+    領航卡: "leader",
+    角色卡: "character",
+    事件卡: "event",
+    舞台卡: "stage",
+    打: "strike",
+    斬: "slash",
+    特: "special",
+    射: "ranged",
+    知: "wisdom",
   };
 
   // 使用 packOrder 生成最終顯示的清單
-  const sortedPackList = useMemo(() => {
-    return packOrder.map((id) => packData[id]).filter((p) => p !== undefined);
-  }, []);
+  // const sortedPackList = useMemo(() => {
+  //   return packOrder.map((id) => packData[id]).filter((p) => p !== undefined);
+  // }, []);
 
-  const defaultFilters = {
-    searchTerm: "",
-    selectedKeywords: [],
-    isExcludeMode: false,
-    selectedColors: [],
-    selectedRarity: [],
-    filterCategory: "所有",
-    filterType1: "所有",
-    filterType2: "所有",
-    typeLogic: "AND",
-    filterPackId: "554115",
-    hideReprint: true,
-    hidePromo: true,
-    showCurve: false,
-  };
+  const sortedPackList = useMemo(() => {
+    return packOrder
+      .map((code) => {
+        const pack = packData[code];
+
+        // 1. Try to find data in the current language (e.g., 'en' or 'zh')
+        const currentLangData = pack?.[langCode];
+
+        // 2. Try to find data in Japanese as a fallback (since you're in Japan!)
+        const jaData = pack?.["ja"] || pack?.["zh"];
+
+        // 3. Extract the name, trying multiple possible keys
+        const packTitle =
+          currentLangData?.name ||
+          currentLangData?.title ||
+          jaData?.name ||
+          jaData?.title ||
+          code; // Last resort fallback
+
+        return {
+          code: code,
+          id: String(currentLangData?.id || jaData?.id),
+          title: packTitle,
+        };
+      })
+      .filter((p) => p.id && p.id !== "undefined");
+  }, [langCode, packData, packOrder]);
 
   const resetFilters = () => {
     setSearchTerm(defaultFilters.searchTerm);
     setSelectedKeywords(defaultFilters.selectedKeywords);
     setIsExcludeMode(defaultFilters.isExcludeMode);
     setSelectedColors(defaultFilters.selectedColors);
+    setSelectedCosts([]);
     setSelectedRarity(defaultFilters.selectedRarity);
     setFilterCategory(defaultFilters.filterCategory);
     setFilterType1(defaultFilters.filterType1);
@@ -751,6 +1490,7 @@ const App = () => {
     setHideReprint(defaultFilters.hideReprint);
     setHidePromo(defaultFilters.hidePromo);
     setShowCurve(defaultFilters.showCurve);
+    setSelectedBlocks(defaultFilters.selectedBlocks);
 
     // Optional: also clear selected card detail view if you want full reset
     // setSelectedCard(null);
@@ -1246,6 +1986,23 @@ const App = () => {
     );
   };
 
+  // Add these inside your App component logic
+  const toggleRarity = (rarityId) => {
+    setSelectedRarity((prev) =>
+      prev.includes(rarityId)
+        ? prev.filter((r) => r !== rarityId)
+        : [...prev.filter((r) => r !== "all"), rarityId],
+    );
+  };
+
+  const toggleAttribute = (attributeId) => {
+    setSelectedAttributes((prev) =>
+      prev.includes(attributeId)
+        ? prev.filter((a) => a !== attributeId)
+        : [...prev.filter((a) => a !== "all"), attributeId],
+    );
+  };
+
   const handleImport = async () => {
     if (!jsonInput || !user) {
       alert("Please paste JSON and ensure you are logged in!");
@@ -1388,38 +2145,210 @@ const App = () => {
     }
   };
 
+  // Before adding language-specific keyword filters.
+  // const filteredCards = useMemo(() => {
+  //   const conditions = searchTerm.split(/[,，]/).filter((c) => c.trim() !== "");
+  //   return cards.filter((card) => {
+  //     // 1. Hide Reprints (Ends with _r + digits)
+  //     // Example: OP01-001_r1
+  //     if (hideReprint) {
+  //       if (card.id && /_r\d+$/i.test(card.id)) {
+  //         return false;
+  //       }
+  //     }
+
+  //     // 2. Hide Parallels/Promos (Ends with _p + digits)
+  //     // Example: OP01-001_p1
+  //     if (hidePromo) {
+  //       if (card.id && /_p\d+$/i.test(card.id)) {
+  //         return false;
+  //       }
+  //     }
+
+  //     const matchesSearch = conditions.every((cond) => {
+  //       const term = cond.toLowerCase().trim();
+
+  //       const counterMatch = term.match(/^\+(\d+)$/);
+  //       if (counterMatch) {
+  //         const targetCounter = parseInt(counterMatch[1], 10);
+  //         const cardCounter =
+  //           card.counter === null || card.counter === undefined
+  //             ? 0
+  //             : parseInt(card.counter, 10);
+  //         return cardCounter === targetCounter;
+  //       }
+
+  //       const nf = parseNumericFilter(term);
+  //       if (term === "0")
+  //         return card.counter === 0 || card.cost === 0 || card.power === 0;
+  //       if (nf) {
+  //         if (nf.value <= 15) return compare(card.cost, nf);
+  //         return compare(card.power, nf);
+  //       }
+  //       return (
+  //         (card.name || "").toLowerCase().includes(term) ||
+  //         (card.id || "").toLowerCase().includes(term) ||
+  //         (card.effect || "").toLowerCase().includes(term) ||
+  //         (card.types && card.types.some((t) => t.toLowerCase().includes(term)))
+  //       );
+  //     });
+
+  //     const matchesKeywords =
+  //       selectedKeywords.length === 0
+  //         ? true
+  //         : isExcludeMode
+  //           ? selectedKeywords.every((k) => {
+  //               // Special Case: Excluding "No Effect" means showing only cards WITH effects
+  //               if (k === "沒有效果") {
+  //                 return card.effect !== "-" || card.trigger !== null;
+  //               }
+  //               // Standard Exclusion
+  //               return (
+  //                 !(card.effect || "").includes(k) &&
+  //                 !(card.trigger || "").includes(k)
+  //               );
+  //             })
+  //           : selectedKeywords.every((k) => {
+  //               // Special Case: Finding "No Effect" cards
+  //               if (k === "沒有效果") {
+  //                 return card.effect === "-" && card.trigger === null;
+  //               }
+  //               // Standard Inclusion
+  //               return (
+  //                 (card.effect || "").includes(k) ||
+  //                 (card.trigger || "").includes(k)
+  //               );
+  //             });
+
+  //     let matchesColor = true;
+  //     if (selectedColors.length > 0) {
+  //       if (selectedColors.includes("多色")) {
+  //         matchesColor = card.colors?.length > 1;
+  //       } else {
+  //         const mappedColors = selectedColors.map((c) => colorMap[c]);
+  //         matchesColor = card.colors?.some((c) => mappedColors.includes(c));
+  //       }
+  //     }
+
+  //     let matchesRarity = true;
+  //     // Only filter if there are selections AND '所有' is not the only selection
+  //     if (selectedRarity.length > 0 && !selectedRarity.includes("所有")) {
+  //       const mappedRarities = selectedRarity.map((r) => rarityMap[r]);
+  //       matchesRarity = mappedRarities.includes(card.rarity);
+  //     }
+
+  //     let matchesCategory =
+  //       filterCategory === "所有"
+  //         ? true
+  //         : card.category === categoryMap[filterCategory];
+
+  //     // 特徵篩選邏輯 (雙下拉選單 + AND/OR)
+  //     let matchesType = true;
+  //     const type1Active = filterType1 !== "所有";
+  //     const type2Active = filterType2 !== "所有";
+
+  //     if (type1Active && type2Active) {
+  //       const hasT1 = card.types?.includes(filterType1);
+  //       const hasT2 = card.types?.includes(filterType2);
+  //       matchesType = typeLogic === "AND" ? hasT1 && hasT2 : hasT1 || hasT2;
+  //     } else if (type1Active) {
+  //       matchesType = card.types?.includes(filterType1);
+  //     } else if (type2Active) {
+  //       matchesType = card.types?.includes(filterType2);
+  //     }
+
+  //     // 卡包篩選邏輯
+  //     let matchesPack =
+  //       filterPackId === "所有"
+  //         ? true
+  //         : String(card.pack_id) === String(filterPackId);
+
+  //     const matchesAttribute =
+  //       selectedAttributes.length === 0 || selectedAttributes.includes("所有")
+  //         ? true
+  //         : selectedAttributes.some((selectedAttrLabel) => {
+  //             const englishValue = attributeMap[selectedAttrLabel]; // e.g., "Ranged"
+
+  //             // Since card.attributes is an array: ["Ranged"]
+  //             // We check if the array contains our mapped value
+  //             return (
+  //               card.attributes &&
+  //               card.attributes.some(
+  //                 (cardAttr) =>
+  //                   cardAttr.trim().toLowerCase() ===
+  //                   (englishValue || "").toLowerCase(),
+  //               )
+  //             );
+  //           });
+
+  //     const matchesBlock =
+  //       selectedBlocks.length === 0 || selectedBlocks.includes("所有")
+  //         ? true
+  //         : selectedBlocks.some((block) => {
+  //             // Handle the special "1 (Legal)" case
+  //             if (block === "1 (Legal)") {
+  //               return (
+  //                 card.block_number === 1 &&
+  //                 BLOCK_1_EXCEPTIONS.includes(card.id)
+  //               );
+  //             }
+
+  //             // Standard numeric check for 1, 2, 3, 4
+  //             const blockNum = parseInt(block, 10);
+  //             return card.block_number === blockNum;
+  //           });
+
+  //     return (
+  //       matchesSearch &&
+  //       matchesKeywords &&
+  //       matchesColor &&
+  //       matchesRarity &&
+  //       matchesCategory &&
+  //       matchesType &&
+  //       matchesPack &&
+  //       matchesAttribute &&
+  //       matchesBlock
+  //     );
+  //   });
+  // }, [
+  //   cards,
+  //   searchTerm,
+  //   selectedKeywords,
+  //   isExcludeMode,
+  //   selectedColors,
+  //   selectedRarity,
+  //   filterCategory,
+  //   filterType1,
+  //   filterType2,
+  //   typeLogic,
+  //   filterPackId,
+  //   hideReprint,
+  //   hidePromo,
+  //   selectedAttributes,
+  //   selectedBlocks,
+  // ]);
+
   const filteredCards = useMemo(() => {
     const conditions = searchTerm.split(/[,，]/).filter((c) => c.trim() !== "");
+
     return cards.filter((card) => {
-      // 1. Hide Reprints (Ends with _r + digits)
-      // Example: OP01-001_r1
-      if (hideReprint) {
-        if (card.id && /_r\d+$/i.test(card.id)) {
-          return false;
-        }
-      }
+      // --- 1. ID Filtering (Remains the same as IDs are universal) ---
+      if (hideReprint && card.id && /_r\d+$/i.test(card.id)) return false;
+      if (hidePromo && card.id && /_p\d+$/i.test(card.id)) return false;
 
-      // 2. Hide Parallels/Promos (Ends with _p + digits)
-      // Example: OP01-001_p1
-      if (hidePromo) {
-        if (card.id && /_p\d+$/i.test(card.id)) {
-          return false;
-        }
-      }
-
+      // --- 2. Search Bar Logic ---
       const matchesSearch = conditions.every((cond) => {
         const term = cond.toLowerCase().trim();
 
+        // Counter Search (+1000)
         const counterMatch = term.match(/^\+(\d+)$/);
         if (counterMatch) {
           const targetCounter = parseInt(counterMatch[1], 10);
-          const cardCounter =
-            card.counter === null || card.counter === undefined
-              ? 0
-              : parseInt(card.counter, 10);
+          const cardCounter = parseInt(card.counter || 0, 10);
           return cardCounter === targetCounter;
         }
 
+        // Numeric Filters (Cost/Power)
         const nf = parseNumericFilter(term);
         if (term === "0")
           return card.counter === 0 || card.cost === 0 || card.power === 0;
@@ -1427,6 +2356,8 @@ const App = () => {
           if (nf.value <= 15) return compare(card.cost, nf);
           return compare(card.power, nf);
         }
+
+        // Text Search (Name, ID, Effect, Types)
         return (
           (card.name || "").toLowerCase().includes(term) ||
           (card.id || "").toLowerCase().includes(term) ||
@@ -1435,61 +2366,64 @@ const App = () => {
         );
       });
 
-      //const matchesKeywords = selectedKeywords.every(k => (card.effect || '').includes(k) || (card.trigger || '').includes(k));
-
+      // --- 3. Keyword Filtering (The "No Effect" Future-proofing) ---
       const matchesKeywords =
         selectedKeywords.length === 0
           ? true
-          : isExcludeMode
-            ? selectedKeywords.every((k) => {
-                // Special Case: Excluding "No Effect" means showing only cards WITH effects
-                if (k === "沒有效果") {
-                  return card.effect !== "-" || card.trigger !== null;
-                }
-                // Standard Exclusion
-                return (
-                  !(card.effect || "").includes(k) &&
-                  !(card.trigger || "").includes(k)
+          : (() => {
+              return selectedKeywords.every((k) => {
+                // Find the specific keyword object from your KEYWORD_MAP
+                // We look for the keyword that matches the current UI label
+                const kwObj = Object.values(KEYWORD_MAP).find(
+                  (val) => val[langCode] === k,
                 );
-              })
-            : selectedKeywords.every((k) => {
-                // Special Case: Finding "No Effect" cards
-                if (k === "沒有效果") {
-                  return card.effect === "-" && card.trigger === null;
-                }
-                // Standard Inclusion
-                return (
-                  (card.effect || "").includes(k) ||
-                  (card.trigger || "").includes(k)
-                );
-              });
+                const searchString = kwObj ? kwObj[langCode] : k;
 
+                // Special Case: No Effect
+                if (k === "沒有效果" || k === "No Effect") {
+                  const isNoEffect =
+                    card.effect === "-" && card.trigger === null;
+                  return isExcludeMode ? !isNoEffect : isNoEffect;
+                }
+
+                const hasKeyword =
+                  (card.effect || "").includes(searchString) ||
+                  (card.trigger || "").includes(searchString);
+
+                return isExcludeMode ? !hasKeyword : hasKeyword;
+              });
+            })();
+
+      // --- 4. Color Filtering ---
       let matchesColor = true;
       if (selectedColors.length > 0) {
-        if (selectedColors.includes("多色")) {
-          matchesColor = card.colors?.length > 1;
-        } else {
-          const mappedColors = selectedColors.map((c) => colorMap[c]);
-          matchesColor = card.colors?.some((c) => mappedColors.includes(c));
-        }
+        matchesColor = selectedColors.some((selected) => {
+          if (selected === "multi") return (card.colors?.length || 0) > 1;
+          // JSON: ["Red"] -> compare "red" vs state "red"
+          return card.colors?.some(
+            (c) => c.toLowerCase() === selected.toLowerCase(),
+          );
+        });
       }
 
-      let matchesRarity = true;
-      // Only filter if there are selections AND '所有' is not the only selection
-      if (selectedRarity.length > 0 && !selectedRarity.includes("所有")) {
-        const mappedRarities = selectedRarity.map((r) => rarityMap[r]);
-        matchesRarity = mappedRarities.includes(card.rarity);
-      }
+      // --- 5. Rarity & Category ---
+      const matchesRarity =
+        selectedRarity.length === 0 ||
+        selectedRarity.some(
+          (r) => card.rarity?.toLowerCase() === r.toLowerCase(),
+        );
 
-      let matchesCategory =
-        filterCategory === "所有"
-          ? true
-          : card.category === categoryMap[filterCategory];
+      // Convert card.category (e.g., "角色卡") to "character" using DB_MAP
+      // --- 5. Category Filtering ---
+      const matchesCategory =
+        filterCategory === "all" ||
+        filterCategory === "所有" ||
+        card.category?.toLowerCase() === filterCategory.toLowerCase();
 
-      // 特徵篩選邏輯 (雙下拉選單 + AND/OR)
+      // --- 6. Type/Trait Filtering (Direct matching as these are usually specific names) ---
       let matchesType = true;
-      const type1Active = filterType1 !== "所有";
-      const type2Active = filterType2 !== "所有";
+      const type1Active = filterType1 !== "all" && filterType1 !== "所有";
+      const type2Active = filterType2 !== "all" && filterType2 !== "所有";
 
       if (type1Active && type2Active) {
         const hasT1 = card.types?.includes(filterType1);
@@ -1501,51 +2435,42 @@ const App = () => {
         matchesType = card.types?.includes(filterType2);
       }
 
-      // 卡包篩選邏輯
-      let matchesPack =
-        filterPackId === "所有"
-          ? true
-          : String(card.pack_id) === String(filterPackId);
+      // --- 7. Pack Filtering ---
+      const matchesPack =
+        filterPackId === "all" ||
+        filterPackId === "所有" ||
+        String(card.pack_id) === String(filterPackId);
 
+      // --- 8. Attribute Filtering ---
+      // Convert card.attributes (e.g., "斬") to "slash" using DB_MAP
       const matchesAttribute =
-        selectedAttributes.length === 0 || selectedAttributes.includes("所有")
-          ? true
-          : selectedAttributes.some((selectedAttrLabel) => {
-              const englishValue = attributeMap[selectedAttrLabel]; // e.g., "Ranged"
+        selectedAttributes.length === 0 ||
+        card.attributes?.some((attr) =>
+          selectedAttributes.includes(attr.toLowerCase()),
+        );
 
-              // Since card.attributes is an array: ["Ranged"]
-              // We check if the array contains our mapped value
-              return (
-                card.attributes &&
-                card.attributes.some(
-                  (cardAttr) =>
-                    cardAttr.trim().toLowerCase() ===
-                    (englishValue || "").toLowerCase(),
-                )
-              );
-            });
-
+      // --- 9. Block Filtering ---
       const matchesBlock =
-        selectedBlocks.length === 0 || selectedBlocks.includes("所有")
-          ? true
-          : selectedBlocks.some((block) => {
-              // Handle the special "1 (Legal)" case
-              if (block === "1 (Legal)") {
-                return (
-                  card.block_number === 1 &&
-                  BLOCK_1_EXCEPTIONS.includes(card.id)
-                );
-              }
+        selectedBlocks.length === 0 ||
+        selectedBlocks.includes("all") ||
+        selectedBlocks.some((block) => {
+          if (block === "1_legal") {
+            return (
+              card.block_number === 1 && BLOCK_1_EXCEPTIONS.includes(card.id)
+            );
+          }
+          return card.block_number === parseInt(block, 10);
+        });
 
-              // Standard numeric check for 1, 2, 3, 4
-              const blockNum = parseInt(block, 10);
-              return card.block_number === blockNum;
-            });
+      // Cost Filter Logic
+      const matchesCost =
+        selectedCosts.length === 0 || selectedCosts.includes(Number(card.cost));
 
       return (
         matchesSearch &&
         matchesKeywords &&
         matchesColor &&
+        matchesCost &&
         matchesRarity &&
         matchesCategory &&
         matchesType &&
@@ -1560,6 +2485,7 @@ const App = () => {
     selectedKeywords,
     isExcludeMode,
     selectedColors,
+    selectedCosts,
     selectedRarity,
     filterCategory,
     filterType1,
@@ -1570,24 +2496,34 @@ const App = () => {
     hidePromo,
     selectedAttributes,
     selectedBlocks,
+    langCode,
   ]);
 
   const legalityWarning = useMemo(() => {
-    if (!cards)
-      return { hasIssue: false, messages: [], illegalIds: [], missingIds: [] };
+    if (!cards || !deckList)
+      return {
+        hasIssue: false,
+        messages: [],
+        illegalIds: [],
+        missingIds: [],
+        colorMismatchedIds: [],
+      };
 
-    // --- LOGIC SWITCH: Check Marketplace if MarketMode is active, otherwise check Deck ---
-    // If your app has an 'isMarketMode' state, use it here.
-    // Otherwise, we check if marketData has entries.
     const isMarketActive =
       Object.keys(marketData || {}).length > 0 && isMarketMode;
-
     const dataSource = isMarketActive ? marketData : deckList;
 
-    if (!dataSource)
-      return { hasIssue: false, messages: [], illegalIds: [], missingIds: [] };
+    const leaderId = Object.keys(dataSource)
+      .find((id) => {
+        const baseId = id.split("_")[0];
+        const cardData = cards.find((c) => c.id === baseId);
+        // 根據你的樣本，欄位名稱是 category
+        return cardData?.category === "Leader";
+      })
+      ?.split("_")[0];
 
-    // Normalize entries: Deck has 'count', Marketplace has 'data.count'
+    const leader = cards.find((c) => c.id === leaderId);
+
     const activeEntries = Object.entries(dataSource).filter(([_, val]) => {
       const count = typeof val === "object" ? val.count : val;
       return count > 0;
@@ -1644,14 +2580,56 @@ const App = () => {
       });
     }
 
+    const colorMismatchedIds = [];
+
+    // 5. Check Color Identity (Only in Deck Mode)
+    if (!isMarketActive && leader) {
+      // 根據樣本，leader.colors 已經是 ["Red", "Green"]
+      const leaderColors = Array.isArray(leader.colors)
+        ? leader.colors
+        : (leader.colors || "").split("/");
+
+      activeEntries.forEach(([id, _]) => {
+        const baseId = id.split("_")[0];
+        const cardData = cards.find((c) => c.id === baseId);
+
+        // 排除 Leader 本身，並檢查其顏色
+        if (cardData && cardData.category !== "Leader" && cardData.colors) {
+          const cardColors = Array.isArray(cardData.colors)
+            ? cardData.colors
+            : cardData.colors.split("/");
+
+          // 檢查：這張卡片是否包含任何「不屬於」Leader 顏色的顏色
+          // 使用 .some(c => !leaderColors.includes(c)) 更精確
+          const isMismatched = cardColors.some(
+            (c) =>
+              !leaderColors.some(
+                (lc) => lc.trim().toLowerCase() === c.trim().toLowerCase(),
+              ),
+          );
+
+          if (isMismatched) {
+            colorMismatchedIds.push(baseId);
+          }
+        }
+      });
+
+      // if (colorMismatchedIds.length > 0) {
+      //   messages.push(`包含不符合領航員顏色的卡牌。`);
+      // }
+    }
+
     return {
-      hasIssue: messages.length > 0,
+      hasIssue:
+        messages.length > 0 ||
+        missingIds.length > 0 ||
+        colorMismatchedIds.length > 0,
       messages,
       illegalIds: [...new Set(illegalIds)],
       missingIds: [...new Set(missingIds)],
+      colorMismatchedIds: [...new Set(colorMismatchedIds)],
     };
-    // Add marketData and isMarketMode to dependencies!
-  }, [deckList, marketData, cards, isMarketMode]);
+  }, [deckList, marketData, cards, isMarketMode]); // Note: 'leader' removed from deps since it's derived now
 
   const dataIntegrityWarning = useMemo(() => {
     // 1. Determine which list we are currently auditing
@@ -1781,6 +2759,20 @@ const App = () => {
         return 0;
       });
   }, [isMarketMode, marketList, deckList, cards, marketData]);
+
+  const copySimFormat = () => {
+    if (!deckTableData || deckTableData.length === 0) return;
+
+    // Format: Quantity x ID (e.g., 4xOP15-001), one per line
+    const simString = deckTableData
+      .map((item) => `${item.quantity}x${item.id}`)
+      .join("\n");
+
+    navigator.clipboard.writeText(simString).then(() => {
+      // Optional: Visual feedback
+      alert(t("copied_to_sim", "已複製到剪貼簿 (4xOP01-001)"));
+    });
+  };
 
   // NAVIGATION LOGIC FOR MODAL
   const activeCardsList = useMemo(() => {
@@ -2000,33 +2992,145 @@ const App = () => {
   const help = getHelpContent();
 
   // --- 效果文字格式化渲染邏輯 ---
+  // const renderFormattedEffect = (text) => {
+  //   if (!text) return null;
+
+  //   // 預處理換行與移除 HTML 標籤
+  //   const plainText = text.replace(/<br>/g, "\n");
+
+  //   const allKeywords = rules.flatMap((r) => r.keywords);
+  //   const keywordRegexPart = allKeywords
+  //     .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+  //     .join("|");
+
+  //   // REFINED REGEX:
+  //   // 1. Static Keywords
+  //   // 2. The specific !! symbols
+  //   // 3. The Bold Pattern: Grabs non-bracket text followed by optional parens and a colon
+  //   const regex = new RegExp(
+  //     `(${keywordRegexPart}|!!|‼|[^\\s\\n【】(]+(?:\\([^)]*\\))?[:：])`,
+  //     "g",
+  //   );
+
+  //   const parts = plainText.split(regex);
+
+  //   return parts.map((part, index) => {
+  //     if (!part) return null;
+
+  //     // A. Handle Keyword Boxes (【...】)
+  //     const rule = rules.find((r) => r.keywords.includes(part));
+  //     if (rule) {
+  //       const subParts = part.split(/(‼|!!)/g);
+  //       return (
+  //         <span key={index} className={rule.style}>
+  //           {subParts.map((sub, i) =>
+  //             sub === "‼" || sub === "!!" ? (
+  //               <span key={i} className="inline-flex">
+  //                 <span>!</span>
+  //                 <span>!</span>
+  //               </span>
+  //             ) : (
+  //               sub
+  //             ),
+  //           )}
+  //         </span>
+  //       );
+  //     }
+
+  //     // B. Handle !! or ‼ marks (Standalone)
+  //     if (part === "!!" || part === "‼") {
+  //       return (
+  //         <span key={index} className="inline-flex">
+  //           <span>!</span>
+  //           <span>!</span>
+  //         </span>
+  //       );
+  //     }
+
+  //     // C. Handle the Bold Text (Text ending in : or ：)
+  //     if (/[：:]$/.test(part) && !part.startsWith("【")) {
+  //       const match = part.match(/^([^()]+)(\([^)]*\))?([:：])$/);
+
+  //       if (match) {
+  //         const [, mainText, parens, colon] = match;
+  //         return (
+  //           <span key={index}>
+  //             {/* 1. Bold White Text (Main Cost) */}
+  //             <span className="font-bold text-white">
+  //               {mainText.split(/(‼|!!)/g).map((s, i) =>
+  //                 s === "‼" || s === "!!" ? (
+  //                   <span key={i} className="inline-flex">
+  //                     <span>!</span>
+  //                     <span>!</span>
+  //                   </span>
+  //                 ) : (
+  //                   s
+  //                 ),
+  //               )}
+  //             </span>
+
+  //             {/* 2. Parentheses: NOW FIXES !! INSIDE TOO */}
+  //             {parens && (
+  //               <span className="font-normal">
+  //                 {parens.split(/(‼|!!)/g).map((s, i) =>
+  //                   s === "‼" || s === "!!" ? (
+  //                     <span key={i} className="inline-flex">
+  //                       <span>!</span>
+  //                       <span>!</span>
+  //                     </span>
+  //                   ) : (
+  //                     s
+  //                   ),
+  //                 )}
+  //               </span>
+  //             )}
+
+  //             {/* 3. The Colon */}
+  //             <span className="font-bold text-white">{colon}</span>
+  //           </span>
+  //         );
+  //       }
+  //     }
+
+  //     // D. Normal text (This is where the text AFTER the colon now lives)
+  //     return <span key={index}>{part}</span>;
+  //   });
+  // };
+
   const renderFormattedEffect = (text) => {
     if (!text) return null;
 
-    // 預處理換行與移除 HTML 標籤
-    const plainText = text.replace(/<br>/g, "\n");
+    // langCode is defined at the top of App() via useTranslation
+    const currentLang = langCode;
 
-    const allKeywords = rules.flatMap((r) => r.keywords);
-    const keywordRegexPart = allKeywords
+    // 1. Get ALL keywords for the CURRENT language from your KEYWORD_MAP
+    // This creates a list like ["【登場時】", "【速攻】"] or ["[On Play]", "[Rush]"]
+    const activeKeywords = rules.flatMap((rule) =>
+      rule.ids.map((id) => KEYWORD_MAP[id]?.[currentLang]).filter(Boolean),
+    );
+
+    const keywordRegexPart = activeKeywords
       .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
       .join("|");
 
-    // REFINED REGEX:
-    // 1. Static Keywords
-    // 2. The specific !! symbols
-    // 3. The Bold Pattern: Grabs non-bracket text followed by optional parens and a colon
+    // REFINED REGEX (Same logic as yours, but using activeKeywords)
     const regex = new RegExp(
       `(${keywordRegexPart}|!!|‼|[^\\s\\n【】(]+(?:\\([^)]*\\))?[:：])`,
       "g",
     );
 
+    const plainText = text.replace(/<br>/g, "\n");
     const parts = plainText.split(regex);
 
     return parts.map((part, index) => {
       if (!part) return null;
 
-      // A. Handle Keyword Boxes (【...】)
-      const rule = rules.find((r) => r.keywords.includes(part));
+      // A. Handle Keyword Boxes
+      // We check which rule contains an ID that matches this part in the current language
+      const rule = rules.find((r) =>
+        r.ids.some((id) => KEYWORD_MAP[id]?.[currentLang] === part),
+      );
+
       if (rule) {
         const subParts = part.split(/(‼|!!)/g);
         return (
@@ -2055,15 +3159,17 @@ const App = () => {
         );
       }
 
-      // C. Handle the Bold Text (Text ending in : or ：)
-      if (/[：:]$/.test(part) && !part.startsWith("【")) {
+      // C. Handle the Bold Text (Cost: or Effect：)
+      if (
+        /[：:]$/.test(part) &&
+        !part.startsWith("【") &&
+        !part.startsWith("[")
+      ) {
         const match = part.match(/^([^()]+)(\([^)]*\))?([:：])$/);
-
         if (match) {
           const [, mainText, parens, colon] = match;
           return (
             <span key={index}>
-              {/* 1. Bold White Text (Main Cost) */}
               <span className="font-bold text-white">
                 {mainText.split(/(‼|!!)/g).map((s, i) =>
                   s === "‼" || s === "!!" ? (
@@ -2076,8 +3182,6 @@ const App = () => {
                   ),
                 )}
               </span>
-
-              {/* 2. Parentheses: NOW FIXES !! INSIDE TOO */}
               {parens && (
                 <span className="font-normal">
                   {parens.split(/(‼|!!)/g).map((s, i) =>
@@ -2092,15 +3196,13 @@ const App = () => {
                   )}
                 </span>
               )}
-
-              {/* 3. The Colon */}
               <span className="font-bold text-white">{colon}</span>
             </span>
           );
         }
       }
 
-      // D. Normal text (This is where the text AFTER the colon now lives)
+      // D. Normal text
       return <span key={index}>{part}</span>;
     });
   };
@@ -2187,13 +3289,36 @@ const App = () => {
     }));
   };
 
-  // this is for the format matching for the keyword badges in the card effect text. It checks if the keyword exists in the rules and returns the corresponding style. If not found, it defaults to a standard blue badge style.
   const getKeywordStyle = (keyword) => {
-    if (keyword === "沒有效果")
-      return "bg-slate-600 border-slate-400 text-white px-1 py-0.5 rounded";
-    const match = rules.find((r) => r.keywords.includes(keyword));
-    // If found, we use its style. If not, we default to the standard blue.
-    return match ? match.style : "bg-blue-600 text-white px-1 py-0.5 rounded";
+    if (!keyword) return "bg-blue-600 text-white px-2 py-1 rounded";
+
+    // 1. Clean the input (e.g., "【登場時】" -> "登場時")
+    const cleanK = keyword.replace(/【|】|\[|\]/g, "");
+
+    // 2. Find the internal ID (like 'on_play') from the KEYWORD_MAP
+    const keywordId = Object.keys(KEYWORD_MAP || {}).find((id) => {
+      const entry = KEYWORD_MAP[id];
+      // Clean the map entries too just in case they have brackets
+      const cleanZh = entry.zh.replace(/【|】|\[|\]/g, "");
+      const cleanEn = entry.en.replace(/【|】|\[|\]/g, "");
+      return cleanZh === cleanK || cleanEn === cleanK;
+    });
+
+    // 3. Match using ONLY the ID against the rules array
+    const match = (rules || []).find((r) => {
+      // Your rules use 'ids', not 'keywords'
+      return keywordId && r.ids && r.ids.includes(keywordId);
+    });
+
+    // 4. Return the specific style or your custom default
+    if (match) return match.style;
+
+    // Fallback for "No Effect"
+    if (cleanK === "沒有效果" || cleanK === "No Effect")
+      return "bg-slate-600 text-white px-2 py-1 rounded";
+
+    // Default Spasta blue
+    return "bg-blue-600 text-white px-2 py-1 rounded";
   };
 
   return (
@@ -2212,18 +3337,22 @@ const App = () => {
         "
         >
           {/* Left: title */}
-          <h1
-            className="
-                text-xl sm:text-2xl md:text-3xl lg:text-4xl 
-                font-bold bg-gradient-to-r from-yellow-400 to-red-500 
-                bg-clip-text text-transparent 
-                tracking-tight uppercase
-                leading-tight
-                flex-shrink-1 min-w-0
-          "
-          >
-            齊齊砌
+          <h1 className="flex-shrink-0">
+            <img
+              src="/logo512.png"
+              alt="齊齊砌"
+              className="h-24 w-auto object-contain"
+            />
           </h1>
+          {/* <div className="flex items-center gap-3 flex-shrink-1 min-w-0"> */}
+          {/* Language Switcher Button */}
+          {/* <button
+              onClick={toggleLanguage}
+              className="ml-auto px-3 py-1 text-xs font-bold border border-white/20 rounded-full hover:bg-white/10 text-white transition-all"
+            >
+              {i18n.language === "en" ? "中文" : "ENG"}
+            </button>
+          </div> */}
 
           <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 flex-shrink-0 ml-auto">
             {/* 1. Import Button */}
@@ -2484,7 +3613,7 @@ const App = () => {
           Toei Animation and Bandai Namco.
         </p>
         <p className="text-[10px] text-slate-600 mt-2 uppercase tracking-widest font-bold">
-          One Piece卡表
+          齊齊砌
         </p>
       </footer>
 
@@ -2595,6 +3724,7 @@ const App = () => {
               <img
                 key={selectedCard.id}
                 src={getSafeImageUrl(selectedCard)}
+                referrerPolicy="no-referrer"
                 className="rounded-xl shadow-2xl w-full max-w-[320px] md:max-w-none border border-slate-700 object-contain h-auto"
                 alt={selectedCard.name}
               />

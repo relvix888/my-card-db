@@ -29,6 +29,7 @@ ID_MAP = {
     "Teach": "OP09-081",
     "Blackbeard": "OP09-081",
     "RB Koby": "OP11-001", 
+    "BR Koby": "OP11-001", 
     "Green Mihawk": "OP14-020", 
     "Egghead Luffy": "ST29-001", 
     "PY Rosinante": "OP12-061", 
@@ -60,6 +61,10 @@ ID_MAP = {
     "PY Robin": "OP09-062",
     "Yellow Enel": "OP05-098",
     "Vivi": "EB03-001",
+    "Lim": "OP09-022",
+    "Luffy n Ace": "ST30-001",
+    "Nico Robin": "OP09-062",
+    "Black Teach": "OP09-081",
 }
 
 def migrate_database():

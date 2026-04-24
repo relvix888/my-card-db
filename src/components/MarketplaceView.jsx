@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useRef } from "react";
+import html2canvas from "html2canvas";
+
 import CardWrapper from "./CardWrapper";
 import MarketRibbon from "./MarketRibbon";
 import LeaderBanner from "./LeaderBanner";
@@ -6,6 +8,8 @@ import QuickController from "./QuickController";
 import { BLOCK_1_EXCEPTIONS } from "../data/rotation";
 import { BANNED_LIST } from "../data/rotation";
 import { RESTRICTED_PAIRS } from "../data/rotation";
+import { useTranslation } from "react-i18next";
+import "../i18n/config";
 
 const MarketplaceView = ({
   orderedDeck,
@@ -29,7 +33,10 @@ const MarketplaceView = ({
   setMarketList,
   updateDeckCount, // Add this if you added the +/- buttons
   cards,
+  copySimFormat, // Add this for the "Copy Sim Format" button
 }) => {
+  const { t, i18n } = useTranslation();
+  const langCode = i18n.language.split("-")[0];
   // 1. SAFE DATA FALLBACK (Prevents the 'undefined' crash in all sub-components)
   const integrity = React.useMemo(
     () =>
@@ -40,6 +47,66 @@ const MarketplaceView = ({
       },
     [dataIntegrityWarning],
   );
+  const marketCaptureRef = useRef(null);
+
+  const handleShareImage = async () => {
+    if (!marketCaptureRef.current) return;
+
+    // 1. Get ALL elements we want to hide
+    const exportHeader = marketCaptureRef.current.querySelector(
+      ".export-only-header",
+    );
+    const names =
+      marketCaptureRef.current.querySelectorAll(".export-hide-name");
+    const uiElements =
+      marketCaptureRef.current.querySelectorAll(".export-hide-ui");
+    const infoAreas =
+      marketCaptureRef.current.querySelectorAll(".bg-slate-900\\/80");
+    const exportTexts =
+      marketCaptureRef.current.querySelectorAll(".export-only-text");
+
+    // 2. APPLY HIDE
+    if (exportHeader) exportHeader.classList.remove("hidden");
+
+    names.forEach((el) => (el.style.display = "none")); // Kill the name
+    uiElements.forEach((el) => (el.style.display = "none")); // Kill the buttons/inputs
+
+    exportTexts.forEach((el) => {
+      el.classList.remove("hidden"); // Show the Price badge
+      el.classList.add("block");
+    });
+
+    // Shrink the dark box container to remove the "ghost" gap
+    infoAreas.forEach((el) => {
+      el.style.height = "30px"; // Only enough space for the ID
+    });
+
+    try {
+      const canvas = await html2canvas(marketCaptureRef.current, {
+        useCORS: true,
+        scale: 3,
+        backgroundColor: "#020617",
+        windowWidth: 480,
+      });
+
+      const link = document.createElement("a");
+      link.download = `market-list.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (err) {
+      console.error("Capture failed:", err);
+    } finally {
+      // 3. RESTORE EVERYTHING
+      if (exportHeader) exportHeader.classList.add("hidden");
+      names.forEach((el) => (el.style.display = ""));
+      uiElements.forEach((el) => (el.style.display = ""));
+      infoAreas.forEach((el) => (el.style.height = ""));
+      exportTexts.forEach((el) => {
+        el.classList.add("hidden");
+        el.classList.remove("block");
+      });
+    }
+  };
 
   const displayCards = React.useMemo(() => {
     const activeList = isMarketMode ? marketList : deckList;
@@ -134,7 +201,7 @@ const MarketplaceView = ({
               onClick={() => bulkUpdateRarity("MAX")}
               className="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/50 text-amber-500 py-1.5 rounded-lg text-xs font-black uppercase transition-all active:scale-95"
             >
-              ✨ 我玩異畫
+              ✨ {t("max_rarity", "我玩異畫 / MAX PARALLEL")}
             </button>
 
             {/* Action 2: Basic Rarity */}
@@ -142,12 +209,12 @@ const MarketplaceView = ({
               onClick={() => bulkUpdateRarity("BASIC")}
               className="bg-slate-700/30 hover:bg-slate-700/50 border border-slate-600 text-slate-400 py-1.5 rounded-lg text-xs font-black uppercase transition-all active:scale-95"
             >
-              ↩️ 普畫算數
+              ↩️ {t("basic_rarity", "普畫算數 / BASIC")}
             </button>
             {/* Stat 1: Cards */}
             <div className="flex items-center justify-center gap-2 px-2 py-1.5 bg-slate-900/80 rounded-lg border border-slate-700/50">
               <span className="text-[8px] text-slate-500 font-bold uppercase">
-                卡數
+                {t("card_count", "卡數 / CARDS")}
               </span>
               <span className="font-bold text-blue-400 text-xs">
                 {Object.values(deckList || {}).reduce((a, b) => a + b, 0)}
@@ -173,7 +240,7 @@ const MarketplaceView = ({
 
           {/* Detailed Table (Desktop) */}
           <div className="bg-slate-800/40 border border-slate-700 rounded-xl overflow-hidden shadow-2xl">
-            <div className="max-h-[50vh] overflow-y-auto scrollbar-hide">
+            <div className="scrollbar-hide">
               <table className="w-full text-left border-collapse">
                 {/* 1. Table Header: Define 4 Clear Columns */}
                 <thead className="sticky top-0 z-10 bg-slate-900 border-b border-slate-700">
@@ -227,8 +294,10 @@ const MarketplaceView = ({
                 </tbody>
 
                 {/* 3. Sticky Grand Total Footer: Spanning across columns */}
-                <tfoot className="sticky bottom-0 z-10 bg-slate-900 border-t-2 border-blue-500/50">
-                  <tr className="bg-blue-500/10">
+                <tfoot className="sticky bottom-0 z-10 bg-slate-900 border-t-2 border-blue-500/50 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+                  <tr className="bg-slate-900">
+                    {" "}
+                    {/* Use a solid bg here so rows don't bleed through */}
                     <td colSpan="2" className="px-3 py-4">
                       <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">
                         {isMarketMode ? "Bulk Total 總計" : "Grand Total 總計"}
@@ -252,12 +321,67 @@ const MarketplaceView = ({
 
           <button
             onClick={generateMarketShareUrl}
-            className="w-full px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-500 shadow-lg active:scale-95"
+            className="px-6 py-4 rounded-xl flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-900/40 group active:scale-95 text-white font-bold"
+            title="分享市場報價 / Share Market Prices"
           >
-            <span className="font-bold text-xs tracking-wide text-white uppercase">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 640 640"
+              className="w-5 h-5 text-white transition-transform group-hover:rotate-12"
+              fill="currentColor"
+            >
+              <path d="M448 256c-10.6 0-20.9 1.9-30.4 5.4L214.7 150.2c.2-2 .3-4.1 .3-6.2c0-35.3-28.7-64-64-64s-64 28.7-64 64s28.7 64 64 64c10.6 0 20.9-1.9 30.4-5.4L385.3 313.8c-.2 2-.3 4.1-.3 6.2s.1 4.2 .3 6.2L181.3 430.6c-9.5-3.5-19.8-5.4-30.4-5.4c-35.3 0-64 28.7-64 64s28.7 64 64 64s64-28.7 64-64c0-2.1-.1-4.2-.3-6.2L417.6 383.4c9.5 3.5 19.8 5.4 30.4 5.4c35.3 0 64-28.7 64-64s-28.7-64-64-64z" />
+            </svg>
+            <span className="font-bold text-xs tracking-wide text-white whitespace-nowrap">
               分享市場報價
             </span>
           </button>
+          <button
+            onClick={copySimFormat}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg transition-all active:scale-95 group"
+            title="Copy for OPTCGSim / Joel's Bike"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 text-emerald-400 group-hover:rotate-12 transition-transform"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="import ClipboardIcon from your library or use this path: M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+            </svg>
+            <span className="text-xs font-bold text-slate-200 uppercase tracking-tight">
+              {t("copy_sim", "Sim 格式")}
+            </span>
+          </button>
+          {/* 
+          <button
+            onClick={handleShareImage}
+            className="px-4 py-2 rounded-lg flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg transition-all active:scale-95"
+            title="下載價格圖片 (PNG)"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002-2z"
+              />
+            </svg>
+            下載圖片
+          </button>
+          */}
         </aside>
 
         {/* --- MAIN GRID SECTION --- */}
@@ -352,89 +476,152 @@ const MarketplaceView = ({
               </div>
             </div>
           )}
+          {/* --- 1. The Wrapper (Capture Area) --- */}
+          <div
+            id="market-capture-area"
+            ref={marketCaptureRef}
+            className="p-4 bg-slate-950 rounded-2xl"
+          >
+            {/* --- 2. The Export-Only Logo (Visible only in PNG) --- */}
+            <div className="hidden export-only-header mb-8 flex items-center justify-between gap-4 border-b border-slate-800 pb-6">
+              <div className="flex items-center gap-4">
+                <h1 className="flex-shrink-0">
+                  <img
+                    src="/logo512.png"
+                    alt="齊齊砌"
+                    className="h-20 w-auto object-contain"
+                  />
+                </h1>
+                <div>
+                  <h3 className="text-xl md:text-2xl font-black text-white italic tracking-tighter">
+                    CHEI CHEI <span className="text-blue-500">CHEI</span>
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                    OPCG Marketplace - 市場清單
+                  </p>
+                </div>
+              </div>
+              <div className="text-right text-[11px] text-slate-600 font-mono">
+                {new Date().toLocaleDateString("zh-HK")}
+              </div>
+            </div>
 
-          {displayCards.length > 0 ? (
-            <div className="grid grid-cols-5 sm:grid-cols-6 gap-x-1 md:gap-x-2 gap-y-1">
-              {displayCards.map(({ card, count, displayId }) => {
-                // Determine if this specific card is the one missing from the DB
-                const isMissing = integrity.missingData.includes(displayId);
+            {/* --- 3. Your Existing Conditional Logic --- */}
+            {displayCards.length > 0 ? (
+              <div className="grid grid-cols-5 sm:grid-cols-6 gap-x-1 md:gap-x-2 gap-y-1">
+                {displayCards.map(({ card, count, displayId }) => {
+                  // Determine if this specific card is the one missing from the DB
+                  const isMissing = integrity.missingData.includes(displayId);
 
-                // Use a fallback for the card object if data is missing
-                const safeCard = card || {
-                  id: displayId,
-                  name: "Unknown Card",
-                };
+                  // Use a fallback for the card object if data is missing
+                  const safeCard = card || {
+                    id: displayId,
+                    name: "Unknown Card",
+                  };
 
-                return (
-                  <CardWrapper
-                    key={displayId}
-                    card={{ ...card, id: displayId }}
-                    isCompact={true}
-                    className="mb-0"
-                    onClick={() => setSelectedCard({ ...card, id: displayId })}
-                    badge={
-                      <>
-                        {/* 1. The Market Type Ribbon (Left/Top) */}
-                        <MarketRibbon
-                          cardId={displayId}
-                          marketData={marketData}
-                          onToggle={toggleMarketType}
-                        />
+                  return (
+                    <CardWrapper
+                      key={displayId}
+                      card={{ ...card, id: displayId }}
+                      isCompact={true}
+                      isMarketMode={isMarketMode} // <-- Pass the state down here
+                      onClick={() =>
+                        setSelectedCard({ ...card, id: displayId })
+                      }
+                      badge={
+                        <>
+                          <MarketRibbon
+                            cardId={displayId}
+                            marketData={marketData}
+                            onToggle={toggleMarketType}
+                          />
 
-                        {/* Visual Alert for Missing Data directly on the card */}
-                        {isMissing && (
-                          <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center z-30 border-2 border-dashed border-amber-500/50">
-                            <span className="text-[18px]">❓</span>
-                            <span className="text-[10px] font-black text-amber-500 mt-1 uppercase">
-                              No Data
-                            </span>
-                          </div>
-                        )}
+                          {/* 1. PRICE INPUT (UI) & PRICE BADGE (PNG) STACK */}
+                          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[90%] z-40">
+                            {/* TEXTBOX: Only visible in Web UI */}
+                            <div className="export-hide-ui">
+                              <textarea
+                                placeholder="Price"
+                                value={marketData[displayId]?.price || ""}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) =>
+                                  updatePrice(displayId, e.target.value)
+                                }
+                                /* If the price string contains a newline, use 2 rows, otherwise 1 */
+                                rows={
+                                  (marketData[displayId]?.price || "").includes(
+                                    "\n",
+                                  )
+                                    ? 2
+                                    : 1
+                                }
+                                className="w-full bg-slate-900/90 border border-amber-500/50 rounded text-center text-[10px] py-0.5 px-1 text-white font-mono outline-none shadow-xl resize-none block backdrop-blur-sm transition-all"
+                                onKeyDown={(e) => {
+                                  // Optional: Prevent adding more than one enter if you only want 2 rows max
+                                  if (
+                                    e.key === "Enter" &&
+                                    (
+                                      marketData[displayId]?.price || ""
+                                    ).includes("\n")
+                                  ) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                              />
+                            </div>
 
-                        {/* 2. The Counter (Bottom Center of Image) */}
-                        {count > 0 && (
-                          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20">
-                            <div className="bg-amber-500 text-black font-black font-mono text-xs md:text-xs px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.4)] border border-amber-300/50">
-                              {count}
+                            {/* PRICE TEXT: Only visible in PNG Export */}
+                            <div className="hidden export-only-text bg-blue-600 text-white font-black text-[10px] py-1 rounded shadow-lg border border-blue-400 text-center">
+                              ${marketData[displayId]?.price || "—"}
                             </div>
                           </div>
-                        )}
-                      </>
-                    }
-                  >
-                    <div className="flex flex-col gap-0 px-0 pb-0">
-                      {/* Price Input Area */}
-                      <textarea
-                        placeholder="Price"
-                        value={marketData[displayId]?.price || ""}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => updatePrice(displayId, e.target.value)}
-                        rows={2}
-                        className="w-full bg-slate-950 border border-slate-800 rounded text-center text-[10px] p-1 text-white font-mono outline-none focus:border-amber-500 resize-none"
-                      />
 
-                      {/* Plus/Minus Buttons only */}
-                      <div className="flex justify-center">
-                        <QuickController
-                          card={{ ...card, id: displayId }}
-                          count={count}
-                          onAdd={(c) => updateDeckCount(c, 1)}
-                          onRemove={(c) => updateDeckCount(c, -1)}
-                          hideCount={true} // Reusing the hideCount logic
-                        />
+                          {isMissing && (
+                            <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center z-30 border-2 border-dashed border-amber-500/50">
+                              <span className="text-[10px] font-black text-amber-500 uppercase">
+                                No Data
+                              </span>
+                            </div>
+                          )}
+
+                          {/* 2. THE COUNTER (Yellow Circle) */}
+                          {count > 0 && (
+                            <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 z-20">
+                              <div className="bg-amber-500 text-black font-black font-mono text-[10px] px-2 py-0.5 rounded-full shadow-lg border border-amber-300/50">
+                                {count}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      }
+                    >
+                      {/* The Bottom Info Area now only contains the ID/Name and Controller */}
+                      <div className="flex flex-col w-full px-1 pb-1 gap-1">
+                        {/* Card Name/ID are handled inside CardWrapper logic automatically */}
+
+                        {/* Controller (Hidden in PNG) */}
+                        <div className="flex justify-center w-full export-hide-ui">
+                          <QuickController
+                            card={{ ...card, id: displayId }}
+                            count={count}
+                            onAdd={(c) => updateDeckCount(c, 1)}
+                            onRemove={(c) => updateDeckCount(c, -1)}
+                            hideCount={true}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </CardWrapper>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="py-20 text-center border-2 border-dashed border-slate-800 rounded-2xl">
-              <p className="text-slate-500 font-bold italic">
-                {isMarketMode ? "沒有任何單卡" : "牌組目前為空"}
-              </p>
-            </div>
-          )}
+                    </CardWrapper>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-20 text-center border-2 border-dashed border-slate-800 rounded-2xl">
+                <p className="text-slate-500 font-bold italic">
+                  {isMarketMode ? "沒有任何單卡" : "牌組目前為空"}
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* MOBILE ONLY: Detailed Table at bottom */}
           <div className="block lg:hidden mt-8 space-y-6">
@@ -524,10 +711,64 @@ const MarketplaceView = ({
             <div className="flex justify-end mb-4">
               <button
                 onClick={generateMarketShareUrl}
-                className="px-6 py-4 rounded-xl flex items-center justify-center gap-3 bg-emerald-600 text-white font-bold"
+                className="px-6 py-4 rounded-xl flex items-center justify-center gap-3 bg-emerald-600 text-white font-bold text-xs transition-all active:scale-95"
               >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 640 640"
+                  className="w-5 h-5 text-white transition-transform group-hover:rotate-12"
+                  fill="currentColor"
+                >
+                  <path d="M448 256c-10.6 0-20.9 1.9-30.4 5.4L214.7 150.2c.2-2 .3-4.1 .3-6.2c0-35.3-28.7-64-64-64s-64 28.7-64 64s28.7 64 64 64c10.6 0 20.9-1.9 30.4-5.4L385.3 313.8c-.2 2-.3 4.1-.3 6.2s.1 4.2 .3 6.2L181.3 430.6c-9.5-3.5-19.8-5.4-30.4-5.4c-35.3 0-64 28.7-64 64s28.7 64 64 64s64-28.7 64-64c0-2.1-.1-4.2-.3-6.2L417.6 383.4c9.5 3.5 19.8 5.4 30.4 5.4c35.3 0 64-28.7 64-64s-28.7-64-64-64z" />
+                </svg>
                 分享市場報價
               </button>
+              <button
+                onClick={copySimFormat}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg transition-all active:scale-95 group"
+                title="Copy for OPTCGSim"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 text-emerald-400 group-hover:rotate-12 transition-transform"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+                  />
+                </svg>
+                <span className="text-xs font-bold text-slate-200 uppercase tracking-tight">
+                  {t("copy_sim", "Sim 格式")}
+                </span>
+              </button>
+              {/* 
+              <button
+                onClick={handleShareImage}
+                className="px-4 py-2 rounded-lg flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg transition-all active:scale-95"
+                title="下載價格圖片 (PNG)"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002-2z"
+                  />
+                </svg>
+                下載圖片
+              </button>
+              */}
             </div>
           </div>
         </main>

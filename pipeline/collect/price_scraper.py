@@ -21,7 +21,7 @@ async def scrape_all_sets():
     "st08", "st09", "op04", "st10", "op05", "st11", "st12", "op06", "st13", "eb01", 
     "op07", "st14", "op08", "st15", "st16", "st17", "st18", "st19", "st20", "prb01", 
     "op09", "op10", "st21",  "eb02", "prb02", "op11", "st22", "op12", "st23", "st24", 
-    "st25", "st26", "st27", "st28", "op13", "eb03", "op14", "st29", "eb04", "op15",
+    "st25", "st26", "st27", "st28", "op13", "eb03", "op14", "st29", "eb04", "op15", "st30",
     "promo-100", "promo-200",
     ]
     

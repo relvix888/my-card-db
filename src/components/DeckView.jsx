@@ -1,4 +1,8 @@
-import React from "react";
+import React, { useRef } from "react";
+import { useTranslation } from "react-i18next";
+import "../i18n/config";
+import html2canvas from "html2canvas";
+
 import CardWrapper from "./CardWrapper";
 import QuickController from "./QuickController";
 import LeaderBanner from "./LeaderBanner";
@@ -33,8 +37,63 @@ const DeckView = ({
   setHoveredTrait,
   marketList,
   setMarketList,
+  copySimFormat,
   ...props
 }) => {
+  const { t, i18n } = useTranslation();
+  const langCode = i18n.language.split("-")[0];
+  const deckCaptureRef = useRef(null);
+
+  const handleShareImage = async () => {
+    if (!deckCaptureRef.current) return;
+
+    const exportHeader = deckCaptureRef.current.querySelector(
+      ".export-only-header",
+    );
+    const uiElements =
+      deckCaptureRef.current.querySelectorAll(".export-hide-ui");
+
+    // 1. Prepare for export
+    if (exportHeader) {
+      exportHeader.classList.remove("hidden");
+      exportHeader.classList.add("flex");
+    }
+
+    uiElements.forEach((el) => (el.style.opacity = "0.01"));
+
+    // 2. Add a tiny delay to let the browser re-paint before capturing
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    try {
+      const canvas = await html2canvas(deckCaptureRef.current, {
+        useCORS: true,
+        scale: 3,
+        backgroundColor: "#020617",
+        windowWidth: 500,
+        // Force font rendering to be more consistent
+        onclone: (clonedDoc) => {
+          // Find all text inside the clone and ensure it's visible
+          const cards = clonedDoc.querySelectorAll("h4");
+          cards.forEach((c) => {
+            c.style.display = "block";
+            c.style.overflow = "visible";
+          });
+        },
+      });
+
+      const link = document.createElement("a");
+      link.download = `cheicheichei-deck.png`;
+      link.href = canvas.toDataURL("image/png", 1.0);
+      link.click();
+    } finally {
+      // 3. Restore
+      uiElements.forEach((el) => (el.style.opacity = "1"));
+      if (exportHeader) {
+        exportHeader.classList.add("hidden");
+        exportHeader.classList.remove("flex");
+      }
+    }
+  };
   return (
     <div className="w-full">
       {/* 1: Warning if viewing Deck while in Market Mode */}
@@ -57,7 +116,7 @@ const DeckView = ({
       {/* 2. NEW: Block 1 Legality Warning (Tournament Rule) */}
       {legalityWarning?.hasIssue && (
         <div className="mb-6 overflow-hidden bg-slate-900 border border-rose-500/30 rounded-2xl shadow-2xl">
-          <div className="bg-rose-600 px-4 py-2 flex items-center gap-2">
+          <div className="bg-rose-600 px-4 py-1.5 flex items-center gap-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="w-4 h-4"
@@ -74,7 +133,26 @@ const DeckView = ({
               Deck Validation / 牌組檢查
             </span>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="pt-2 px-4 pb-4 space-y-2">
+            {legalityWarning.colorMismatchedIds?.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-purple-400 text-xs font-bold flex items-start gap-2 leading-tight">
+                  <span className="mt-1 w-1 h-1 rounded-full bg-purple-500 shrink-0" />
+                  顏色錯誤: 以下卡片顏色與領航不符。
+                </p>
+
+                <div className="flex flex-wrap gap-2 pt-0.5">
+                  {legalityWarning.colorMismatchedIds.map((id) => (
+                    <span
+                      key={id}
+                      className="px-2 py-0.5 bg-purple-500/20 border border-purple-500/40 rounded text-[9px] font-mono text-purple-400"
+                    >
+                      {id}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Missing Data Warning (Amber/Yellow to signify missing info) */}
             {legalityWarning.missingIds.length > 0 && (
               <p className="text-amber-500 text-xs font-bold flex items-center gap-2">
@@ -122,94 +200,135 @@ const DeckView = ({
         </div>
       )}
 
-      {/* 3. Leader Banner */}
-      <LeaderBanner
-        selectedLeader={selectedLeader}
-        totalDeckCount={totalDeckCount}
-        onClearDeck={() => setDeckList({})}
-      />
+      {/* The ID below is crucial for your Share Image function */}
+      <div
+        id="deck-capture-area"
+        ref={deckCaptureRef}
+        className="p-4 md:p-8 bg-slate-950 min-h-screen"
+      >
+        {/* --- NEW: Rebranded, Export-Only Header --- */}
+        {/* We add 'export-only-header' so the JS function can find and toggle it */}
+        <div className="hidden export-only-header mb-8 flex items-center justify-between gap-4 border-b border-slate-800 pb-6">
+          <div className="flex items-center gap-4">
+            <h1 className="flex-shrink-0">
+              <img
+                src="/logo512.png"
+                alt="齊齊砌"
+                className="h-20 w-auto object-contain"
+              />
+            </h1>
+            <div>
+              <h3 className="text-xl md:text-2xl font-black text-white italic tracking-tighter">
+                CHEI CHEI <span className="text-blue-500">CHEI</span>
+              </h3>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                OPCG Deck Builder - 齊齊砌牌組
+              </p>
+            </div>
+          </div>
+          <div className="text-right text-[11px] text-slate-600 font-mono">
+            {new Date().toLocaleDateString("zh-HK")}
+          </div>
+        </div>
 
-      {/* 4. Card Grid */}
-      {orderedDeck.length > 0 ? (
-        <div className="grid grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-x-1 md:gap-x-2 gap-y-1">
-          {orderedDeck.map(({ card, count }) => {
-            const safeCard = card || {
-              id: "UNKNOWN",
-              name: "Missing Card Data",
-              category: "Character",
-            };
+        {/* 3. Leader Banner */}
+        <LeaderBanner
+          selectedLeader={selectedLeader}
+          totalDeckCount={totalDeckCount}
+          onClearDeck={() => setDeckList({})}
+        />
 
-            const isMissing = !card;
-            const isIllegal =
-              !isMissing &&
-              ((card.block_number === 1 &&
-                !BLOCK_1_EXCEPTIONS.includes(card.id)) ||
-                BANNED_LIST.includes(card.id) ||
-                legalityWarning.illegalIds.includes(card.id));
+        {/* 4. Card Grid */}
+        {orderedDeck.length > 0 ? (
+          <div className="grid grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-x-1 md:gap-x-2 gap-y-1">
+            {orderedDeck.map(({ card, count }) => {
+              const safeCard = card || {
+                id: "UNKNOWN",
+                name: "Missing Card Data",
+                category: "Character",
+              };
 
-            return (
-              <CardWrapper
-                key={card.id}
-                card={card}
-                isCompact={true}
-                className="mb-0"
-                onClick={() => setSelectedCard(card)}
-                badge={
-                  <>
-                    {/* Top Warning Badge */}
-                    {isMissing && (
-                      <div className="absolute inset-0 bg-slate-950/80 flex items-center justify-center p-2 text-center z-30">
-                        <span className="text-[10px] font-black text-rose-500 leading-tight">
-                          No Card Data
-                          <br />
-                          無資料
-                        </span>
-                      </div>
-                    )}
-                    {isIllegal && (
-                      <div className="absolute top-1 right-1 bg-rose-600 text-white text-[7px] md:text-[8px] font-black px-1.5 py-0.5 rounded shadow-lg uppercase animate-pulse z-20">
-                        警告
-                      </div>
-                    )}
+              const isMissing = !card;
+              const isIllegal =
+                !isMissing &&
+                ((card.block_number === 1 &&
+                  !BLOCK_1_EXCEPTIONS.includes(card.id)) ||
+                  BANNED_LIST.includes(card.id) ||
+                  legalityWarning.illegalIds.includes(card.id));
 
-                    {/* NEW: Counter Badge at Bottom Center of Image */}
-                    {count > 0 && (
-                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20">
-                        <div className="bg-indigo-600 text-white font-black font-mono text-xs md:text-xs px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.5)] border border-blue-400/50">
-                          {count}
+              return (
+                <CardWrapper
+                  key={card.id || "missing"}
+                  card={card}
+                  isCompact={true}
+                  className="mb-0"
+                  onClick={() => setSelectedCard(card)}
+                  badge={
+                    <>
+                      {/* Top Warning Badge */}
+                      {isMissing && (
+                        <div className="absolute inset-0 bg-slate-950/80 flex items-center justify-center p-2 text-center z-30">
+                          <span className="text-[10px] font-black text-rose-500 leading-tight">
+                            No Card Data
+                            <br />
+                            無資料
+                          </span>
                         </div>
-                      </div>
-                    )}
-                  </>
-                }
-              >
-                {/* Bottom Action: Only the +/- Controls */}
-                <div className="w-full flex justify-center">
-                  <QuickController
-                    card={card}
-                    count={count}
-                    onAdd={(c) => updateDeckCount(c, 1)}
-                    onRemove={(c) => updateDeckCount(c, -1)}
-                    hideCount={true} // New prop to hide the center number
-                  />
-                </div>
-              </CardWrapper>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="py-20 text-center border-2 border-dashed border-slate-800 rounded-2xl">
-          <p className="text-slate-500 font-bold">
-            目前牌組為空，請切換到資料庫添加卡片。
-          </p>
-        </div>
-      )}
+                      )}
+                      {isIllegal && (
+                        <div className="absolute top-1 right-1 bg-rose-600 text-white text-[7px] md:text-[8px] font-black px-1.5 py-0.5 rounded shadow-lg uppercase animate-pulse z-20">
+                          警告
+                        </div>
+                      )}
+
+                      {count > 0 && (
+                        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20">
+                          <div
+                            className="bg-indigo-600 text-white font-black font-mono 
+                    w-6 h-6 rounded-full border border-blue-400/50 
+                    shadow-[0_0_10px_rgba(37,99,235,0.5)]
+                    /* Switch to block + padding for manual centering */
+                    block text-center text-[12px] leading-none"
+                            style={{
+                              paddingTop: "6px", // Manually push the number down into the center
+                              boxSizing: "border-box",
+                            }}
+                          >
+                            {count}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  }
+                >
+                  {/* Bottom Action: Only the +/- Controls */}
+                  <div className="w-full flex justify-center export-hide-ui">
+                    <QuickController
+                      card={card}
+                      count={count}
+                      onAdd={(c) => updateDeckCount(c, 1)}
+                      onRemove={(c) => updateDeckCount(c, -1)}
+                      hideCount={true} // New prop to hide the center number
+                    />
+                  </div>
+                </CardWrapper>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="py-20 text-center border-2 border-dashed border-slate-800 rounded-2xl">
+            <p className="text-slate-500 font-bold">
+              目前牌組為空，請切換到資料庫添加卡片。
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* 1. Share Button */}
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end mb-4 py-4">
         <button
           onClick={generateShareUrl}
-          className="w-full sm:w-auto px-6 py-3 rounded-xl transition-all flex items-center justify-center gap-3 bg-sky-600 hover:bg-sky-500 shadow-lg shadow-sky-900/40 group active:scale-95"
+          className="px-6 py-4 rounded-xl flex items-center justify-center gap-3 bg-sky-600 hover:bg-sky-500 shadow-lg shadow-sky-900/40 group active:scale-95 text-white font-bold"
           title="生成分享連結 / Share Deck & Curve"
         >
           <svg
@@ -220,9 +339,52 @@ const DeckView = ({
           >
             <path d="M448 256c-10.6 0-20.9 1.9-30.4 5.4L214.7 150.2c.2-2 .3-4.1 .3-6.2c0-35.3-28.7-64-64-64s-64 28.7-64 64s28.7 64 64 64c10.6 0 20.9-1.9 30.4-5.4L385.3 313.8c-.2 2-.3 4.1-.3 6.2s.1 4.2 .3 6.2L181.3 430.6c-9.5-3.5-19.8-5.4-30.4-5.4c-35.3 0-64 28.7-64 64s28.7 64 64 64s64-28.7 64-64c0-2.1-.1-4.2-.3-6.2L417.6 383.4c9.5 3.5 19.8 5.4 30.4 5.4c35.3 0 64-28.7 64-64s-28.7-64-64-64z" />
           </svg>
-          <span className="font-bold text-sm tracking-wide text-white whitespace-nowrap">
+          <span className="font-bold text-xs tracking-wide text-white whitespace-nowrap">
             分享牌組策略
           </span>
+        </button>
+        <button
+          onClick={copySimFormat}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg transition-all active:scale-95 group"
+          title="Copy for OPTCGSim"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 text-emerald-400 group-hover:rotate-12 transition-transform"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+            />
+          </svg>
+          <span className="text-xs font-bold text-slate-200 uppercase tracking-tight">
+            {t("copy_sim", "Sim 格式")}
+          </span>
+        </button>
+        <button
+          onClick={handleShareImage}
+          className="px-4 py-2 rounded-lg flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg transition-all active:scale-95"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002-2z"
+            />
+          </svg>
+          下載圖片 (PNG)
         </button>
       </div>
 
@@ -311,7 +473,7 @@ const DeckView = ({
               />
               <SimplePieChart
                 title="卡片類別 / Category"
-                labels={["角色卡", "事件卡", "舞台卡"]}
+                labels={["角色卡 Character", "事件卡 Event", "舞台卡 Stage"]}
                 data={[
                   deckAnalysis.categories.Character,
                   deckAnalysis.categories.Event,

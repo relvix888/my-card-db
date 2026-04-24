@@ -2,7 +2,14 @@ import React from "react";
 
 import { getSafeImageUrl } from "../utils/cardHelpers";
 
-const CardWrapper = ({ card, children, badge, isCompact = false, onClick }) => {
+const CardWrapper = ({
+  card,
+  children,
+  badge,
+  isCompact = false,
+  onClick,
+  isMarketMode,
+}) => {
   return (
     <div
       onClick={onClick}
@@ -31,22 +38,32 @@ const CardWrapper = ({ card, children, badge, isCompact = false, onClick }) => {
 
       {/* 2. BOTTOM: Information & Action Area */}
       <div
-        className={`flex flex-col items-center flex-grow bg-slate-900/80 ${
+        className={`relative flex flex-col items-center bg-slate-900/80 ${
           isCompact ? "p-1.5 pt-1" : "p-3"
         }`}
+        /* Fixed height ensures all cards in a row are identical */
+        style={{ height: isCompact ? "75px" : "100px" }}
       >
-        {/* Layer 1: Card ID - Added text-center */}
-        <p className="w-full text-center text-[8px] sm:text-[9px] text-slate-500 font-mono font-bold tracking-tighter leading-none mb-0.5">
+        {/* Layer 1: Card ID */}
+        <p className="w-full text-center text-[8px] sm:text-[9px] text-slate-500 font-mono font-bold leading-none mb-1">
           {card.id}
         </p>
 
-        {/* Layer 2: Card Name - Added text-center and w-full */}
-        <h4 className="w-full text-center font-bold text-[10px] sm:text-[11px] leading-tight truncate text-slate-100 group-hover:text-blue-300 transition-colors mb-2">
+        {/* Layer 2: Card Name */}
+        <h4
+          className={`
+            w-full text-center font-bold text-[10px] sm:text-[11px] leading-tight text-slate-100 line-clamp-2 overflow-hidden
+            ${isMarketMode ? "export-hide-name" : ""} 
+          `}
+        >
           {card.name}
         </h4>
 
         {/* Layer 3: Action Area (QuickController) */}
-        <div className="mt-auto flex justify-center w-full">{children}</div>
+        {/* Absolute positioning "pins" this to the bottom of the CardWrapper info area */}
+        <div className="absolute bottom-1 left-0 w-full flex justify-center export-hide-ui">
+          {children}
+        </div>
       </div>
     </div>
   );

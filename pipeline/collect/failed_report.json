@@ -1,0 +1,884 @@
+[
+  {
+    "id": "EB02-052_p2",
+    "name": "艾涅爾",
+    "pack_id": "554115",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB02-052_p2.png?251121"
+  },
+  {
+    "id": "OP12-014_p2",
+    "name": "波雅・漢考克",
+    "pack_id": "554115",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP12-014_p2.png?251121"
+  },
+  {
+    "id": "OP13-031_p1",
+    "name": "托拉法爾加・羅",
+    "pack_id": "554115",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP13-031_p1.png?251121"
+  },
+  {
+    "id": "OP13-042_p2",
+    "name": "艾德華・紐蓋特",
+    "pack_id": "554115",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP13-042_p2.png?251121"
+  },
+  {
+    "id": "P-105_p2",
+    "name": "薩波",
+    "pack_id": "554115",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/P-105_p2.png?251121"
+  },
+  {
+    "id": "ST26-005_p1",
+    "name": "蒙其・D・魯夫",
+    "pack_id": "554115",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/ST26-005_p1.png?251121"
+  },
+  {
+    "id": "EB04-001",
+    "name": "珠寶・波妮",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-001.png?251121"
+  },
+  {
+    "id": "EB04-001_p1",
+    "name": "珠寶・波妮",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-001_p1.png?251121"
+  },
+  {
+    "id": "EB04-002",
+    "name": "珠寶・波妮",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-002.png?251121"
+  },
+  {
+    "id": "EB04-002_p1",
+    "name": "珠寶・波妮",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-002_p1.png?251121"
+  },
+  {
+    "id": "EB04-003",
+    "name": "斯摩格＆達絲琪",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-003.png?251121"
+  },
+  {
+    "id": "EB04-004",
+    "name": "哲普",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-004.png?251121"
+  },
+  {
+    "id": "EB04-005",
+    "name": "托拉法爾加・羅",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-005.png?251121"
+  },
+  {
+    "id": "EB04-006",
+    "name": "莫妲",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-006.png?251121"
+  },
+  {
+    "id": "EB04-007",
+    "name": "羅羅亞・索隆",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-007.png?251121"
+  },
+  {
+    "id": "EB04-007_p1",
+    "name": "羅羅亞・索隆",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-007_p1.png?251121"
+  },
+  {
+    "id": "EB04-008",
+    "name": "扭曲未來",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-008.png?251121"
+  },
+  {
+    "id": "EB04-009",
+    "name": "我的徒弟要出航了，就給點面子吧…",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-009.png?251121"
+  },
+  {
+    "id": "EB04-010",
+    "name": "魯魯西亞王國",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-010.png?251121"
+  },
+  {
+    "id": "EB04-011",
+    "name": "鱗片",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-011.png?251121"
+  },
+  {
+    "id": "EB04-012",
+    "name": "菊之丞",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-012.png?251121"
+  },
+  {
+    "id": "EB04-012_p1",
+    "name": "菊之丞",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-012_p1.png?251121"
+  },
+  {
+    "id": "EB04-013",
+    "name": "凱洛特",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-013.png?251121"
+  },
+  {
+    "id": "EB04-013_p1",
+    "name": "凱洛特",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-013_p1.png?251121"
+  },
+  {
+    "id": "EB04-014",
+    "name": "光月鋤燒",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-014.png?251121"
+  },
+  {
+    "id": "EB04-015",
+    "name": "吉貝爾",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-015.png?251121"
+  },
+  {
+    "id": "EB04-016",
+    "name": "鳥類",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-016.png?251121"
+  },
+  {
+    "id": "EB04-017",
+    "name": "神秘姆斯",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-017.png?251121"
+  },
+  {
+    "id": "EB04-018",
+    "name": "梅卡洛",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-018.png?251121"
+  },
+  {
+    "id": "EB04-018_p1",
+    "name": "梅卡洛",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-018_p1.png?251121"
+  },
+  {
+    "id": "EB04-019",
+    "name": "電爪",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-019.png?251121"
+  },
+  {
+    "id": "EB04-020",
+    "name": "鮫瓦正拳",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-020.png?251121"
+  },
+  {
+    "id": "EB04-021",
+    "name": "尹卡蘭姆",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-021.png?251121"
+  },
+  {
+    "id": "EB04-022",
+    "name": "一笑",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-022.png?251121"
+  },
+  {
+    "id": "EB04-022_p1",
+    "name": "一笑",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-022_p1.png?251121"
+  },
+  {
+    "id": "EB04-023",
+    "name": "加卡＆貝爾",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-023.png?251121"
+  },
+  {
+    "id": "EB04-024",
+    "name": "蒂菈歌妲",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-024.png?251121"
+  },
+  {
+    "id": "EB04-025",
+    "name": "納菲魯塔利・薇薇",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-025.png?251121"
+  },
+  {
+    "id": "EB04-025_p1",
+    "name": "納菲魯塔利・薇薇",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-025_p1.png?251121"
+  },
+  {
+    "id": "EB04-026",
+    "name": "布魯格拉絲",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-026.png?251121"
+  },
+  {
+    "id": "EB04-027",
+    "name": "波雅・漢考克",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-027.png?251121"
+  },
+  {
+    "id": "EB04-028",
+    "name": "冰凍時刻",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-028.png?251121"
+  },
+  {
+    "id": "EB04-029",
+    "name": "我聽見…女性淚水落下的聲音",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-029.png?251121"
+  },
+  {
+    "id": "EB04-030",
+    "name": "海道",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-030.png?251121"
+  },
+  {
+    "id": "EB04-031",
+    "name": "KING",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-031.png?251121"
+  },
+  {
+    "id": "EB04-031_p1",
+    "name": "KING",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-031_p1.png?251121"
+  },
+  {
+    "id": "EB04-032",
+    "name": "QUEEN",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-032.png?251121"
+  },
+  {
+    "id": "EB04-033",
+    "name": "火爆鬥球怪兄弟",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-033.png?251121"
+  },
+  {
+    "id": "EB04-034",
+    "name": "夏洛特・普琳",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-034.png?251121"
+  },
+  {
+    "id": "EB04-035",
+    "name": "砍人鐮藏",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-035.png?251121"
+  },
+  {
+    "id": "EB04-036",
+    "name": "弗克西",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-036.png?251121"
+  },
+  {
+    "id": "EB04-036_p1",
+    "name": "弗克西",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-036_p1.png?251121"
+  },
+  {
+    "id": "EB04-037",
+    "name": "波琪",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-037.png?251121"
+  },
+  {
+    "id": "EB04-038",
+    "name": "羅希南特＆羅",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-038.png?251121"
+  },
+  {
+    "id": "EB04-038_p1",
+    "name": "羅希南特＆羅",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-038_p1.png?251121"
+  },
+  {
+    "id": "EB04-039",
+    "name": "尤斯塔斯・基德",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-039.png?251121"
+  },
+  {
+    "id": "EB04-040",
+    "name": "火龍大炬",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-040.png?251121"
+  },
+  {
+    "id": "EB04-041",
+    "name": "漆黑隱伏",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-041.png?251121"
+  },
+  {
+    "id": "EB04-042",
+    "name": "阿爾法",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-042.png?251121"
+  },
+  {
+    "id": "EB04-043",
+    "name": "卡古",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-043.png?251121"
+  },
+  {
+    "id": "EB04-043_p1",
+    "name": "卡古",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-043_p1.png?251121"
+  },
+  {
+    "id": "EB04-044",
+    "name": "克比",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-044.png?251121"
+  },
+  {
+    "id": "EB04-044_p1",
+    "name": "克比",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-044_p1.png?251121"
+  },
+  {
+    "id": "EB04-044_p2",
+    "name": "克比",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-044_p2.png?251121"
+  },
+  {
+    "id": "EB04-045",
+    "name": "金妮",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-045.png?251121"
+  },
+  {
+    "id": "EB04-046",
+    "name": "朵爾",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-046.png?251121"
+  },
+  {
+    "id": "EB04-047",
+    "name": "貝魯梅柏",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-047.png?251121"
+  },
+  {
+    "id": "EB04-048",
+    "name": "羅布・路基",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-048.png?251121"
+  },
+  {
+    "id": "EB04-048_p1",
+    "name": "羅布・路基",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-048_p1.png?251121"
+  },
+  {
+    "id": "EB04-049",
+    "name": "指槍 黃蓮",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-049.png?251121"
+  },
+  {
+    "id": "EB04-050",
+    "name": "由我來調教你們♡",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-050.png?251121"
+  },
+  {
+    "id": "EB04-051",
+    "name": "艾米思",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-051.png?251121"
+  },
+  {
+    "id": "EB04-052",
+    "name": "香吉士",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-052.png?251121"
+  },
+  {
+    "id": "EB04-052_p1",
+    "name": "香吉士",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-052_p1.png?251121"
+  },
+  {
+    "id": "EB04-053",
+    "name": "戰桃丸",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-053.png?251121"
+  },
+  {
+    "id": "EB04-054",
+    "name": "巴索羅繆・大熊",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-054.png?251121"
+  },
+  {
+    "id": "EB04-055",
+    "name": "巴索羅繆・大熊",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-055.png?251121"
+  },
+  {
+    "id": "EB04-056",
+    "name": "和平主義者",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-056.png?251121"
+  },
+  {
+    "id": "EB04-057",
+    "name": "貝卡帕庫",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-057.png?251121"
+  },
+  {
+    "id": "EB04-058",
+    "name": "波爾薩利諾",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-058.png?251121"
+  },
+  {
+    "id": "EB04-058_p1",
+    "name": "波爾薩利諾",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-058_p1.png?251121"
+  },
+  {
+    "id": "EB04-059",
+    "name": "黑繩・大龍卷",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-059.png?251121"
+  },
+  {
+    "id": "EB04-060",
+    "name": "橡膠鷹槍亂打",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-060.png?251121"
+  },
+  {
+    "id": "EB04-061",
+    "name": "蒙其・D・魯夫",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-061.png?251121"
+  },
+  {
+    "id": "EB04-061_p1",
+    "name": "蒙其・D・魯夫",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-061_p1.png?251121"
+  },
+  {
+    "id": "EB01-023_p2",
+    "name": "艾德華・衛伯",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB01-023_p2.png?251121"
+  },
+  {
+    "id": "EB04-003_p1",
+    "name": "斯摩格＆達絲琪",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-003_p1.png?251121"
+  },
+  {
+    "id": "EB04-039_p1",
+    "name": "尤斯塔斯・基德",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-039_p1.png?251121"
+  },
+  {
+    "id": "OP11-106_p2",
+    "name": "宙斯",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP11-106_p2.png?251121"
+  },
+  {
+    "id": "PRB02-006_p2",
+    "name": "羅羅亞・索隆",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/PRB02-006_p2.png?251121"
+  },
+  {
+    "id": "PRB02-014_p2",
+    "name": "薩波",
+    "pack_id": "554204",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/PRB02-014_p2.png?251121"
+  },
+  {
+    "id": "OP05-062_p1",
+    "name": "阿娜",
+    "pack_id": "554801",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP05-062_p1.png?260408"
+  },
+  {
+    "id": "OP05-062_p2",
+    "name": "阿娜",
+    "pack_id": "554801",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP05-062_p2.png?260408"
+  },
+  {
+    "id": "OP06-068_p3",
+    "name": "賓什莫克・麗珠",
+    "pack_id": "554801",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP06-068_p3.png?260408"
+  },
+  {
+    "id": "OP12-063_p2",
+    "name": "賓什莫克・麗珠",
+    "pack_id": "554801",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP12-063_p2.png?260408"
+  },
+  {
+    "id": "OP12-063_p3",
+    "name": "賓什莫克・麗珠",
+    "pack_id": "554801",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP12-063_p3.png?260408"
+  },
+  {
+    "id": "OP13-012_p1",
+    "name": "納菲魯塔利・薇薇",
+    "pack_id": "554801",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP13-012_p1.png?260408"
+  },
+  {
+    "id": "ST18-004_p2",
+    "name": "索隆十郎",
+    "pack_id": "554801",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/ST18-004_p2.png?260408"
+  },
+  {
+    "id": "ST18-005_p2",
+    "name": "魯夫太郎",
+    "pack_id": "554801",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/ST18-005_p2.png?260408"
+  },
+  {
+    "id": "EB02-006_p2",
+    "name": "大和",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB02-006_p2.png?260408"
+  },
+  {
+    "id": "EB02-035_p2",
+    "name": "香吉士&amp;普琳",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB02-035_p2.png?260408"
+  },
+  {
+    "id": "EB04-023_p1",
+    "name": "加卡＆貝爾",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-023_p1.png?260408"
+  },
+  {
+    "id": "EB04-061_p2",
+    "name": "蒙其・D・魯夫",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/EB04-061_p2.png?260408"
+  },
+  {
+    "id": "OP01-039_p3",
+    "name": "奇拉",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP01-039_p3.png?260408"
+  },
+  {
+    "id": "OP01-055_p2",
+    "name": "成為我的”武士”吧!!!",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP01-055_p2.png?260408"
+  },
+  {
+    "id": "OP02-005_p4",
+    "name": "卡莉・達坦",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP02-005_p4.png?260408"
+  },
+  {
+    "id": "OP02-068_p2",
+    "name": "橡膠雨",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP02-068_p2.png?260408"
+  },
+  {
+    "id": "OP03-008_p3",
+    "name": "巴其",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP03-008_p3.png?260408"
+  },
+  {
+    "id": "OP03-044_p4",
+    "name": "可雅",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP03-044_p4.png?260408"
+  },
+  {
+    "id": "OP03-048_p2",
+    "name": "虹子",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP03-048_p2.png?260408"
+  },
+  {
+    "id": "OP03-072_p2",
+    "name": "橡膠JET槍亂打",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP03-072_p2.png?260408"
+  },
+  {
+    "id": "OP03-097_p1",
+    "name": "六王槍",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP03-097_p1.png?260408"
+  },
+  {
+    "id": "OP04-016_p2",
+    "name": "違反禮儀之踢",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP04-016_p2.png?260408"
+  },
+  {
+    "id": "OP04-077_p2",
+    "name": "伊迪歐",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP04-077_p2.png?260408"
+  },
+  {
+    "id": "OP04-096_p2",
+    "name": "鬥牛鬥技場",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP04-096_p2.png?260408"
+  },
+  {
+    "id": "OP07-033_p2",
+    "name": "蒙其・D・魯夫",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP07-033_p2.png?260408"
+  },
+  {
+    "id": "OP07-053_p4",
+    "name": "波特卡斯・D・艾斯",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP07-053_p4.png?260408"
+  },
+  {
+    "id": "OP07-073_p1",
+    "name": "蒙其・D・魯夫",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP07-073_p1.png?260408"
+  },
+  {
+    "id": "OP07-109_p5",
+    "name": "蒙其・D・魯夫",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP07-109_p5.png?260408"
+  },
+  {
+    "id": "OP10-049_p2",
+    "name": "薩波",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP10-049_p2.png?260408"
+  },
+  {
+    "id": "OP12-020_p3",
+    "name": "羅羅亞・索隆",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP12-020_p3.png?260408"
+  },
+  {
+    "id": "OP13-019_p1",
+    "name": "「火焰」說無法原諒你!!",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP13-019_p1.png?260408"
+  },
+  {
+    "id": "OP13-040_p1",
+    "name": "既然知道他很強…一開始就使出全力吧!!!",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP13-040_p1.png?260408"
+  },
+  {
+    "id": "OP13-046_p1",
+    "name": "比斯塔",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP13-046_p1.png?260408"
+  },
+  {
+    "id": "OP13-057_p1",
+    "name": "屈服在「力量」之下，就沒有生為男人的意義了",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP13-057_p1.png?260408"
+  },
+  {
+    "id": "OP13-071_p1",
+    "name": "貓蝮蛇",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP13-071_p1.png?260408"
+  },
+  {
+    "id": "OP13-087_p1",
+    "name": "查爾羅斯聖",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP13-087_p1.png?260408"
+  },
+  {
+    "id": "OP13-108_p2",
+    "name": "珠寶・波妮",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP13-108_p2.png?260408"
+  },
+  {
+    "id": "OP13-118_p5",
+    "name": "蒙其・D・魯夫",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP13-118_p5.png?260408"
+  },
+  {
+    "id": "OP14-023_p1",
+    "name": "菊之丞",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP14-023_p1.png?260408"
+  },
+  {
+    "id": "OP14-026_p1",
+    "name": "光月御田",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP14-026_p1.png?260408"
+  },
+  {
+    "id": "OP14-033_p2",
+    "name": "培羅娜",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP14-033_p2.png?260408"
+  },
+  {
+    "id": "OP14-087_p1",
+    "name": "Miss情人節(米琪塔)",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP14-087_p1.png?260408"
+  },
+  {
+    "id": "OP14-087_p2",
+    "name": "Miss情人節(米琪塔)",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP14-087_p2.png?260408"
+  },
+  {
+    "id": "OP14-105_p1",
+    "name": "蛇髮魔女三姐妹",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP14-105_p1.png?260408"
+  },
+  {
+    "id": "OP14-107_p1",
+    "name": "夏克雅克",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/OP14-107_p1.png?260408"
+  },
+  {
+    "id": "P-041_p7",
+    "name": "蒙其・D・魯夫",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/P-041_p7.png?260408"
+  },
+  {
+    "id": "P-115",
+    "name": "波雅・漢考克",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/P-115.png?260408"
+  },
+  {
+    "id": "P-116",
+    "name": "妮可・羅賓",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/P-116.png?260408"
+  },
+  {
+    "id": "P-118",
+    "name": "莉莉絲",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/P-118.png?260408"
+  },
+  {
+    "id": "P-119",
+    "name": "波特卡斯・D・艾斯",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/P-119.png?260408"
+  },
+  {
+    "id": "P-121",
+    "name": "布魯克",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/P-121.png?260408"
+  },
+  {
+    "id": "P-135",
+    "name": "蒙其・D・魯夫",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/P-135.png?260408"
+  },
+  {
+    "id": "ST01-011_p6",
+    "name": "布魯克",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/ST01-011_p6.png?260408"
+  },
+  {
+    "id": "ST02-007_p5",
+    "name": "珠寶・波妮",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/ST02-007_p5.png?260408"
+  },
+  {
+    "id": "ST06-008_p3",
+    "name": "希娜",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/ST06-008_p3.png?260408"
+  },
+  {
+    "id": "ST10-006_p4",
+    "name": "蒙其・D・魯夫",
+    "pack_id": "554901",
+    "url": "https://asia-hk.onepiece-cardgame.com/images/cardlist/card/ST10-006_p4.png?260408"
+  }
+]

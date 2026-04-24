@@ -304,14 +304,6 @@
     "reason": "Check if OP01-016_p1 exists in 554010.json"
   },
   {
-    "base_id": "OP01-016",
-    "generated_id": "OP01-016_p2",
-    "rank": 5,
-    "name": "ナミ(パラレル)(スーパーパラレル)",
-    "pack_id": "554301",
-    "reason": "Check if OP01-016_p2 exists in 554301.json"
-  },
-  {
     "base_id": "OP01-073",
     "generated_id": "OP01-073",
     "rank": 0,
@@ -430,14 +422,6 @@
     "name": "ドンキホーテ・ドフラミンゴ",
     "pack_id": "554017",
     "reason": "Check if OP01-060 exists in 554017.json"
-  },
-  {
-    "base_id": "-",
-    "generated_id": "-",
-    "rank": 0,
-    "name": "ドン!!カード(黒文字白背景/ホロあり)",
-    "pack_id": "554010",
-    "reason": "Check if - exists in 554010.json"
   },
   {
     "base_id": "-",
@@ -3176,14 +3160,6 @@
     "reason": "Check if ST12-017 exists in 554302.json"
   },
   {
-    "base_id": "OP06-119",
-    "generated_id": "OP06-119_p2",
-    "rank": 5,
-    "name": "サンジ(パラレル)(スーパーパラレル)",
-    "pack_id": "554302",
-    "reason": "Check if OP06-119_p2 exists in 554302.json"
-  },
-  {
     "base_id": "OP06-035",
     "generated_id": "OP06-035_p1",
     "rank": 1,
@@ -3230,14 +3206,6 @@
     "name": "リューマ(海賊旗フォイル)",
     "pack_id": "554301",
     "reason": "Check if OP06-036 exists in 554301.json"
-  },
-  {
-    "base_id": "OP06-047",
-    "generated_id": "OP06-047_p1",
-    "rank": 2,
-    "name": "SP シャーロット・プリン(パラレル)(PRB2)",
-    "pack_id": "554302",
-    "reason": "Check if OP06-047_p1 exists in 554302.json"
   },
   {
     "base_id": "OP06-065",
@@ -3576,14 +3544,6 @@
     "reason": "Check if EB01-015 exists in 554024.json"
   },
   {
-    "base_id": "EB01-015",
-    "generated_id": "EB01-015_p1",
-    "rank": 1,
-    "name": "スクラッチメン・アプー(パラレル)(PRB2)",
-    "pack_id": "554302",
-    "reason": "Check if EB01-015_p1 exists in 554302.json"
-  },
-  {
     "base_id": "EB01-009",
     "generated_id": "EB01-009",
     "rank": 0,
@@ -3646,14 +3606,6 @@
     "name": "ウルージ(ホロなし)",
     "pack_id": "554024",
     "reason": "Check if OP07-021 exists in 554024.json"
-  },
-  {
-    "base_id": "OP07-021",
-    "generated_id": "OP07-021_p1",
-    "rank": 1,
-    "name": "ウルージ(パラレル)(PRB2)",
-    "pack_id": "554302",
-    "reason": "Check if OP07-021_p1 exists in 554302.json"
   },
   {
     "base_id": "OP07-036",

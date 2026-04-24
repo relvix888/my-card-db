@@ -1,10 +1,14 @@
 // src/components/SearchView.jsx
 import React from "react";
+import { useTranslation } from "react-i18next";
+import "../i18n/config";
+
 import CardWrapper from "./CardWrapper";
 import QuickController from "./QuickController";
 import MarketRibbon from "./MarketRibbon";
 import PriceInput from "./PriceInput";
 import { getSafeImageUrl } from "../utils/cardHelpers";
+import sortedTypes from "../data/sorted_types.json";
 
 const SearchView = ({
   filteredCards,
@@ -63,9 +67,22 @@ const SearchView = ({
   setSelectedBlocks,
   isExcludeMode,
   setIsExcludeMode,
+
+  setSelectedColors,
+  colorMap,
+  categoryMap,
+  rarityMap,
+  toggleRarity,
+  attributeMap,
+  toggleAttribute,
+
+  selectedCosts,
+  setSelectedCosts,
 }) => {
   const activeList = isMarketMode ? marketList : deckList;
   const currentTotal = Object.values(activeList).reduce((a, b) => a + b, 0);
+  const { t, i18n } = useTranslation();
+  const langCode = i18n.language.split("-")[0];
 
   return (
     <div className="flex flex-col lg:flex-row gap-8">
@@ -75,15 +92,15 @@ const SearchView = ({
             2. overflow-y-auto: Allows scrolling ONLY if the content is too tall
             3. scrollbar-hide: Keeps it looking clean (requires a small CSS utility)
         */}
-        <div className="sticky top-6 flex flex-col gap-3 max-h-[calc(100vh-3rem)] overflow-y-auto pr-2 scrollbar-hide custom-sidebar-scroll">
-          <section className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl backdrop-blur-md">
+        <div className="sticky top-6 flex flex-col gap-2 max-h-[calc(100vh-3rem)] overflow-y-auto pr-2 scrollbar-hide custom-sidebar-scroll">
+          <section className="bg-slate-900/50 border border-slate-800 pt-3 px-5 pb-5 rounded-2xl backdrop-blur-md">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-blue-400 text-sm font-black uppercase tracking-widest">
-                基本搜尋
+                {t("basic_search", "基本搜尋")}
               </h3>
               <button
                 onClick={resetFilters}
-                title="重置搜尋 Reset Filters"
+                title={t("reset_filters", "重置搜尋 Reset Filters")}
                 className="
                   p-1.5
                   bg-red-950/30 hover:bg-red-600 
@@ -104,29 +121,147 @@ const SearchView = ({
               </button>
             </div>
             <p className="text-[10px] text-slate-500 uppercase font-bold mb-2 tracking-widest">
-              關鍵字
+              {t("keywords", "關鍵字")}
             </p>
             <input
               type="text"
-              placeholder="魯夫, >=5, >6000, +1000, 防禦"
+              placeholder={t(
+                "search_placeholder",
+                "魯夫, >=5, >6000, +1000, 防禦",
+              )}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm mb-4 focus:border-blue-500 outline-none transition-colors"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+            {/* COLORS FILTER */}
             <p className="text-[10px] text-slate-500 uppercase font-bold mb-2 tracking-widest">
-              收錄卡包
+              {t("colors_label", "顏色")}
+            </p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <button
+                onClick={() => setSelectedColors([])}
+                className={`px-2 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 ${
+                  selectedColors.length === 0
+                    ? "bg-indigo-600 border-indigo-400 text-white shadow-[0_0_10px_rgba(79,70,229,0.4)]"
+                    : "bg-indigo-900/20 border-indigo-900/40 text-indigo-400/60 hover:bg-indigo-600/30"
+                }`}
+              >
+                {t("all", "所有")}
+              </button>
+
+              {Object.entries(colorMap).map(([id, label]) => {
+                const isSelected = selectedColors.includes(id);
+
+                // Style Mapping: [Inactive Dull Style] vs [Active Vivid Style]
+                const colorStyles = {
+                  red: isSelected
+                    ? "bg-red-600 border-red-400 text-white shadow-[0_0_10px_rgba(220,38,38,0.4)]"
+                    : "bg-red-950/20 border-red-900/30 text-red-500/50 hover:bg-red-900/40",
+
+                  green: isSelected
+                    ? "bg-emerald-600 border-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+                    : "bg-emerald-950/20 border-emerald-900/30 text-emerald-500/50 hover:bg-emerald-900/40",
+
+                  blue: isSelected
+                    ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_10px_rgba(37,99,235,0.4)]"
+                    : "bg-blue-950/20 border-blue-900/30 text-blue-500/50 hover:bg-blue-900/40",
+
+                  purple: isSelected
+                    ? "bg-purple-600 border-purple-400 text-white shadow-[0_0_10px_rgba(147,51,234,0.4)]"
+                    : "bg-purple-950/20 border-purple-900/30 text-purple-500/50 hover:bg-purple-900/40",
+
+                  black: isSelected
+                    ? "bg-slate-900 border-slate-500 text-white shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                    : "bg-slate-950/40 border-slate-800 text-slate-600 hover:bg-slate-900/60",
+
+                  yellow: isSelected
+                    ? "bg-yellow-500 border-yellow-300 text-black shadow-[0_0_10px_rgba(234,179,8,0.4)]"
+                    : "bg-yellow-900/10 border-yellow-900/30 text-yellow-600/50 hover:bg-yellow-900/30",
+
+                  multi: isSelected
+                    ? "bg-gradient-to-br from-red-500 via-blue-500 to-yellow-500 border-white text-white shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+                    : "bg-slate-800/40 border-slate-700 text-slate-500 hover:bg-slate-700/60",
+                };
+
+                return (
+                  <button
+                    key={id}
+                    onClick={() => toggleColor(id)}
+                    className={`px-2 py-1 rounded text-[13px] font-bold border transition-all duration-300 active:scale-90 ${
+                      colorStyles[id] || "bg-slate-700 text-slate-400"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            {/* COST FILTER */}
+            <p className="text-[10px] text-slate-500 uppercase font-bold mb-2 tracking-widest">
+              {t("cost_label", "費用 (Cost)")}
+            </p>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {/* All Button */}
+              {/* All Button */}
+              <button
+                onClick={() => setSelectedCosts([])}
+                className={`w-9 h-9 flex items-center justify-center rounded-full text-[12px] font-bold border transition-all active:scale-90 ${
+                  selectedCosts.length === 0
+                    ? "bg-indigo-600 border-indigo-400 text-white shadow-[0_0_10px_rgba(79,70,229,0.4)]"
+                    : "bg-indigo-900/20 border-indigo-900/40 text-indigo-400/60 hover:bg-indigo-600/30"
+                }`}
+              >
+                {t("all", "All")}
+              </button>
+
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
+                const isSelected = selectedCosts.includes(num);
+                return (
+                  <button
+                    key={num}
+                    onClick={() => {
+                      if (selectedCosts.includes(num)) {
+                        setSelectedCosts(
+                          selectedCosts.filter((c) => c !== num),
+                        );
+                      } else {
+                        setSelectedCosts([...selectedCosts, num]);
+                      }
+                    }}
+                    className={`w-9 h-9 flex items-center justify-center rounded-full text-[13px] font-bold border transition-all duration-300 active:scale-90 ${
+                      isSelected
+                        ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_10px_rgba(37,99,235,0.4)]"
+                        : "bg-slate-800/40 border-slate-700 text-slate-500/50 hover:bg-slate-700 hover:text-slate-300"
+                    }`}
+                  >
+                    {num}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-slate-500 uppercase font-bold mb-2 tracking-widest">
+              {t("expansion_packs", "收錄卡包")}
             </p>
             <select
-              value={filterPackId}
+              // Force string comparison: "554115" === "554115"
+              value={String(filterPackId)}
               onChange={(e) => setFilterPackId(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm cursor-pointer mb-6 focus:border-blue-500 outline-none"
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm cursor-pointer mb-6 focus:border-blue-500 outline-none text-white"
             >
-              <option value="所有">所有卡包</option>
-              {sortedPackList.map((pack) => (
-                <option key={pack.id} value={pack.id}>
-                  {pack.raw_title}
-                </option>
-              ))}
+              <option value="all">{t("all_packs", "所有卡包")}</option>
+
+              {sortedPackList.map((pack) => {
+                // If the title is just the code, show it.
+                // Otherwise, show the Title first, then the Code in parentheses.
+                const displayLabel =
+                  pack.code === pack.title ? pack.code : `${pack.title}`;
+
+                return (
+                  <option key={pack.id} value={String(pack.id)}>
+                    {displayLabel}
+                  </option>
+                );
+              })}
             </select>
             <div className="flex flex-row gap-3">
               {" "}
@@ -139,7 +274,7 @@ const SearchView = ({
                   className="w-4 h-4 rounded accent-blue-500"
                 />
                 <span className="text-xs font-bold text-slate-300 whitespace-nowrap">
-                  隱藏再錄卡
+                  {t("hide_reprint", "隱藏再錄卡")}
                 </span>
               </label>
               <label className="flex flex-1 items-center gap-2 cursor-pointer p-2 bg-slate-900/50 rounded-lg border border-slate-700 hover:border-slate-500 transition-colors">
@@ -150,7 +285,7 @@ const SearchView = ({
                   className="w-4 h-4 rounded accent-blue-500"
                 />
                 <span className="text-xs font-bold text-slate-300 whitespace-nowrap">
-                  隱藏異圖卡
+                  {t("hide_alt_art", "隱藏異圖卡")}
                 </span>
               </label>
             </div>
@@ -158,7 +293,7 @@ const SearchView = ({
 
           <section className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl backdrop-blur-md">
             <h3 className="text-purple-400 text-sm font-black uppercase tracking-widest mb-4">
-              進階搜尋
+              {t("advanced_search", "進階搜尋")}
             </h3>
             <div className="space-y-4">
               {/* Advanced Search Toggle Button */}
@@ -172,7 +307,9 @@ const SearchView = ({
               >
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{showAdvanced ? "󱊄" : "󰍉"}</span>
-                  {showAdvanced ? "隱藏進階搜尋" : "進階搜尋"}
+                  {showAdvanced
+                    ? t("hide_advanced", "隱藏進階搜尋")
+                    : t("show_advanced", "進階搜尋")}
                 </div>
                 <span
                   className={`transition-transform duration-300 ${showAdvanced ? "rotate-180" : ""}`}
@@ -189,7 +326,7 @@ const SearchView = ({
                       {/* Header Row: Label + Compact Toggle */}
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">
-                          特徵篩選
+                          {t("type_filter", "特徵篩選")}
                         </p>
 
                         <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 shadow-inner">
@@ -218,26 +355,30 @@ const SearchView = ({
 
                       {/* Side-by-Side Dropdowns */}
                       <div className="grid grid-cols-2 gap-3">
+                        {/* Dropdown 1 */}
                         <select
                           value={filterType1}
                           onChange={(e) => setFilterType1(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm cursor-pointer focus:border-blue-500 outline-none transition-colors"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm cursor-pointer focus:border-blue-500 outline-none transition-colors text-white"
                         >
-                          {typeOptions.map((opt) => (
-                            <option key={`t1-${opt}`} value={opt}>
-                              {opt}
+                          <option value="all">{t("all", "所有")}</option>
+                          {sortedTypes.map((type) => (
+                            <option key={`t1-${type}`} value={type}>
+                              {type}
                             </option>
                           ))}
                         </select>
 
+                        {/* Dropdown 2 */}
                         <select
                           value={filterType2}
                           onChange={(e) => setFilterType2(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm cursor-pointer focus:border-blue-500 outline-none transition-colors"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm cursor-pointer focus:border-blue-500 outline-none transition-colors text-white"
                         >
-                          {typeOptions.map((opt) => (
-                            <option key={`t2-${opt}`} value={opt}>
-                              {opt}
+                          <option value="all">{t("all", "所有")}</option>
+                          {sortedTypes.map((type) => (
+                            <option key={`t2-${type}`} value={type}>
+                              {type}
                             </option>
                           ))}
                         </select>
@@ -246,177 +387,89 @@ const SearchView = ({
                   </div>
 
                   <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                    {/* 2. CATEGORY */}
                     <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest">
-                      顏色 (多選)
-                    </h3>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {[
-                        "所有",
-                        "紅色",
-                        "綠色",
-                        "藍色",
-                        "紫色",
-                        "黑色",
-                        "黃色",
-                        "多色",
-                      ].map((c) => {
-                        const isSelected =
-                          (c === "所有" && selectedColors.length === 0) ||
-                          selectedColors.includes(c);
-
-                        const colorMap = {
-                          紅色: "bg-red-600 border-red-400 text-white",
-                          綠色: "bg-emerald-600 border-emerald-400 text-white",
-                          藍色: "bg-blue-600 border-blue-400 text-white",
-                          紫色: "bg-purple-600 border-purple-400 text-white",
-                          黑色: "bg-slate-950 border-slate-500 text-white",
-                          黃色: "bg-yellow-500 border-yellow-300 text-black",
-                          多色: "bg-gradient-to-br from-red-500 via-blue-500 to-yellow-500 border-white/50 text-white",
-                          所有: "bg-indigo-600 border-indigo-400 text-white",
-                        };
-
-                        return (
-                          <button
-                            key={c}
-                            onClick={() => toggleColor(c)}
-                            className={`px-2 py-1 rounded text-[13px] font-bold border transition-all ${
-                              isSelected
-                                ? colorMap[c] // Use the dynamic color from our map
-                                : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600"
-                            }`}
-                          >
-                            {c}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest mt-6 border-t border-slate-700 pt-4">
-                      卡牌種類
+                      {t("card_category", "卡牌種類")}
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {["所有", "領航卡", "角色卡", "事件卡", "舞台卡"].map(
-                        (cat) => {
-                          // Toggle logic: If "所有" is selected, filterCategory is '所有'
-                          const isSelected = filterCategory === cat;
-
-                          const categoryColorMap = {
-                            所有: "bg-indigo-600 border-indigo-400 text-white",
-                            領航卡: "bg-blue-600 border-blue-400 text-white",
-                            角色卡: "bg-blue-600 border-blue-400 text-white",
-                            事件卡: "bg-blue-600 border-blue-400 text-white",
-                            舞台卡: "bg-blue-600 border-blue-400 text-white",
-                          };
-
-                          return (
-                            <button
-                              key={cat}
-                              onClick={() => setFilterCategory(cat)}
-                              className={`px-3 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 ${
-                                isSelected
-                                  ? categoryColorMap[cat]
-                                  : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600 hover:border-slate-500"
-                              }`}
-                            >
-                              {cat}
-                            </button>
-                          );
-                        },
-                      )}
-                    </div>
-
-                    <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest mt-6 border-t border-slate-700 pt-4">
-                      稀有度 (多選)
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        "所有",
-                        "領航卡 (L)",
-                        "普通 (C)",
-                        "不普通 (UC)",
-                        "稀有 (R)",
-                        "超級稀有 (SR)",
-                        "絕密稀有 (SEC)",
-                        "特殊卡 (SP)",
-                      ].map((rar) => {
-                        const isSelected =
-                          (rar === "所有" && selectedRarity.length === 0) ||
-                          selectedRarity.includes(rar);
-
-                        const rarityColorMap = {
-                          所有: "bg-indigo-600 border-indigo-400 text-white",
-                          "領航卡 (L)":
-                            "bg-blue-500 border-blue-300 text-white", // L
-                          "普通 (C)": "bg-blue-600 border-blue-400 text-white", // C
-                          "不普通 (UC)":
-                            "bg-blue-600 border-blue-400 text-white", // UC
-                          "稀有 (R)": "bg-blue-600 border-blue-400 text-white", // R
-                          "超級稀有 (SR)":
-                            "bg-blue-600 border-blue-400 text-white", // SR (Gold)
-                          "絕密稀有 (SEC)":
-                            "bg-blue-600 border-blue-400 text-white", // SEC (Purple/Secret)
-                          "特殊卡 (SP)":
-                            "bg-blue-600 border-blue-400 text-white", // Special (Holofoil look)
-                        };
-
-                        return (
-                          <button
-                            key={rar}
-                            onClick={() => {
-                              if (rar === "所有") {
-                                setSelectedRarity([]);
-                              } else {
-                                if (selectedRarity.includes(rar)) {
-                                  setSelectedRarity(
-                                    selectedRarity.filter(
-                                      (item) => item !== rar,
-                                    ),
-                                  );
-                                } else {
-                                  setSelectedRarity([
-                                    ...selectedRarity.filter(
-                                      (item) => item !== "所有",
-                                    ),
-                                    rar,
-                                  ]);
-                                }
-                              }
-                            }}
-                            className={`px-2 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 ${
-                              isSelected
-                                ? rarityColorMap[rar]
-                                : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600 hover:border-slate-500"
-                            }`}
-                          >
-                            {rar}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex items-center justify-between border-t border-slate-700 pt-4 mt-6">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
-                        關鍵字過濾
-                      </span>
-
-                      <div className="flex-wrap gap-1.5 mb-3">
+                      <button
+                        onClick={() => setFilterCategory("all")}
+                        className={`px-3 py-1 rounded text-[12px] font-bold border transition-all ${
+                          filterCategory === "all"
+                            ? "bg-indigo-600 border-indigo-400 text-white"
+                            : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600"
+                        }`}
+                      >
+                        {t("all", "所有")}
+                      </button>
+                      {Object.entries(categoryMap).map(([id, label]) => (
                         <button
-                          onClick={() => setIsExcludeMode(!isExcludeMode)}
-                          className={`flex items-center gap-2 px-3 py-1 my-1 rounded-full border transition-all text-[11px] font-bold ${
-                            isExcludeMode
-                              ? "bg-red-500/20 border-red-500/50 text-red-400"
-                              : "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                          key={id}
+                          onClick={() => setFilterCategory(id)}
+                          className={`px-3 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 ${
+                            filterCategory === id
+                              ? "bg-blue-600 border-blue-400 text-white"
+                              : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600"
                           }`}
                         >
-                          <span
-                            className={`w-2 h-2 rounded-full animate-pulse ${isExcludeMode ? "bg-red-500" : "bg-emerald-500"}`}
-                          ></span>
-                          {isExcludeMode ? "排除模式 (NOT)" : "包含模式 (HAS)"}
+                          {label}
                         </button>
-                      </div>
+                      ))}
                     </div>
 
-                    <div className="flex-wrap gap-1.5">
+                    {/* 3. RARITY */}
+                    <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest mt-6 border-t border-slate-700 pt-4">
+                      {t("rarity", "稀有度 (多選)")}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setSelectedRarity([])}
+                        className={`px-2 py-1 rounded text-[12px] font-bold border transition-all ${
+                          selectedRarity.length === 0
+                            ? "bg-indigo-600 border-indigo-400 text-white"
+                            : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600"
+                        }`}
+                      >
+                        {t("all", "所有")}
+                      </button>
+                      {Object.entries(rarityMap).map(([id, label]) => (
+                        <button
+                          key={id}
+                          onClick={() => toggleRarity(id)}
+                          className={`px-2 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 ${
+                            selectedRarity.includes(id)
+                              ? "bg-blue-600 border-blue-400 text-white"
+                              : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* 4. KEYWORDS */}
+                    <div className="flex items-center justify-between border-t border-slate-700 pt-4 mt-6">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                        {t("keyword_filter", "關鍵字過濾")}
+                      </span>
+                      <button
+                        onClick={() => setIsExcludeMode(!isExcludeMode)}
+                        className={`flex items-center gap-2 px-3 py-1 my-1 rounded-full border transition-all text-[11px] font-bold ${
+                          isExcludeMode
+                            ? "bg-red-500/20 border-red-500/50 text-red-400"
+                            : "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                        }`}
+                      >
+                        <span
+                          className={`w-2 h-2 rounded-full ${isExcludeMode ? "bg-red-500 animate-pulse" : "bg-emerald-500"}`}
+                        ></span>
+                        {isExcludeMode
+                          ? t("exclude_mode", "排除模式")
+                          : t("include_mode", "包含模式")}
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 mt-2">
                       {quickKeywords.map((k) => {
                         const isSelected = selectedKeywords.includes(k);
                         const baseStyle = getKeywordStyle(k);
@@ -425,121 +478,154 @@ const SearchView = ({
                           <button
                             key={k}
                             onClick={() => toggleKeyword(k)}
-                            className={`text-[13px] transition-all border shadow-sm ${
+                            className={`text-[13px] transition-all border shadow-sm rounded ${
                               isSelected
                                 ? `${baseStyle} border-white/40 scale-105`
-                                : "bg-slate-700/50 border-slate-600 text-slate-400 hover:border-slate-500 rounded px-2 py-1"
+                                : "bg-slate-700/50 border-slate-600 text-slate-400 hover:border-slate-500 px-2 py-1"
                             }`}
-                            /* We use a specific style for the clip-path to ensure it renders correctly on buttons */
                             style={
-                              isSelected && baseStyle.includes("clip-path")
+                              isSelected &&
+                              baseStyle &&
+                              baseStyle.includes("clip-path")
                                 ? {
+                                    // Extract the value from a string like "bg-orange [clip-path:polygon(...)]"
                                     clipPath: baseStyle
                                       .split("clip-path:")[1]
-                                      .split("]")[0],
+                                      ?.split("]")[0],
                                   }
                                 : {}
                             }
                           >
-                            {k.replace(/【|】/g, "")}
+                            {/* Remove the brackets for a cleaner button look */}
+                            {k.replace(/【|】|\[|\]/g, "")}
                           </button>
                         );
                       })}
                     </div>
 
-                    {/* <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg"> */}
-                    <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 mt-6 border-t border-slate-700 pt-4">
-                      屬性
+                    {/* 5. ATTRIBUTES */}
+                    <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 mt-6 border-t border-slate-700 pt-4 tracking-widest">
+                      {t("attributes_label", "屬性 / Attributes")}
                     </h3>
+
                     <div className="flex flex-wrap gap-2">
-                      {["所有", "打", "斬", "特", "射", "知"].map((attr) => {
-                        const isSelected =
-                          (attr === "所有" &&
-                            selectedAttributes.length === 0) ||
-                          selectedAttributes.includes(attr);
+                      {/* All Button */}
+                      <button
+                        onClick={() => setSelectedAttributes([])}
+                        className={`px-3 py-1 rounded text-[12px] font-bold border transition-all ${
+                          selectedAttributes.length === 0
+                            ? "bg-indigo-600 border-indigo-400 text-white"
+                            : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600"
+                        }`}
+                      >
+                        {t("all", "所有")}
+                      </button>
+
+                      {Object.entries(attributeMap).map(([id, label]) => {
+                        const isSelected = selectedAttributes.includes(id);
+
+                        // Style mapping matching the physical card icons
+                        const attrStyles = {
+                          strike:
+                            "bg-yellow-500 border-yellow-300 text-white shadow-[0_0_8px_rgba(234,179,8,0.3)]",
+                          slash:
+                            "bg-blue-500 border-blue-300 text-white shadow-[0_0_8px_rgba(59,130,246,0.3)]",
+                          special:
+                            "bg-purple-600 border-purple-400 text-white shadow-[0_0_8px_rgba(147,51,234,0.3)]",
+                          ranged:
+                            "bg-red-600 border-red-400 text-white shadow-[0_0_8px_rgba(220,38,38,0.3)]",
+                          wisdom:
+                            "bg-emerald-600 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.3)]",
+                        };
 
                         return (
                           <button
-                            key={attr}
-                            onClick={() => {
-                              if (attr === "所有") {
-                                setSelectedAttributes([]);
-                              } else {
-                                if (selectedAttributes.includes(attr)) {
-                                  setSelectedAttributes(
-                                    selectedAttributes.filter(
-                                      (item) => item !== attr,
-                                    ),
-                                  );
-                                } else {
-                                  setSelectedAttributes([
-                                    ...selectedAttributes.filter(
-                                      (item) => item !== "所有",
-                                    ),
-                                    attr,
-                                  ]);
-                                }
-                              }
-                            }}
+                            key={id}
+                            onClick={() => toggleAttribute(id)}
                             className={`px-3 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 ${
                               isSelected
-                                ? attr === "所有"
-                                  ? "bg-indigo-600 border-indigo-400 text-white"
-                                  : "bg-blue-600 border-blue-400 text-white"
+                                ? attrStyles[id] ||
+                                  "bg-blue-600 border-blue-400 text-white"
                                 : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600 hover:border-slate-500"
                             }`}
                           >
-                            {attr}
+                            {label}
                           </button>
                         );
                       })}
                     </div>
-
-                    <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 mt-6 border-t border-slate-700 pt-4">
-                      擴張記號
+                    <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 mt-6 border-t border-slate-700 pt-4 tracking-widest">
+                      {t("block_icons", "擴張記號 / Block")}
                     </h3>
+
                     <div className="flex flex-wrap gap-2">
-                      {["所有", "1", "1 (Legal)", "2", "3", "4"].map(
-                        (block) => {
+                      {/* Standard Regulation Preset Button */}
+                      <button
+                        onClick={() =>
+                          setSelectedBlocks(["1_legal", "2", "3", "4", "5"])
+                        }
+                        className={`px-2 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 ${
+                          selectedBlocks.length === 5 &&
+                          ["1_legal", "2", "3", "4", "5"].every((b) =>
+                            selectedBlocks.includes(b),
+                          )
+                            ? "bg-amber-600 border-amber-400 text-white shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+                            : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600"
+                        }`}
+                      >
+                        {t("standard_reg", "標準賽制")}
+                      </button>
+
+                      {["all", "1", "1_legal", "2", "3", "4", "5"].map(
+                        (blockKey) => {
+                          const labels = {
+                            all: t("all", "所有"),
+                            1: "1",
+                            "1_legal": "1 (視為4）",
+                            2: "2",
+                            3: "3",
+                            4: "4",
+                            5: "5",
+                          };
+
                           const isSelected =
-                            (block === "所有" && selectedBlocks.length === 0) ||
-                            selectedBlocks.includes(block);
+                            (blockKey === "all" &&
+                              selectedBlocks.length === 0) ||
+                            selectedBlocks.includes(blockKey);
 
                           return (
                             <button
-                              key={block}
+                              key={blockKey}
                               onClick={() => {
-                                if (block === "所有") {
+                                if (blockKey === "all") {
                                   setSelectedBlocks([]);
                                 } else {
-                                  // If clicking a specific block, remove '所有' and toggle the selection
-                                  if (selectedBlocks.includes(block)) {
+                                  if (selectedBlocks.includes(blockKey)) {
                                     setSelectedBlocks(
                                       selectedBlocks.filter(
-                                        (item) => item !== block,
+                                        (item) => item !== blockKey,
                                       ),
                                     );
                                   } else {
+                                    // Remove 'all' if selecting a specific block
                                     setSelectedBlocks([
                                       ...selectedBlocks.filter(
-                                        (item) => item !== "所有",
+                                        (b) => b !== "all",
                                       ),
-                                      block,
+                                      blockKey,
                                     ]);
                                   }
                                 }
                               }}
-                              className={`px-2 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 min-w-[32px] ${
+                              className={`px-2 py-1 rounded text-[12px] font-bold border transition-all active:scale-95 min-w-[36px] ${
                                 isSelected
-                                  ? block === "所有"
+                                  ? blockKey === "all"
                                     ? "bg-indigo-600 border-indigo-400 text-white"
-                                    : block === "1 (Legal)"
-                                      ? "bg-emerald-600 border-emerald-400 text-white shadow-[0_0_10px_rgba(52,211,153,0.3)]"
-                                      : "bg-blue-600 border-blue-400 text-white"
+                                    : "bg-blue-600 border-blue-400 text-white"
                                   : "bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600 hover:border-slate-500"
                               }`}
                             >
-                              {block}
+                              {labels[blockKey]}
                             </button>
                           );
                         },
@@ -570,11 +656,13 @@ const SearchView = ({
 
           <div className="flex items-center gap-4">
             <p className="text-[10px] lg:text-xs font-bold text-slate-500">
-              搜尋結果:{" "}
+              {t("search_results", "搜尋結果 / Results")}:{" "}
               <span className="text-white">{filteredCards.length}</span>
             </p>
             <p className="text-[10px] lg:text-xs font-bold text-slate-500">
-              {isMarketMode ? "已選數量:" : "牌組進度:"}
+              {isMarketMode
+                ? t("selected_qty", "已選數量 / Selected:")
+                : t("deck_progress", "牌組進度 / Progress:")}
               <span
                 className={`ml-1 font-black ${
                   !isMarketMode && totalDeckCount === 51
@@ -594,7 +682,6 @@ const SearchView = ({
         {/* The Grid - Optimized for MacBook & Mobile */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
           {filteredCards.map((card) => {
-            // Determine which count to show based on the mode
             const activeCount = isMarketMode
               ? marketList[card.id] || 0
               : deckList[card.id] || 0;
@@ -603,6 +690,8 @@ const SearchView = ({
               <CardWrapper
                 key={card.id}
                 card={card}
+                isCompact={true} // Add this to match your list style
+                isMarketMode={isMarketMode} // Pass this so it knows when to hide names for export
                 onClick={() => setSelectedCard(card)}
                 badge={
                   appMode === "MARKETPLACE" && (
@@ -614,40 +703,22 @@ const SearchView = ({
                   )
                 }
               >
-                {/* BOTTOM AREA: Name + Controller (Stacked to avoid overlap) */}
-                <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-md border-t border-white/10 p-1.5 flex flex-col gap-1 transition-all">
-                  {/* A. Card Name & ID - Centered Horizontally */}
-                  <div className="flex flex-col items-center justify-center w-full px-1 text-center">
-                    {/* Card ID */}
-                    <span className="text-[9px] font-mono font-bold text-blue-400 leading-none mb-0.5">
-                      {card.id}
-                    </span>
-
-                    {/* Card Name */}
-                    <span className="text-[10px] font-black text-slate-100 truncate leading-tight w-full">
-                      {card.name}
-                    </span>
-                  </div>
-
-                  {/* B. Controller Row (Buttons or Price Input) */}
-                  <div className="flex justify-center w-full">
-                    {appMode === "MARKETPLACE" && isMarketMode ? (
-                      /* Marketplace Price Input */
-                      <PriceInput
-                        cardId={card.id}
-                        marketData={marketData}
-                        onUpdatePrice={updatePrice}
-                      />
-                    ) : (
-                      /* Standard +/- Controller */
-                      <QuickController
-                        card={card}
-                        count={activeCount}
-                        onAdd={(c) => updateDeckCount(c, 1)}
-                        onRemove={(c) => updateDeckCount(c, -1)}
-                      />
-                    )}
-                  </div>
+                {/* ONLY pass the action UI here. CardWrapper already handles the ID and Name */}
+                <div className="w-full flex justify-center pb-1">
+                  {appMode === "MARKETPLACE" && isMarketMode ? (
+                    <PriceInput
+                      cardId={card.id}
+                      marketData={marketData}
+                      onUpdatePrice={updatePrice}
+                    />
+                  ) : (
+                    <QuickController
+                      card={card}
+                      count={activeCount}
+                      onAdd={(c) => updateDeckCount(c, 1)}
+                      onRemove={(c) => updateDeckCount(c, -1)}
+                    />
+                  )}
                 </div>
               </CardWrapper>
             );
