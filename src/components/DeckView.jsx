@@ -7,6 +7,7 @@ import CardWrapper from "./CardWrapper";
 import QuickController from "./QuickController";
 import LeaderBanner from "./LeaderBanner";
 import PlayCurve from "./PlayCurve";
+import TurnAdvisor from "./TurnAdvisor";
 import { SimpleBarChart, SimplePieChart } from "./Charts";
 import { BLOCK_1_EXCEPTIONS } from "../data/rotation";
 import { BANNED_LIST } from "../data/rotation";
@@ -38,6 +39,7 @@ const DeckView = ({
   marketList,
   setMarketList,
   copySimFormat,
+  setAppMode,
   ...props
 }) => {
   const { t, i18n } = useTranslation();
@@ -70,17 +72,44 @@ const DeckView = ({
         scale: 3,
         backgroundColor: "#020617",
         windowWidth: 500,
-        // Force font rendering to be more consistent
         onclone: (clonedDoc) => {
-          // Find all text inside the clone and ensure it's visible
-          const cards = clonedDoc.querySelectorAll("h4");
-          cards.forEach((c) => {
+          clonedDoc.querySelectorAll("h4").forEach((c) => {
             c.style.display = "block";
             c.style.overflow = "visible";
+          });
+          // Fix count badge centering — html2canvas ignores flex/table layout
+          clonedDoc.querySelectorAll(".count-badge").forEach((el) => {
+            el.style.display = "block";
+            el.style.width = "24px";
+            el.style.height = "24px";
+            el.style.lineHeight = "24px";
+            el.style.textAlign = "center";
+            el.style.fontSize = "12px";
+            el.style.padding = "0";
           });
         },
       });
 
+      // iOS Safari ignores link.download — use Web Share API on touch devices
+      const isTouchDevice = navigator.maxTouchPoints > 0;
+      if (isTouchDevice && navigator.canShare) {
+        const blob = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/png", 1.0),
+        );
+        const file = new File([blob], "cheicheichei-deck.png", {
+          type: "image/png",
+        });
+        if (navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({ files: [file] });
+          } catch (err) {
+            if (err.name !== "AbortError") throw err;
+          }
+          return;
+        }
+      }
+
+      // Desktop fallback
       const link = document.createElement("a");
       link.download = `cheicheichei-deck.png`;
       link.href = canvas.toDataURL("image/png", 1.0);
@@ -284,17 +313,24 @@ const DeckView = ({
                       {count > 0 && (
                         <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20">
                           <div
-                            className="bg-indigo-600 text-white font-black font-mono 
-                    w-6 h-6 rounded-full border border-blue-400/50 
-                    shadow-[0_0_10px_rgba(37,99,235,0.5)]
-                    /* Switch to block + padding for manual centering */
-                    block text-center text-[12px] leading-none"
+                            className="bg-indigo-600 text-white font-black font-mono
+                    rounded-full border border-blue-400/50
+                    shadow-[0_0_10px_rgba(37,99,235,0.5)] text-[12px]"
                             style={{
-                              paddingTop: "6px", // Manually push the number down into the center
-                              boxSizing: "border-box",
+                              display: "table",
+                              width: "24px",
+                              height: "24px",
                             }}
                           >
-                            {count}
+                            <span
+                              style={{
+                                display: "table-cell",
+                                textAlign: "center",
+                                verticalAlign: "middle",
+                              }}
+                            >
+                              {count}
+                            </span>
                           </div>
                         </div>
                       )}
@@ -386,6 +422,16 @@ const DeckView = ({
           </svg>
           下載圖片 (PNG)
         </button>
+        {setAppMode && selectedLeader && totalDeckCount >= 50 && (
+          <button
+            onClick={() => setAppMode("PRACTICE")}
+            className="px-4 py-2 rounded-lg flex items-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs shadow-lg transition-all active:scale-95"
+            title="Practice with this deck vs AI"
+          >
+            <span className="text-base leading-none">⚔</span>
+            練習對戰
+          </button>
+        )}
       </div>
 
       {/* 4. DECK ANALYSIS SECTION */}
@@ -451,6 +497,9 @@ const DeckView = ({
                 </div>
               )}
             </div>
+
+            {/* Turn Advisor */}
+            <TurnAdvisor orderedDeck={orderedDeck} />
 
             {/* Charts & Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -58,14 +58,15 @@
     "ranged": "射",
     "wisdom": "知"
   },
-  "search_results": "搜尋結果",
   "selected_qty": "已選數量",
-  "deck_progress": "牌組進度",
   "max_rarity": "我玩異畫",
   "basic_rarity": "普畫算數",
   "card_count": "卡數",
   "copy_sim": "Sim 格式",
   "copied_to_sim": "已複製！準備貼上到 Sim",
   "standard_reg": "標準賽制",
-  "cost_label": "費用"
+  "cost_label": "費用",
+  "topdecks_source": "綜合",
+  "gumgum_source": "最新",
+  "latest_event": "最新賽事"
 }

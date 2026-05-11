@@ -164,13 +164,64 @@ def build_master_map():
 
     return master_map
 
+def build_promo_lookup():
+    """
+    Reads cards_554901.json and returns {base_id: [full_id, ...]}
+    e.g. {"OP11-119": ["OP11-119_p2"], "OP12-028": ["OP12-028_p1", "OP12-028_p2"]}
+    Only base IDs with exactly 1 registered variant are auto-resolvable.
+    """
+    promo_path = os.path.join(UPLOADER_DATA_PATH, "cards_554901.json")
+    if not os.path.exists(promo_path):
+        print("⚠️  cards_554901.json not found — promo lookup disabled")
+        return {}
+    with open(promo_path, "r", encoding="utf-8") as f:
+        cards = json.load(f)
+    lookup = {}
+    for card in cards:
+        cid = card.get("id", "")
+        base = cid.split("_")[0]
+        lookup.setdefault(base, []).append(cid)
+    return lookup
+
+def build_promo_multi_map(raw_data, promo_lookup):
+    """
+    For promo base IDs with 2+ registered variants, map (base_id, price) -> final_id
+    by sorting scraped prices ascending and registered pN IDs ascending, then zipping.
+    Cheaper price → lower pN suffix.
+    """
+    result = {}
+    for base_id, registered in promo_lookup.items():
+        if len(registered) < 2:
+            continue
+        versions = raw_data.get(base_id, [])
+        promo_versions = [v for v in versions if "promo" in str(v.get("set", "")).lower()]
+        if not promo_versions:
+            continue
+
+        sorted_prices = sorted(set(v["price"] for v in promo_versions))
+
+        def pn_key(cid):
+            m = re.search(r"_p(\d+)$", cid)
+            return int(m.group(1)) if m else 0
+
+        sorted_ids = sorted(registered, key=pn_key)
+
+        for price, final_id in zip(sorted_prices, sorted_ids):
+            result[(base_id, price)] = final_id
+
+    return result
+
+
 def run_transformer():
     last_updated = datetime.now().strftime("%Y-%m-%d")
-    master_map = build_master_map()
+    master_map   = build_master_map()
     if not master_map: return
+    promo_lookup = build_promo_lookup()
 
     with open(RAW_PRICES_PATH, "r", encoding="utf-8") as f:
         raw_data = json.load(f)
+
+    promo_multi_map = build_promo_multi_map(raw_data, promo_lookup)
 
     final_prices = []
     mismatch_log = []
@@ -192,6 +243,36 @@ def run_transformer():
                 rank = v.get('rank', 0)
                 name = v.get('name', '')
                 price = v.get('price', 0)
+
+                # Promo fast-path: use lookup for 1 or 2+ registered variants
+                if pid == "554901":
+                    registered = promo_lookup.get(base_id, [])
+                    if len(registered) == 1:
+                        final_id = registered[0]
+                    elif len(registered) >= 2:
+                        final_id = promo_multi_map.get((base_id, price))
+                    else:
+                        final_id = None
+
+                    if final_id is not None:
+                        if final_id in valid_ids_in_this_pack:
+                            final_prices.append({
+                                "id": final_id,
+                                "jpy": price,
+                                "hkd": round(price * 0.05, 0),
+                                "pack_id": pid
+                            })
+                        else:
+                            mismatch_log.append({
+                                "base_id": base_id,
+                                "generated_id": final_id,
+                                "rank": rank,
+                                "name": name,
+                                "pack_id": pid,
+                                "reason": f"Promo lookup: {final_id} not in master_map for {pid}"
+                            })
+                        continue  # skip get_custom_sort_weight for this version
+                    # 0 registered variants → fall through to existing logic
 
                 weight = get_custom_sort_weight(base_id, rank, name, price, pid, versions)
 

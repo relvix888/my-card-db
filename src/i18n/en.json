@@ -60,14 +60,15 @@
     "ranged": "Ranged",
     "wisdom": "Wisdom"
   },
-  "search_results": "Results",
   "selected_qty": "Selected",
-  "deck_progress": "Progress",
   "max_rarity": "Alt Arts",
   "basic_rarity": "Basic Arts",
   "card_count": "No. of Cards",
   "copy_sim": "Sim Format",
   "copied_to_sim": "Copied! Ready to paste in Sim",
   "standard_reg": "Standard Regulation",
-  "cost_label": "Cost"
+  "cost_label": "Cost",
+  "topdecks_source": "Meta",
+  "gumgum_source": "Latest",
+  "latest_event": "Latest Event"
 }

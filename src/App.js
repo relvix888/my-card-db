@@ -16,11 +16,13 @@ import { BLOCK_1_EXCEPTIONS } from "./data/rotation";
 import { BANNED_LIST } from "./data/rotation";
 import { RESTRICTED_PAIRS } from "./data/rotation";
 import topDecksData from "./data/deck_final.json";
+import ggDecksData from "./data/deck_gg_raw_final.json";
 import { getSafeImageUrl } from "./utils/cardHelpers";
 import ImportView from "./components/ImportView";
 import SearchView from "./components/SearchView";
 import DeckView from "./components/DeckView";
 import MarketplaceView from "./components/MarketplaceView";
+import PracticeView from "./components/practice/PracticeView";
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -1029,6 +1031,7 @@ const App = () => {
           <ImportView
             cards={cards}
             topDecksData={topDecksData}
+            ggDecksData={ggDecksData}
             getSafeImageUrl={getSafeImageUrl}
             generateMetaDeck={generateMetaDeck}
             deckInput={deckInput}
@@ -1076,6 +1079,7 @@ const App = () => {
             getSafeImageUrl={getSafeImageUrl}
             hoveredTrait={hoveredTrait}
             setHoveredTrait={setHoveredTrait}
+            setAppMode={setAppMode}
             {...commonProps}
           />
         );
@@ -1104,6 +1108,16 @@ const App = () => {
             setIsMarketMode={setIsMarketMode}
             setMarketList={setMarketList}
             {...commonProps}
+          />
+        );
+
+      case "PRACTICE":
+        return (
+          <PracticeView
+            deckList={deckList}
+            selectedLeader={selectedLeader}
+            cards={cards}
+            onClose={() => setAppMode("DECK")}
           />
         );
 
@@ -1474,6 +1488,23 @@ const App = () => {
       })
       .filter((p) => p.id && p.id !== "undefined");
   }, [langCode, packData, packOrder]);
+
+  const packByNumericId = useMemo(() => {
+    const map = {};
+    Object.values(packData).forEach((pack) => {
+      ["en", "zh", "ja"].forEach((lang) => {
+        if (pack[lang]?.id) {
+          const title =
+            pack[langCode]?.title ||
+            pack["zh"]?.title ||
+            pack["ja"]?.title ||
+            pack["en"]?.title;
+          map[String(pack[lang].id)] = title;
+        }
+      });
+    });
+    return map;
+  }, [langCode]);
 
   const resetFilters = () => {
     setSearchTerm(defaultFilters.searchTerm);
@@ -3858,11 +3889,12 @@ const App = () => {
                 <CardQA currentCardId={selectedCard.id} />
               </div>
 
-              {selectedCard.pack_id && packData[selectedCard.pack_id] && (
-                <p className="text-xs text-slate-400 mt-2">
-                  收錄於：{packData[selectedCard.pack_id].raw_title}
-                </p>
-              )}
+              {selectedCard.pack_id &&
+                packByNumericId[String(selectedCard.pack_id)] && (
+                  <p className="text-xs text-slate-400 mt-2">
+                    收錄於：{packByNumericId[String(selectedCard.pack_id)]}
+                  </p>
+                )}
             </div>
           </div>
         </div>

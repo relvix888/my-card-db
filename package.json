@@ -25,7 +25,10 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "audit": "node scripts/audit-effects.js 2>/dev/null | grep 'Total UNKNOWN'",
+    "audit:full": "node scripts/audit-effects.js",
+    "audit:missing": "node scripts/audit-effects.js --missing"
   },
   "eslintConfig": {
     "extends": [

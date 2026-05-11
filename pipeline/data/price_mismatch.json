@@ -16,6 +16,38 @@
     "reason": "Check if ST01-012_p1 exists in 554105.json"
   },
   {
+    "base_id": "ST01-012",
+    "generated_id": "ST01-012_p1",
+    "rank": 1,
+    "name": "モンキー・D・ルフィ(パラレル/箔押し)(ジャンプ19号応募者全員サービス)",
+    "pack_id": "554901",
+    "reason": "Check if ST01-012_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST01-002",
+    "generated_id": "ST01-002_p1",
+    "rank": 1,
+    "name": "ウソップ(パラレル)(25周年エディション)",
+    "pack_id": "554901",
+    "reason": "Check if ST01-002_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST01-002",
+    "generated_id": "ST01-002_p1",
+    "rank": 1,
+    "name": "ウソップ(パラレル)(ONE PIECE FILM RED入場者プレゼント)",
+    "pack_id": "554901",
+    "reason": "Check if ST01-002_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST01-002",
+    "generated_id": "ST01-002_p1",
+    "rank": 1,
+    "name": "ウソップ(パラレル)(プレミアムカードコレクション)",
+    "pack_id": "554901",
+    "reason": "Check if ST01-002_p1 exists in 554901.json"
+  },
+  {
     "base_id": "ST01-006",
     "generated_id": "ST01-006_p1",
     "rank": 1,
@@ -40,12 +72,36 @@
     "reason": "Check if ST01-006 exists in 554301.json"
   },
   {
+    "base_id": "ST01-006",
+    "generated_id": "ST01-006_p1",
+    "rank": 1,
+    "name": "トニートニー・チョッパー(パラレル)(チャンピオンシップ)",
+    "pack_id": "554901",
+    "reason": "Check if ST01-006_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST01-010",
+    "generated_id": "ST01-010_p1",
+    "rank": 1,
+    "name": "フランキー(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if ST01-010_p1 exists in 554901.json"
+  },
+  {
     "base_id": "ST01-011",
     "generated_id": "ST01-011",
     "rank": 0,
     "name": "ブルック(ラメフォイル)",
     "pack_id": "554302",
     "reason": "Check if ST01-011 exists in 554302.json"
+  },
+  {
+    "base_id": "ST01-011",
+    "generated_id": "ST01-011_p1",
+    "rank": 1,
+    "name": "ブルック(パラレル)(BANDAI CARD GAMES Fest 23-24 Edition)",
+    "pack_id": "554901",
+    "reason": "Check if ST01-011_p1 exists in 554901.json"
   },
   {
     "base_id": "ST01-014",
@@ -96,6 +152,14 @@
     "reason": "Check if ST02-004 exists in 554301.json"
   },
   {
+    "base_id": "ST02-004",
+    "generated_id": "ST02-004_p1",
+    "rank": 1,
+    "name": "カポネ・ベッジ(パラレル)(ベストセレクションvol.2)",
+    "pack_id": "554901",
+    "reason": "Check if ST02-004_p1 exists in 554901.json"
+  },
+  {
     "base_id": "ST02-007",
     "generated_id": "ST02-007",
     "rank": 0,
@@ -110,6 +174,14 @@
     "name": "ユースタス・キッド(パラレル)",
     "pack_id": "554002",
     "reason": "Check if ST02-001_p1 exists in 554002.json"
+  },
+  {
+    "base_id": "ST02-001",
+    "generated_id": "ST02-001_p1",
+    "rank": 1,
+    "name": "ユースタス・キッド(パラレル)(リーダーコレクション)",
+    "pack_id": "554901",
+    "reason": "Check if ST02-001_p1 exists in 554901.json"
   },
   {
     "base_id": "ST03-005",
@@ -144,6 +216,14 @@
     "reason": "Check if ST03-008 exists in 554301.json"
   },
   {
+    "base_id": "ST03-012",
+    "generated_id": "ST03-012_p1",
+    "rank": 1,
+    "name": "パシフィスタ(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if ST03-012_p1 exists in 554901.json"
+  },
+  {
     "base_id": "ST03-013",
     "generated_id": "ST03-013_p1",
     "rank": 1,
@@ -168,12 +248,44 @@
     "reason": "Check if ST03-013 exists in 554301.json"
   },
   {
+    "base_id": "ST03-013",
+    "generated_id": "ST03-013_p1",
+    "rank": 1,
+    "name": "ボア・ハンコック(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if ST03-013_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST03-017",
+    "generated_id": "ST03-017_p1",
+    "rank": 1,
+    "name": "メロメロ甘風(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if ST03-017_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST03-001",
+    "generated_id": "ST03-001_p1",
+    "rank": 1,
+    "name": "クロコダイル(パラレル)(リーダーコレクション)",
+    "pack_id": "554901",
+    "reason": "Check if ST03-001_p1 exists in 554901.json"
+  },
+  {
     "base_id": "ST04-003",
     "generated_id": "ST04-003_p1",
     "rank": 1,
     "name": "カイドウ(パラレル)(PRB)",
     "pack_id": "554301",
     "reason": "Check if ST04-003_p1 exists in 554301.json"
+  },
+  {
+    "base_id": "ST04-002",
+    "generated_id": "ST04-002_p1",
+    "rank": 1,
+    "name": "うるティ(パラレル)(プレミアムカードコレクションベストセレクションvol.3)",
+    "pack_id": "554901",
+    "reason": "Check if ST04-002_p1 exists in 554901.json"
   },
   {
     "base_id": "ST04-005",
@@ -206,6 +318,30 @@
     "name": "熱息(海賊旗フォイル)",
     "pack_id": "554301",
     "reason": "Check if ST04-016 exists in 554301.json"
+  },
+  {
+    "base_id": "ST04-016",
+    "generated_id": "ST04-016_p1",
+    "rank": 1,
+    "name": "熱息(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if ST04-016_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST04-017",
+    "generated_id": "ST04-017_p1",
+    "rank": 1,
+    "name": "鬼ヶ島(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if ST04-017_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST04-001",
+    "generated_id": "ST04-001_p1",
+    "rank": 1,
+    "name": "カイドウ(パラレル)(リーダーコレクション)",
+    "pack_id": "554901",
+    "reason": "Check if ST04-001_p1 exists in 554901.json"
   },
   {
     "base_id": "OP01-120",
@@ -352,6 +488,38 @@
     "reason": "Check if OP01-006 exists in 554301.json"
   },
   {
+    "base_id": "OP01-006",
+    "generated_id": "OP01-006_p1",
+    "rank": 1,
+    "name": "お玉(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP01-006_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP01-014",
+    "generated_id": "OP01-014_p1",
+    "rank": 1,
+    "name": "ジンベエ(パラレル)(ONE PIECE FILM RED入場者プレゼント)",
+    "pack_id": "554901",
+    "reason": "Check if OP01-014_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP01-014",
+    "generated_id": "OP01-014_p1",
+    "rank": 1,
+    "name": "ジンベエ(パラレル)(プレミアムカードコレクション)",
+    "pack_id": "554901",
+    "reason": "Check if OP01-014_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP01-022",
+    "generated_id": "OP01-022_p1",
+    "rank": 1,
+    "name": "ブルック(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP01-022_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP01-029",
     "generated_id": "OP01-029_p1",
     "rank": 1,
@@ -366,6 +534,22 @@
     "name": "ラディカルビ～～～ム!!!!(海賊旗フォイル)",
     "pack_id": "554301",
     "reason": "Check if OP01-029 exists in 554301.json"
+  },
+  {
+    "base_id": "OP01-029",
+    "generated_id": "OP01-029_p1",
+    "rank": 1,
+    "name": "ラディカルビ～～～ム!!!!(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP01-029_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP01-030",
+    "generated_id": "OP01-030_p1",
+    "rank": 1,
+    "name": "2年後に!!!シャボンディ諸島で!!!(パラレル/箔押し)(2nd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP01-030_p1 exists in 554901.json"
   },
   {
     "base_id": "OP01-033",
@@ -408,12 +592,36 @@
     "reason": "Check if OP01-052 exists in 554301.json"
   },
   {
+    "base_id": "OP01-057",
+    "generated_id": "OP01-057_p1",
+    "rank": 1,
+    "name": "桃源白滝(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP01-057_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP01-055",
     "generated_id": "OP01-055",
     "rank": 0,
     "name": "おれの”侍”になれ‼!(ラメフォイル)",
     "pack_id": "554302",
     "reason": "Check if OP01-055 exists in 554302.json"
+  },
+  {
+    "base_id": "OP01-001",
+    "generated_id": "OP01-001_p1",
+    "rank": 1,
+    "name": "ロロノア・ゾロ(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP01-001_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP01-001",
+    "generated_id": "OP01-001_p1",
+    "rank": 1,
+    "name": "ロロノア・ゾロ(パラレル/箔押し)(LECAFIG)",
+    "pack_id": "554901",
+    "reason": "Check if OP01-001_p1 exists in 554901.json"
   },
   {
     "base_id": "OP01-060",
@@ -2104,6 +2312,30 @@
     "reason": "Check if -_p2 exists in 554302.json"
   },
   {
+    "base_id": "ST05-004",
+    "generated_id": "ST05-004_p1",
+    "rank": 1,
+    "name": "ウタ(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if ST05-004_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST05-002",
+    "generated_id": "ST05-002_p1",
+    "rank": 1,
+    "name": "アイン(パラレル)(プレミアムカードコレクションベストセレクションvol.3)",
+    "pack_id": "554901",
+    "reason": "Check if ST05-002_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST05-014",
+    "generated_id": "ST05-014_p1",
+    "rank": 1,
+    "name": "ブエナ・フェスタ(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if ST05-014_p1 exists in 554901.json"
+  },
+  {
     "base_id": "ST06-008",
     "generated_id": "ST06-008",
     "rank": 0,
@@ -2126,6 +2358,14 @@
     "name": "衝撃波(海賊旗フォイル)",
     "pack_id": "554301",
     "reason": "Check if ST06-014 exists in 554301.json"
+  },
+  {
+    "base_id": "OP02-120",
+    "generated_id": "OP02-120_p1",
+    "rank": 1,
+    "name": "ウタ(パラレル)(プレミアムカードコレクション-ウタ-)",
+    "pack_id": "554901",
+    "reason": "Check if OP02-120_p1 exists in 554901.json"
   },
   {
     "base_id": "OP02-121",
@@ -2158,6 +2398,22 @@
     "name": "ポートガス・D・エース(パラレル)(スーパーパラレル)(刻印あり)",
     "pack_id": "554301",
     "reason": "Check if OP02-013_p2 exists in 554301.json"
+  },
+  {
+    "base_id": "OP02-013",
+    "generated_id": "OP02-013_p1",
+    "rank": 1,
+    "name": "ポートガス・D・エース(パラレル/箔押し)(2nd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP02-013_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP02-036",
+    "generated_id": "OP02-036_p1",
+    "rank": 1,
+    "name": "ナミ(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP02-036_p1 exists in 554901.json"
   },
   {
     "base_id": "OP02-096",
@@ -2272,6 +2528,14 @@
     "reason": "Check if OP02-015 exists in 554301.json"
   },
   {
+    "base_id": "OP02-015",
+    "generated_id": "OP02-015_p1",
+    "rank": 1,
+    "name": "マキノ(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP02-015_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP02-106",
     "generated_id": "OP02-106_p1",
     "rank": 1,
@@ -2286,6 +2550,14 @@
     "name": "つる(海賊旗フォイル)",
     "pack_id": "554301",
     "reason": "Check if OP02-106 exists in 554301.json"
+  },
+  {
+    "base_id": "OP02-106",
+    "generated_id": "OP02-106_p1",
+    "rank": 1,
+    "name": "つる(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP02-106_p1 exists in 554901.json"
   },
   {
     "base_id": "OP02-117",
@@ -2304,6 +2576,14 @@
     "reason": "Check if OP02-117 exists in 554301.json"
   },
   {
+    "base_id": "OP02-117",
+    "generated_id": "OP02-117_p1",
+    "rank": 1,
+    "name": "氷河時代(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP02-117_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP02-088",
     "generated_id": "OP02-088_p1",
     "rank": 2,
@@ -2318,6 +2598,14 @@
     "name": "エドワード・ニューゲート",
     "pack_id": "554015",
     "reason": "Check if OP02-001 exists in 554015.json"
+  },
+  {
+    "base_id": "OP02-001",
+    "generated_id": "OP02-001_p1",
+    "rank": 1,
+    "name": "エドワード・ニューゲート(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP02-001_p1 exists in 554901.json"
   },
   {
     "base_id": "OP02-093",
@@ -2505,6 +2793,14 @@
   },
   {
     "base_id": "OP03-008",
+    "generated_id": "OP03-008_p2",
+    "rank": 2,
+    "name": "SP バギー(パラレル)",
+    "pack_id": "554106",
+    "reason": "Check if OP03-008_p2 exists in 554106.json"
+  },
+  {
+    "base_id": "OP03-008",
     "generated_id": "OP03-008",
     "rank": 0,
     "name": "バギー(ラメフォイル)",
@@ -2592,6 +2888,14 @@
     "reason": "Check if OP03-055 exists in 554301.json"
   },
   {
+    "base_id": "OP03-055",
+    "generated_id": "OP03-055_p1",
+    "rank": 1,
+    "name": "ゴムゴムの大槌(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP03-055_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP03-121",
     "generated_id": "OP03-121_p1",
     "rank": 1,
@@ -2608,12 +2912,36 @@
     "reason": "Check if OP03-121 exists in 554301.json"
   },
   {
+    "base_id": "OP03-121",
+    "generated_id": "OP03-121_p1",
+    "rank": 1,
+    "name": "雷霆(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP03-121_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP03-001",
+    "generated_id": "OP03-001_p1",
+    "rank": 1,
+    "name": "ポートガス・D・エース(パラレル)(チャンピオンシップセット2023)",
+    "pack_id": "554901",
+    "reason": "Check if OP03-001_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP03-099",
     "generated_id": "OP03-099",
     "rank": 0,
     "name": "シャーロット・カタクリ",
     "pack_id": "554020",
     "reason": "Check if OP03-099 exists in 554020.json"
+  },
+  {
+    "base_id": "ST08-002",
+    "generated_id": "ST08-002_p1",
+    "rank": 1,
+    "name": "ウタ(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if ST08-002_p1 exists in 554901.json"
   },
   {
     "base_id": "ST09-014",
@@ -2704,6 +3032,14 @@
     "reason": "Check if OP04-089 exists in 554301.json"
   },
   {
+    "base_id": "OP04-105",
+    "generated_id": "OP04-105_p1",
+    "rank": 1,
+    "name": "シャーロット・アマンド(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP04-105_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP04-032",
     "generated_id": "OP04-032",
     "rank": 0,
@@ -2750,6 +3086,14 @@
     "name": "バ～～～～リアッ!!(海賊旗フォイル)",
     "pack_id": "554301",
     "reason": "Check if OP04-095 exists in 554301.json"
+  },
+  {
+    "base_id": "OP04-095",
+    "generated_id": "OP04-095_p1",
+    "rank": 1,
+    "name": "バ～～～～リアッ!!(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP04-095_p1 exists in 554901.json"
   },
   {
     "base_id": "OP04-096",
@@ -2816,6 +3160,14 @@
     "reason": "Check if OP05-119_p1 exists in 554301.json"
   },
   {
+    "base_id": "OP05-119",
+    "generated_id": "OP05-119_p1",
+    "rank": 1,
+    "name": "モンキー・D・ルフィ(パラレル)(English 2nd Anniversary set日本語版)",
+    "pack_id": "554901",
+    "reason": "Check if OP05-119_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP05-006",
     "generated_id": "OP05-006_p1",
     "rank": 1,
@@ -2854,6 +3206,22 @@
     "name": "SP レベッカ(パラレル)(PRB2)",
     "pack_id": "554302",
     "reason": "Check if OP05-091_p2 exists in 554302.json"
+  },
+  {
+    "base_id": "OP05-093",
+    "generated_id": "OP05-093_p1",
+    "rank": 1,
+    "name": "ロブ・ルッチ(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP05-093_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP05-093",
+    "generated_id": "OP05-093_p1",
+    "rank": 1,
+    "name": "ロブ・ルッチ(パラレル/箔押し)",
+    "pack_id": "554901",
+    "reason": "Check if OP05-093_p1 exists in 554901.json"
   },
   {
     "base_id": "OP05-015",
@@ -2912,12 +3280,36 @@
     "reason": "Check if OP05-067 exists in 554018.json"
   },
   {
+    "base_id": "OP05-005",
+    "generated_id": "OP05-005_p1",
+    "rank": 1,
+    "name": "カラス(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP05-005_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP05-019",
+    "generated_id": "OP05-019_p1",
+    "rank": 1,
+    "name": "火拳(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP05-019_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP05-030",
     "generated_id": "OP05-030_p1",
     "rank": 1,
     "name": "ドンキホーテ・ロシナンテ(パラレル)(PRB2)",
     "pack_id": "554302",
     "reason": "Check if OP05-030_p1 exists in 554302.json"
+  },
+  {
+    "base_id": "OP05-030",
+    "generated_id": "OP05-030_p1",
+    "rank": 1,
+    "name": "ドンキホーテ・ロシナンテ(パラレル/箔押し)(2nd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP05-030_p1 exists in 554901.json"
   },
   {
     "base_id": "OP05-057",
@@ -3022,6 +3414,14 @@
     "name": "神の裁き(海賊旗フォイル)",
     "pack_id": "554301",
     "reason": "Check if OP05-114 exists in 554301.json"
+  },
+  {
+    "base_id": "OP05-114",
+    "generated_id": "OP05-114_p1",
+    "rank": 1,
+    "name": "神の裁き(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP05-114_p1 exists in 554901.json"
   },
   {
     "base_id": "OP05-117",
@@ -3136,6 +3536,14 @@
     "reason": "Check if ST11-001 exists in 554016.json"
   },
   {
+    "base_id": "ST12-003",
+    "generated_id": "ST12-003_p1",
+    "rank": 1,
+    "name": "ジュラキュール・ミホーク(パラレル)(Vジャンプ10月特大号 応募者全員サービス)",
+    "pack_id": "554901",
+    "reason": "Check if ST12-003_p1 exists in 554901.json"
+  },
+  {
     "base_id": "ST12-005",
     "generated_id": "ST12-005",
     "rank": 0,
@@ -3158,6 +3566,14 @@
     "name": "整形ショット(ラメフォイル)",
     "pack_id": "554302",
     "reason": "Check if ST12-017 exists in 554302.json"
+  },
+  {
+    "base_id": "OP06-118",
+    "generated_id": "OP06-118_p1",
+    "rank": 1,
+    "name": "ロロノア・ゾロ(パラレル/箔押し)(2nd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP06-118_p1 exists in 554901.json"
   },
   {
     "base_id": "OP06-035",
@@ -3232,6 +3648,14 @@
     "reason": "Check if OP06-104 exists in 554028.json"
   },
   {
+    "base_id": "OP06-104",
+    "generated_id": "OP06-104_p1",
+    "rank": 1,
+    "name": "菊之丞(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP06-104_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP06-003",
     "generated_id": "OP06-003",
     "rank": 0,
@@ -3254,6 +3678,14 @@
     "name": "一大・三千・大千・世界(海賊旗フォイル)",
     "pack_id": "554301",
     "reason": "Check if OP06-038 exists in 554301.json"
+  },
+  {
+    "base_id": "OP06-038",
+    "generated_id": "OP06-038_p1",
+    "rank": 1,
+    "name": "一大・三千・大千・世界(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP06-038_p1 exists in 554901.json"
   },
   {
     "base_id": "OP06-044",
@@ -3424,6 +3856,14 @@
     "reason": "Check if OP06-021_p1 exists in 554202.json"
   },
   {
+    "base_id": "OP06-021",
+    "generated_id": "OP06-021_p1",
+    "rank": 1,
+    "name": "ペローナ(パラレル)(BASE SHOPリミテッドカードコレクションvol.1)",
+    "pack_id": "554901",
+    "reason": "Check if OP06-021_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP06-022",
     "generated_id": "OP06-022",
     "rank": 0,
@@ -3440,6 +3880,14 @@
     "reason": "Check if OP06-022_p1 exists in 554202.json"
   },
   {
+    "base_id": "OP06-022",
+    "generated_id": "OP06-022_p1",
+    "rank": 1,
+    "name": "ヤマト(パラレル/箔押し)(LECAFIG)",
+    "pack_id": "554901",
+    "reason": "Check if OP06-022_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP06-042",
     "generated_id": "OP06-042_p1",
     "rank": 1,
@@ -3454,6 +3902,14 @@
     "name": "ゲッコー・モリア(パラレル/箔押し)",
     "pack_id": "554202",
     "reason": "Check if OP06-080_p1 exists in 554202.json"
+  },
+  {
+    "base_id": "ST13-015",
+    "generated_id": "ST13-015_p1",
+    "rank": 1,
+    "name": "モンキー・D・ルフィ(パラレル/箔押し)(2nd ANNIVERSARY SET）",
+    "pack_id": "554901",
+    "reason": "Check if ST13-015_p1 exists in 554901.json"
   },
   {
     "base_id": "ST13-004",
@@ -3504,6 +3960,14 @@
     "reason": "Check if ST13-010 exists in 554302.json"
   },
   {
+    "base_id": "ST13-012",
+    "generated_id": "ST13-012_p1",
+    "rank": 1,
+    "name": "マキノ(パラレル)(プレミアムカードコレクションベストセレクションvol.3)",
+    "pack_id": "554901",
+    "reason": "Check if ST13-012_p1 exists in 554901.json"
+  },
+  {
     "base_id": "ST13-014",
     "generated_id": "ST13-014",
     "rank": 0,
@@ -3536,12 +4000,92 @@
     "reason": "Check if ST13-019 exists in 554302.json"
   },
   {
+    "base_id": "ST13-001",
+    "generated_id": "ST13-001_p1",
+    "rank": 1,
+    "name": "サボ(パラレル)(リーダーコレクション)",
+    "pack_id": "554901",
+    "reason": "Check if ST13-001_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST13-001",
+    "generated_id": "ST13-001_p1",
+    "rank": 1,
+    "name": "サボ(パラレル)(セブンイレブン)",
+    "pack_id": "554901",
+    "reason": "Check if ST13-001_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST13-002",
+    "generated_id": "ST13-002_p1",
+    "rank": 1,
+    "name": "ポートガス・D・エース(パラレル)(リーダーコレクション)",
+    "pack_id": "554901",
+    "reason": "Check if ST13-002_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST13-002",
+    "generated_id": "ST13-002_p1",
+    "rank": 1,
+    "name": "ポートガス・D・エース(パラレル)(セブンイレブン)",
+    "pack_id": "554901",
+    "reason": "Check if ST13-002_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST13-003",
+    "generated_id": "ST13-003_p1",
+    "rank": 1,
+    "name": "モンキー・D・ルフィ(パラレル)(リーダーコレクション)",
+    "pack_id": "554901",
+    "reason": "Check if ST13-003_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST13-003",
+    "generated_id": "ST13-003_p1",
+    "rank": 1,
+    "name": "モンキー・D・ルフィ(パラレル)(セブンイレブン)",
+    "pack_id": "554901",
+    "reason": "Check if ST13-003_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "EB01-003",
+    "generated_id": "EB01-003_p1",
+    "rank": 1,
+    "name": "キッド＆キラー(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if EB01-003_p1 exists in 554901.json"
+  },
+  {
     "base_id": "EB01-015",
     "generated_id": "EB01-015",
     "rank": 0,
     "name": "スクラッチメン・アプー(ホロなし)",
     "pack_id": "554024",
     "reason": "Check if EB01-015 exists in 554024.json"
+  },
+  {
+    "base_id": "EB01-043",
+    "generated_id": "EB01-043_p1",
+    "rank": 1,
+    "name": "スパンダイン(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if EB01-043_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "EB01-043",
+    "generated_id": "EB01-043_p1",
+    "rank": 1,
+    "name": "スパンダイン(パラレル/箔押し)",
+    "pack_id": "554901",
+    "reason": "Check if EB01-043_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "EB01-007",
+    "generated_id": "EB01-007_p1",
+    "rank": 1,
+    "name": "ヤマト(パラレル)(ベストセレクション vol.4)",
+    "pack_id": "554901",
+    "reason": "Check if EB01-007_p1 exists in 554901.json"
   },
   {
     "base_id": "EB01-009",
@@ -3600,6 +4144,22 @@
     "reason": "Check if EB01-040_p1 exists in 554202.json"
   },
   {
+    "base_id": "OP07-118",
+    "generated_id": "OP07-118_p1",
+    "rank": 1,
+    "name": "サボ(パラレル)(3rd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP07-118_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP07-047",
+    "generated_id": "OP07-047_p1",
+    "rank": 1,
+    "name": "トラファルガー・ロー(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP07-047_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP07-021",
     "generated_id": "OP07-021",
     "rank": 0,
@@ -3616,12 +4176,28 @@
     "reason": "Check if OP07-036 exists in 554024.json"
   },
   {
+    "base_id": "OP07-057",
+    "generated_id": "OP07-057_p1",
+    "rank": 1,
+    "name": "芳香脚(パラレル)(ベストセレクション vol.4)",
+    "pack_id": "554901",
+    "reason": "Check if OP07-057_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP07-116",
     "generated_id": "OP07-116",
     "rank": 0,
     "name": "焔裂き(ホロなし)",
     "pack_id": "554028",
     "reason": "Check if OP07-116 exists in 554028.json"
+  },
+  {
+    "base_id": "OP07-116",
+    "generated_id": "OP07-116_p1",
+    "rank": 1,
+    "name": "焔裂き(パラレル)(プレミアムカードコレクション ベストセレクションvol.5)",
+    "pack_id": "554901",
+    "reason": "Check if OP07-116_p1 exists in 554901.json"
   },
   {
     "base_id": "OP07-014",
@@ -3648,6 +4224,14 @@
     "reason": "Check if OP07-031 exists in 554302.json"
   },
   {
+    "base_id": "OP07-037",
+    "generated_id": "OP07-037_p1",
+    "rank": 1,
+    "name": "ピザお～か～わ～り～!!!(パラレル)(ベストセレクション vol.4)",
+    "pack_id": "554901",
+    "reason": "Check if OP07-037_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP07-040",
     "generated_id": "OP07-040",
     "rank": 0,
@@ -3662,6 +4246,14 @@
     "name": "虜の矢(ラメフォイル)",
     "pack_id": "554302",
     "reason": "Check if OP07-056 exists in 554302.json"
+  },
+  {
+    "base_id": "OP07-113",
+    "generated_id": "OP07-113_p1",
+    "rank": 1,
+    "name": "ロロノア・ゾロ(パラレル)(Vジャンプ10月特大号 応募者全員サービス)",
+    "pack_id": "554901",
+    "reason": "Check if OP07-113_p1 exists in 554901.json"
   },
   {
     "base_id": "OP07-114",
@@ -3702,6 +4294,14 @@
     "name": "ジュエリー・ボニー(パラレル/箔押し)",
     "pack_id": "554202",
     "reason": "Check if OP07-019_p1 exists in 554202.json"
+  },
+  {
+    "base_id": "OP07-019",
+    "generated_id": "OP07-019_p1",
+    "rank": 1,
+    "name": "ジュエリー・ボニー(パラレル/箔押し)(LECAFIG)",
+    "pack_id": "554901",
+    "reason": "Check if OP07-019_p1 exists in 554901.json"
   },
   {
     "base_id": "OP07-038",
@@ -3776,6 +4376,38 @@
     "reason": "Check if ST14-017 exists in 554302.json"
   },
   {
+    "base_id": "OP08-069",
+    "generated_id": "OP08-069_p1",
+    "rank": 1,
+    "name": "シャーロット・リンリン(パラレル/箔押し)(2nd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP08-069_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP08-105",
+    "generated_id": "OP08-105_p1",
+    "rank": 1,
+    "name": "ジュエリー・ボニー(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if OP08-105_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP08-105",
+    "generated_id": "OP08-105_p1",
+    "rank": 1,
+    "name": "ジュエリー・ボニー(パラレル/箔押し)",
+    "pack_id": "554901",
+    "reason": "Check if OP08-105_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP08-036",
+    "generated_id": "OP08-036_p1",
+    "rank": 1,
+    "name": "エレクトリカルルナ(パラレル)(プレミアムカードコレクション ベストセレクションvol.5)",
+    "pack_id": "554901",
+    "reason": "Check if OP08-036_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP08-076",
     "generated_id": "OP08-076",
     "rank": 0,
@@ -3800,6 +4432,14 @@
     "reason": "Check if OP08-099 exists in 554302.json"
   },
   {
+    "base_id": "OP08-099",
+    "generated_id": "OP08-099_p1",
+    "rank": 1,
+    "name": "カルガラ(パラレル)(ベストセレクション vol.4)",
+    "pack_id": "554901",
+    "reason": "Check if OP08-099_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP08-001",
     "generated_id": "OP08-001_p1",
     "rank": 1,
@@ -3808,12 +4448,28 @@
     "reason": "Check if OP08-001_p1 exists in 554202.json"
   },
   {
+    "base_id": "OP08-001",
+    "generated_id": "OP08-001_p1",
+    "rank": 1,
+    "name": "トニートニー・チョッパー(パラレル)(BASE SHOPリミテッドカードコレクションvol.1)",
+    "pack_id": "554901",
+    "reason": "Check if OP08-001_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP08-002",
     "generated_id": "OP08-002_p1",
     "rank": 1,
     "name": "マルコ(パラレル/箔押し)",
     "pack_id": "554202",
     "reason": "Check if OP08-002_p1 exists in 554202.json"
+  },
+  {
+    "base_id": "OP08-002",
+    "generated_id": "OP08-002_p1",
+    "rank": 1,
+    "name": "マルコ(パラレル/箔押し)(LECAFIG)",
+    "pack_id": "554901",
+    "reason": "Check if OP08-002_p1 exists in 554901.json"
   },
   {
     "base_id": "OP08-021",
@@ -3854,6 +4510,30 @@
     "name": "エドワード・ニューゲート(パラレル)(PRB2)",
     "pack_id": "554302",
     "reason": "Check if ST15-002_p1 exists in 554302.json"
+  },
+  {
+    "base_id": "ST15-005",
+    "generated_id": "ST15-005_p1",
+    "rank": 1,
+    "name": "ポートガス・D・エース(パラレル)(3rd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if ST15-005_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST16-001",
+    "generated_id": "ST16-001_p1",
+    "rank": 1,
+    "name": "ウタ(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if ST16-001_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST16-001",
+    "generated_id": "ST16-001_p1",
+    "rank": 1,
+    "name": "ウタ(パラレル/箔押し)",
+    "pack_id": "554901",
+    "reason": "Check if ST16-001_p1 exists in 554901.json"
   },
   {
     "base_id": "ST16-004",
@@ -3910,6 +4590,22 @@
     "name": "Tot Musica",
     "pack_id": "554016",
     "reason": "Check if P-060 exists in 554016.json"
+  },
+  {
+    "base_id": "ST17-004",
+    "generated_id": "ST17-004_p1",
+    "rank": 1,
+    "name": "ボア・ハンコック(パラレル)",
+    "pack_id": "554901",
+    "reason": "Check if ST17-004_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST17-004",
+    "generated_id": "ST17-004_p1",
+    "rank": 1,
+    "name": "ボア・ハンコック(パラレル/箔押し)",
+    "pack_id": "554901",
+    "reason": "Check if ST17-004_p1 exists in 554901.json"
   },
   {
     "base_id": "ST17-003",
@@ -4024,14 +4720,6 @@
     "reason": "Check if P-053 exists in 554301.json"
   },
   {
-    "base_id": "P-053",
-    "generated_id": "P-053_p1",
-    "rank": 1,
-    "name": "ナミ(パラレル)(Live Action Edition)",
-    "pack_id": "554901",
-    "reason": "Check if P-053_p1 exists in 554901.json"
-  },
-  {
     "base_id": "P-055",
     "generated_id": "P-055_p1",
     "rank": 1,
@@ -4048,12 +4736,28 @@
     "reason": "Check if P-055 exists in 554301.json"
   },
   {
-    "base_id": "P-055",
-    "generated_id": "P-055_p1",
+    "base_id": "OP09-119",
+    "generated_id": "OP09-119_p1",
     "rank": 1,
-    "name": "モンキー・D・ルフィ(パラレル)(Live Action Edition)",
+    "name": "モンキー・D・ルフィ(パラレル)(3rd ANNIVERSARY SET)",
     "pack_id": "554901",
-    "reason": "Check if P-055_p1 exists in 554901.json"
+    "reason": "Check if OP09-119_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP09-093",
+    "generated_id": "OP09-093_p1",
+    "rank": 1,
+    "name": "マーシャル・D・ティーチ(パラレル)(English 2nd Anniversary set日本語版)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-093_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP09-034",
+    "generated_id": "OP09-034_p1",
+    "rank": 1,
+    "name": "ペローナ(パラレル)(Vジャンプ10月特大号 応募者全員サービス)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-034_p1 exists in 554901.json"
   },
   {
     "base_id": "OP09-051",
@@ -4062,6 +4766,14 @@
     "name": "バギー(ホロなし)",
     "pack_id": "554025",
     "reason": "Check if OP09-051 exists in 554025.json"
+  },
+  {
+    "base_id": "OP09-051",
+    "generated_id": "OP09-051_p1",
+    "rank": 1,
+    "name": "バギー(パラレル)(English 2nd Anniversary set日本語版)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-051_p1 exists in 554901.json"
   },
   {
     "base_id": "OP09-013",
@@ -4152,6 +4864,30 @@
     "reason": "Check if OP09-095 exists in 554027.json"
   },
   {
+    "base_id": "OP09-095",
+    "generated_id": "OP09-095_p1",
+    "rank": 1,
+    "name": "ラフィット(パラレル)(ベストセレクション vol.4)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-095_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP09-117",
+    "generated_id": "OP09-117_p1",
+    "rank": 1,
+    "name": "デレシ!!(パラレル)(ベストセレクション vol.4)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-117_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP09-008",
+    "generated_id": "OP09-008_p1",
+    "rank": 1,
+    "name": "ビルディング・スネイク(パラレル)(ベストセレクション vol.4)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-008_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP09-014",
     "generated_id": "OP09-014_p1",
     "rank": 1,
@@ -4176,12 +4912,36 @@
     "reason": "Check if OP09-027 exists in 554302.json"
   },
   {
+    "base_id": "OP09-027",
+    "generated_id": "OP09-027_p1",
+    "rank": 1,
+    "name": "サボ(パラレル/箔押し)(ジャンプ19号応募者全員サービス)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-027_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP09-070",
+    "generated_id": "OP09-070_p1",
+    "rank": 1,
+    "name": "ナミ(パラレル)(ベストセレクション vol.4)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-070_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP09-077",
     "generated_id": "OP09-077",
     "rank": 0,
     "name": "ゴムゴムの雷(ラメフォイル)",
     "pack_id": "554302",
     "reason": "Check if OP09-077 exists in 554302.json"
+  },
+  {
+    "base_id": "OP09-077",
+    "generated_id": "OP09-077_p1",
+    "rank": 1,
+    "name": "ゴムゴムの雷(パラレル)(ベストセレクション vol.4)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-077_p1 exists in 554901.json"
   },
   {
     "base_id": "OP09-084",
@@ -4232,12 +4992,28 @@
     "reason": "Check if OP09-001 exists in 554023.json"
   },
   {
+    "base_id": "OP09-001",
+    "generated_id": "OP09-001_p1",
+    "rank": 1,
+    "name": "シャンクス(パラレル)(English 2nd Anniversary set日本語版)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-001_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP09-042",
     "generated_id": "OP09-042",
     "rank": 0,
     "name": "バギー",
     "pack_id": "554025",
     "reason": "Check if OP09-042 exists in 554025.json"
+  },
+  {
+    "base_id": "OP09-042",
+    "generated_id": "OP09-042_p1",
+    "rank": 1,
+    "name": "バギー(パラレル)(English 2nd Anniversary set日本語版)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-042_p1 exists in 554901.json"
   },
   {
     "base_id": "OP09-061",
@@ -4248,12 +5024,52 @@
     "reason": "Check if OP09-061 exists in 554026.json"
   },
   {
+    "base_id": "OP09-061",
+    "generated_id": "OP09-061_p1",
+    "rank": 1,
+    "name": "モンキー・D・ルフィ(パラレル)(English 2nd Anniversary set日本語版)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-061_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP09-081",
     "generated_id": "OP09-081",
     "rank": 0,
     "name": "マーシャル・D・ティーチ",
     "pack_id": "554027",
     "reason": "Check if OP09-081 exists in 554027.json"
+  },
+  {
+    "base_id": "OP09-081",
+    "generated_id": "OP09-081_p1",
+    "rank": 1,
+    "name": "マーシャル・Ｄ・ティーチ(パラレル)(English 2nd Anniversary set日本語版)",
+    "pack_id": "554901",
+    "reason": "Check if OP09-081_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP10-111",
+    "generated_id": "OP10-111_p1",
+    "rank": 1,
+    "name": "モンキー・D・ルフィ(パラレル)(プレミアムカードコレクション6 assort vol.1)",
+    "pack_id": "554901",
+    "reason": "Check if OP10-111_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP10-057",
+    "generated_id": "OP10-057_p1",
+    "rank": 1,
+    "name": "レオ(パラレル)(プレミアムカードコレクション6 assort vol.1)",
+    "pack_id": "554901",
+    "reason": "Check if OP10-057_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP10-028",
+    "generated_id": "OP10-028_p1",
+    "rank": 1,
+    "name": "光月モモの助(パラレル)(ベストセレクション vol.4)",
+    "pack_id": "554901",
+    "reason": "Check if OP10-028_p1 exists in 554901.json"
   },
   {
     "base_id": "OP10-079",
@@ -4280,6 +5096,14 @@
     "reason": "Check if OP10-018 exists in 554302.json"
   },
   {
+    "base_id": "OP10-092",
+    "generated_id": "OP10-092_p1",
+    "rank": 1,
+    "name": "ペローナ(パラレル)(ベストセレクション vol.4)",
+    "pack_id": "554901",
+    "reason": "Check if OP10-092_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP10-105",
     "generated_id": "OP10-105",
     "rank": 0,
@@ -4296,6 +5120,46 @@
     "reason": "Check if OP10-108 exists in 554302.json"
   },
   {
+    "base_id": "OP10-108",
+    "generated_id": "OP10-108_p1",
+    "rank": 1,
+    "name": "スクラッチメン・アプー(パラレル)(プレミアムカードコレクション ベストセレクション vol.6)",
+    "pack_id": "554901",
+    "reason": "Check if OP10-108_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP10-003",
+    "generated_id": "OP10-003_p1",
+    "rank": 1,
+    "name": "シュガー(パラレル)(BASE SHOPリミテッドカードコレクションvol.1)",
+    "pack_id": "554901",
+    "reason": "Check if OP10-003_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP10-042",
+    "generated_id": "OP10-042_p1",
+    "rank": 1,
+    "name": "ウソップ(パラレル)(プレイマットリミテッドエディション vol.3)",
+    "pack_id": "554901",
+    "reason": "Check if OP10-042_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP10-042",
+    "generated_id": "OP10-042_p1",
+    "rank": 1,
+    "name": "ウソップ(パラレル)(BASE SHOPリミテッドカードコレクションvol.1)",
+    "pack_id": "554901",
+    "reason": "Check if OP10-042_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST21-014",
+    "generated_id": "ST21-014_p1",
+    "rank": 1,
+    "name": "モンキー・D・ルフィ(パラレル)(ONE PIECE magazine)",
+    "pack_id": "554901",
+    "reason": "Check if ST21-014_p1 exists in 554901.json"
+  },
+  {
     "base_id": "ST21-003",
     "generated_id": "ST21-003",
     "rank": 0,
@@ -4310,6 +5174,54 @@
     "name": "サンジ(ラメフォイル)",
     "pack_id": "554302",
     "reason": "Check if ST21-003 exists in 554302.json"
+  },
+  {
+    "base_id": "ST21-003",
+    "generated_id": "ST21-003_p1",
+    "rank": 1,
+    "name": "サンジ(パラレル)(プレミアムカードコレクション ベストセレクション vol.6)",
+    "pack_id": "554901",
+    "reason": "Check if ST21-003_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST21-017",
+    "generated_id": "ST21-017_p1",
+    "rank": 1,
+    "name": "ゴムゴムのモグラ銃(パラレル)(プレミアムカードコレクション ベストセレクションvol.5)",
+    "pack_id": "554901",
+    "reason": "Check if ST21-017_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "ST21-001",
+    "generated_id": "ST21-001_p1",
+    "rank": 1,
+    "name": "モンキー・D・ルフィ(パラレル)(BASE SHOPリミテッドカードコレクションvol.1)",
+    "pack_id": "554901",
+    "reason": "Check if ST21-001_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "EB02-041",
+    "generated_id": "EB02-041_p1",
+    "rank": 1,
+    "name": "ゴーイング・メリー号(パラレル)(プレミアムカードコレクション ベストセレクションvol.5)",
+    "pack_id": "554901",
+    "reason": "Check if EB02-041_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "EB02-010",
+    "generated_id": "EB02-010",
+    "rank": 0,
+    "name": "モンキー・D・ルフィ(オフィシャルプレイマット リミテッドエディション vol.5)",
+    "pack_id": "554901",
+    "reason": "Check if EB02-010 exists in 554901.json"
+  },
+  {
+    "base_id": "EB02-010",
+    "generated_id": "EB02-010",
+    "rank": 0,
+    "name": "モンキー・D・ルフィ(サウンドローダー)",
+    "pack_id": "554901",
+    "reason": "Check if EB02-010 exists in 554901.json"
   },
   {
     "base_id": "P-063",
@@ -4488,14 +5400,6 @@
     "reason": "Check if P-078 exists in 554302.json"
   },
   {
-    "base_id": "P-078",
-    "generated_id": "P-078",
-    "rank": 0,
-    "name": "アディオ",
-    "pack_id": "554901",
-    "reason": "Check if P-078 exists in 554901.json"
-  },
-  {
     "base_id": "P-079",
     "generated_id": "P-079",
     "rank": 0,
@@ -4510,14 +5414,6 @@
     "name": "リム(ラメフォイル)",
     "pack_id": "554302",
     "reason": "Check if P-079 exists in 554302.json"
-  },
-  {
-    "base_id": "P-079",
-    "generated_id": "P-079",
-    "rank": 0,
-    "name": "リム",
-    "pack_id": "554901",
-    "reason": "Check if P-079 exists in 554901.json"
   },
   {
     "base_id": "P-081",
@@ -4536,14 +5432,6 @@
     "reason": "Check if P-081 exists in 554302.json"
   },
   {
-    "base_id": "P-081",
-    "generated_id": "P-081",
-    "rank": 0,
-    "name": "ジュラキュール・ミホーク",
-    "pack_id": "554901",
-    "reason": "Check if P-081 exists in 554901.json"
-  },
-  {
     "base_id": "P-082",
     "generated_id": "P-082",
     "rank": 0,
@@ -4558,14 +5446,6 @@
     "name": "クロコダイル(ラメフォイル)",
     "pack_id": "554302",
     "reason": "Check if P-082 exists in 554302.json"
-  },
-  {
-    "base_id": "P-082",
-    "generated_id": "P-082",
-    "rank": 0,
-    "name": "クロコダイル",
-    "pack_id": "554901",
-    "reason": "Check if P-082 exists in 554901.json"
   },
   {
     "base_id": "P-083",
@@ -4608,12 +5488,196 @@
     "reason": "Check if P-088 exists in 554302.json"
   },
   {
+    "base_id": "OP11-054",
+    "generated_id": "OP11-054_p1",
+    "rank": 1,
+    "name": "ナミ(パラレル)(3rd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP11-054_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP11-067",
+    "generated_id": "OP11-067_p1",
+    "rank": 1,
+    "name": "シャーロット・カタクリ(パラレル)(3rd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP11-067_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP11-073",
+    "generated_id": "OP11-073_p1",
+    "rank": 1,
+    "name": "シャーロット・リンリン(パラレル)(プレミアムカードコレクション6 assort vol.1)",
+    "pack_id": "554901",
+    "reason": "Check if OP11-073_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP11-060",
+    "generated_id": "OP11-060_p1",
+    "rank": 1,
+    "name": "式をブッ壊そう!!!(パラレル)(プレミアムカードコレクション ベストセレクションvol.5)",
+    "pack_id": "554901",
+    "reason": "Check if OP11-060_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP11-041",
+    "generated_id": "OP11-041",
+    "rank": 0,
+    "name": "ナミ(オフィシャルプレイマット&カードセット -Whole Cake Island Arc-)",
+    "pack_id": "554901",
+    "reason": "Check if OP11-041 exists in 554901.json"
+  },
+  {
+    "base_id": "ST22-003",
+    "generated_id": "ST22-003_p1",
+    "rank": 1,
+    "name": "エドワード・ニューゲート(パラレル)(プレミアムカードコレクション6 assort vol.1)",
+    "pack_id": "554901",
+    "reason": "Check if ST22-003_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP12-119",
+    "generated_id": "OP12-119_p1",
+    "rank": 1,
+    "name": "バーソロミュー・くま(パラレル)(3rd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP12-119_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP12-034",
+    "generated_id": "OP12-034_p1",
+    "rank": 1,
+    "name": "ペローナ(パラレル)(3rd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP12-034_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP12-094",
+    "generated_id": "OP12-094_p1",
+    "rank": 1,
+    "name": "モンキー・Ｄ・ドラゴン(パラレル)(3rd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP12-094_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP12-006",
+    "generated_id": "OP12-006_p1",
+    "rank": 1,
+    "name": "シャクヤク(パラレル)(プレミアムカードコレクション ベストセレクションvol.5)",
+    "pack_id": "554901",
+    "reason": "Check if OP12-006_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP12-018",
+    "generated_id": "OP12-018_p1",
+    "rank": 1,
+    "name": "見聞色の覇気(パラレル)(プレミアムカードコレクション6 assort vol.1)",
+    "pack_id": "554901",
+    "reason": "Check if OP12-018_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP12-039",
+    "generated_id": "OP12-039_p1",
+    "rank": 1,
+    "name": "ルフィは海賊王になる男だ!!!(パラレル)(3rd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP12-039_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP12-079",
+    "generated_id": "OP12-079_p1",
+    "rank": 1,
+    "name": "ルフィは“海賊王”になる男だ!!!(パラレル)(3rd ANNIVERSARY SET)",
+    "pack_id": "554901",
+    "reason": "Check if OP12-079_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP12-026",
+    "generated_id": "OP12-026_p1",
+    "rank": 1,
+    "name": "くいな(パラレル)(プレミアムカードコレクション ベストセレクションvol.5)",
+    "pack_id": "554901",
+    "reason": "Check if OP12-026_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP12-051",
+    "generated_id": "OP12-051_p1",
+    "rank": 1,
+    "name": "ヒナ(パラレル)(プレミアムカードコレクション ベストセレクションvol.5)",
+    "pack_id": "554901",
+    "reason": "Check if OP12-051_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP12-098",
+    "generated_id": "OP12-098_p1",
+    "rank": 1,
+    "name": "夢打撃処裏拳(パラレル)(プレミアムカードコレクション ベストセレクションvol.5)",
+    "pack_id": "554901",
+    "reason": "Check if OP12-098_p1 exists in 554901.json"
+  },
+  {
     "base_id": "P-084",
     "generated_id": "P-084",
     "rank": 0,
     "name": "バギー(ホロなし)",
     "pack_id": "554025",
     "reason": "Check if P-084 exists in 554025.json"
+  },
+  {
+    "base_id": "OP13-012",
+    "generated_id": "OP13-012",
+    "rank": 0,
+    "name": "ネフェルタリ・ビビ(オフィシャルプレイマット ネフェルタリ・ビビ)",
+    "pack_id": "554901",
+    "reason": "Check if OP13-012 exists in 554901.json"
+  },
+  {
+    "base_id": "OP13-037",
+    "generated_id": "OP13-037_p1",
+    "rank": 1,
+    "name": "ロロノア・ゾロ(パラレル)(プレミアムカードコレクション ベストセレクション vol.6)",
+    "pack_id": "554901",
+    "reason": "Check if OP13-037_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP13-043",
+    "generated_id": "OP13-043_p1",
+    "rank": 1,
+    "name": "お玉(パラレル)(プレミアムカードコレクション ベストセレクション vol.6)",
+    "pack_id": "554901",
+    "reason": "Check if OP13-043_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP13-072",
+    "generated_id": "OP13-072_p1",
+    "rank": 1,
+    "name": "バギー(パラレル)(プレミアムカードコレクション ベストセレクション vol.6)",
+    "pack_id": "554901",
+    "reason": "Check if OP13-072_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP13-063",
+    "generated_id": "OP13-063_p1",
+    "rank": 1,
+    "name": "光月おでん(パラレル)(プレミアムカードコレクション ベストセレクションvol.5)",
+    "pack_id": "554901",
+    "reason": "Check if OP13-063_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP13-086",
+    "generated_id": "OP13-086_p1",
+    "rank": 1,
+    "name": "シャルリア宮(パラレル)(プレミアムカードコレクション ベストセレクションvol.5)",
+    "pack_id": "554901",
+    "reason": "Check if OP13-086_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP13-092",
+    "generated_id": "OP13-092_p1",
+    "rank": 1,
+    "name": "ミョスガルド聖(パラレル)(プレミアムカードコレクション ベストセレクション vol.6)",
+    "pack_id": "554901",
+    "reason": "Check if OP13-092_p1 exists in 554901.json"
   },
   {
     "base_id": "OP13-001",
@@ -4624,20 +5688,60 @@
     "reason": "Check if OP13-001_p1 exists in 554113.json"
   },
   {
-    "base_id": "P-011",
-    "generated_id": "P-011_p1",
+    "base_id": "OP13-001",
+    "generated_id": "OP13-001_p1",
     "rank": 1,
-    "name": "ウタ(パラレル)",
+    "name": "モンキー・Ｄ・ルフィ(パラレル)(一番くじ ONE PIECE CARD GAME 購入者特典)",
     "pack_id": "554901",
-    "reason": "Check if P-011_p1 exists in 554901.json"
+    "reason": "Check if OP13-001_p1 exists in 554901.json"
   },
   {
-    "base_id": "P-001",
-    "generated_id": "P-001_p1",
+    "base_id": "OP14-014",
+    "generated_id": "OP14-014_p1",
     "rank": 1,
-    "name": "モンキー・D・ルフィ(パラレル)(25周年エディション)",
+    "name": "ユースタス・キッド(パラレル)(プレミアムカードコレクション ベストセレクション vol.6)",
     "pack_id": "554901",
-    "reason": "Check if P-001_p1 exists in 554901.json"
+    "reason": "Check if OP14-014_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP14-037",
+    "generated_id": "OP14-037_p1",
+    "rank": 1,
+    "name": "ヒマつぶし(パラレル)(プレミアムカードコレクション ベストセレクション vol.6)",
+    "pack_id": "554901",
+    "reason": "Check if OP14-037_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP14-099",
+    "generated_id": "OP14-099_p1",
+    "rank": 1,
+    "name": "不服か？(パラレル)(プレミアムカードコレクション ベストセレクション vol.6)",
+    "pack_id": "554901",
+    "reason": "Check if OP14-099_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "EB04-028",
+    "generated_id": "EB04-028_p1",
+    "rank": 1,
+    "name": "アイスタイム(パラレル)(プレミアムカードコレクション ベストセレクション vol.6)",
+    "pack_id": "554901",
+    "reason": "Check if EB04-028_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP15-108",
+    "generated_id": "OP15-108_p1",
+    "rank": 1,
+    "name": "ナミ(パラレル)(プレミアムカードコレクション ベストセレクション vol.6)",
+    "pack_id": "554901",
+    "reason": "Check if OP15-108_p1 exists in 554901.json"
+  },
+  {
+    "base_id": "OP15-075",
+    "generated_id": "OP15-075_p1",
+    "rank": 1,
+    "name": "神の裁き(パラレル)(プレミアムカードコレクション ベストセレクション vol.6)",
+    "pack_id": "554901",
+    "reason": "Check if OP15-075_p1 exists in 554901.json"
   },
   {
     "base_id": "P-001",
@@ -4648,156 +5752,12 @@
     "reason": "Check if P-001_p1 exists in 554901.json"
   },
   {
-    "base_id": "P-001",
-    "generated_id": "P-001_p1",
-    "rank": 1,
-    "name": "モンキー・D・ルフィ(パラレル)(セブンイレブン)",
-    "pack_id": "554901",
-    "reason": "Check if P-001_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-001",
-    "generated_id": "P-001_p1",
-    "rank": 1,
-    "name": "モンキー・D・ルフィ(パラレル)(BANDAI CARD GAMES Fest 23-24 Edition)",
-    "pack_id": "554901",
-    "reason": "Check if P-001_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-016",
-    "generated_id": "P-016_p1",
-    "rank": 1,
-    "name": "シャンクス(パラレル)(ONE PIECE FILM RED入場者プレゼント)",
-    "pack_id": "554901",
-    "reason": "Check if P-016_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-016",
-    "generated_id": "P-016_p1",
-    "rank": 1,
-    "name": "シャンクス(パラレル)(プレミアムカードコレクション)",
-    "pack_id": "554901",
-    "reason": "Check if P-016_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-022",
-    "generated_id": "P-022_p1",
-    "rank": 1,
-    "name": "モンキー・D・ルフィ(パラレル)(ONE PIECE FILM RED入場者プレゼント)",
-    "pack_id": "554901",
-    "reason": "Check if P-022_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-022",
-    "generated_id": "P-022_p1",
-    "rank": 1,
-    "name": "モンキー・D・ルフィ(パラレル)(プレミアムカードコレクション)",
-    "pack_id": "554901",
-    "reason": "Check if P-022_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-030",
-    "generated_id": "P-030_p1",
-    "rank": 1,
-    "name": "ジンベエ(パラレル)(プロモーションパック2022 Vol.2)",
-    "pack_id": "554901",
-    "reason": "Check if P-030_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-030",
-    "generated_id": "P-030_p1",
-    "rank": 1,
-    "name": "ジンベエ(パラレル)(BANDAI CARD GAMES Fest 23-24 Edition)",
-    "pack_id": "554901",
-    "reason": "Check if P-030_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-031",
-    "generated_id": "P-031_p1",
-    "rank": 1,
-    "name": "ウタ(パラレル)",
-    "pack_id": "554901",
-    "reason": "Check if P-031_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-047",
-    "generated_id": "P-047_p1",
-    "rank": 1,
-    "name": "モンキー・D・ルフィ(パラレル)(Live Action Edition)",
-    "pack_id": "554901",
-    "reason": "Check if P-047_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-048",
-    "generated_id": "P-048_p1",
-    "rank": 1,
-    "name": "アーロン(パラレル)(Live Action Edition)",
-    "pack_id": "554901",
-    "reason": "Check if P-048_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-049",
-    "generated_id": "P-049_p1",
-    "rank": 1,
-    "name": "ウソップ(パラレル)(Live Action Edition)",
-    "pack_id": "554901",
-    "reason": "Check if P-049_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-050",
-    "generated_id": "P-050_p1",
-    "rank": 1,
-    "name": "サンジ(パラレル)(Live Action Edition)",
-    "pack_id": "554901",
-    "reason": "Check if P-050_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-051",
-    "generated_id": "P-051_p1",
-    "rank": 1,
-    "name": "シャンクス(パラレル)(Live Action Edition)",
-    "pack_id": "554901",
-    "reason": "Check if P-051_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-052",
-    "generated_id": "P-052_p1",
-    "rank": 1,
-    "name": "ジュラキュール・ミホーク(パラレル)(Live Action Edition)",
-    "pack_id": "554901",
-    "reason": "Check if P-052_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-056",
-    "generated_id": "P-056_p1",
-    "rank": 1,
-    "name": "ロロノア・ゾロ(パラレル)(Live Action Edition)",
-    "pack_id": "554901",
-    "reason": "Check if P-056_p1 exists in 554901.json"
-  },
-  {
     "base_id": "P-096",
     "generated_id": "P-096",
     "rank": 0,
     "name": "少女(ONE PIECE FAN LETTER付録)",
     "pack_id": "554901",
     "reason": "Check if P-096 exists in 554901.json"
-  },
-  {
-    "base_id": "P-080",
-    "generated_id": "P-080_p1",
-    "rank": 1,
-    "name": "モンキー・D・ルフィ(パラレル)(BANDAI CARD GAMES Fest 24-25 World Tour)",
-    "pack_id": "554901",
-    "reason": "Check if P-080_p1 exists in 554901.json"
-  },
-  {
-    "base_id": "P-080",
-    "generated_id": "P-080_p1",
-    "rank": 1,
-    "name": "モンキー・D・ルフィ(パラレル)(モスバーガータイアップキャンペーン)",
-    "pack_id": "554901",
-    "reason": "Check if P-080_p1 exists in 554901.json"
   },
   {
     "base_id": "P-111",
