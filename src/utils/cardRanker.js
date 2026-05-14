@@ -1,3 +1,5 @@
+import { parseEffect } from "../components/practice/engine/effectParser";
+
 export const POWER_BASELINE = {
   1: 2000,
   2: 3000,
@@ -11,180 +13,122 @@ export const POWER_BASELINE = {
   10: 11000,
 };
 
-export const EFFECT_KEYWORDS = [
-  // For ability keywords (速攻, 防禦, 雙重攻擊, 消失, 防禦不可) only score when the
-  // keyword appears as the card's own ability: 【KEYWORD】 at the start of a line,
-  // after another 】, or preceded by 獲得.  Any other occurrence (e.g. 無法發動【防禦】)
-  // is a reference to an opponent's ability and must not score.
-  { pattern: /(?:^|】|獲得)【雙重攻擊/, score: 3.0, label: "雙重攻擊" },
-  { pattern: /使最多.*?張.*?角色卡登場/, score: 3.0, label: "登場" },
-  {
-    pattern: /使最多.*?張自己.*?角色卡，以休息狀態登場/,
-    score: 2.5,
-    label: "休息狀態登場",
-  },
-  { pattern: /(?:^|】|獲得)【速攻/, score: 3.0, label: "速攻" },
-  { pattern: /KO最多.*?張/, score: 3.0, label: "KO", quantify: /最多(\d+)張/ },
-  { pattern: /KO全數/, score: 4.0, label: "KO全數" },
-  { pattern: /造成對手.*?傷害/, score: 3.0, label: "對手受傷" },
-  { pattern: /(?:^|】|獲得)【防禦不可/, score: 2.5, label: "防禦不可" },
-  { pattern: /(?:^|】|獲得)【防禦(?!不可)/, score: 2.5, label: "防禦" },
-  { pattern: /角色卡放置在持有者的卡組下面/, score: 2.5, label: "放回卡組底" },
-  {
-    pattern: /將最多.*?張.*?角色卡放回.*?手牌/,
-    score: 2.0,
-    label: "彈回手牌",
-    quantify: /最多(\d+)張/,
-  },
-  { pattern: /無法進行攻擊/, score: 2.0, label: "無法進行攻擊" },
-  { pattern: /無法為活動狀態/, score: 2.0, label: "無法為活動狀態" },
-  { pattern: /(?:^|】|獲得)【消失/, score: 2.0, label: "消失" },
-  {
-    pattern: /可以攻擊對手活動狀態的角色卡/,
-    score: 2.0,
-    label: "攻擊對手活動狀態",
-  },
-  { pattern: /抽.*?張卡片/, score: 2.0, label: "抽卡", quantify: /(\d+)張/ },
-  { pattern: /不會因對手的效果而離開場上/, score: 2.0, label: "效果保護" },
-  { pattern: /力量值減至/, score: 2.0, label: "力量值減至" },
-  { pattern: /加入生命值區上面/, score: 2.0, label: "加入生命值" },
-  { pattern: /效果無效/, score: 2.0, label: "效果無效" },
-  // 力量值+ / 力量值- are scored context-awarely in CONTEXT_AWARE_KEYWORDS, not here
-  { pattern: /原本的力量值變更成/, score: 1.5, label: "原本力量值變更" },
-  { pattern: /附加.*?咚/, score: 1.5, label: "附加咚卡" },
-  {
-    pattern: /從咚‼卡組追加最多.*?張/,
-    score: 1.5,
-    label: "追加咚卡",
-    quantify: /最多(\d+)張/,
-  },
-  {
-    pattern: /因對手的效果即將離開場上時，可以替換成/,
-    score: 1.5,
-    label: "替換保護",
-  },
-  {
-    pattern: /可以替換成將這張角色卡置為休息狀態/,
-    score: 1.5,
-    label: "替換成休息狀態",
-  },
-  { pattern: /查看/, score: 1.0, label: "查看" },
-  { pattern: /加入手牌/, score: 1.0, label: "加入手牌" },
-  { pattern: /置為活動狀態/, score: 1.0, label: "置為活動狀態" },
-
-  { pattern: /放到卡組下面/, score: 0.5, label: "放到卡組底" },
-  { pattern: /放回咚‼卡組時/, score: 0.5, label: "放回咚卡組" },
-];
-
 // Thresholds are per-Don (score / cost), so they represent value efficiency
 export const TIER_THRESHOLDS = { S: 3.0, A: 1.8, B: 1.0 };
 
-// Keywords whose value depends on whether the target is the opponent or the player's own card.
-// opponentScore: effect targets opponent (好); selfScore: targets own card (壞 or neutral);
-// ambiguousScore: no clear ownership marker in the line.
-export const CONTEXT_AWARE_KEYWORDS = [
-  {
-    pattern: /力量值[-－]\d*/,
-    quantify: /[-－](\d+)/,
-    quantifyDivisor: 1000,
-    opponentScore: 1.5,
-    selfScore: -1.5,
-    ambiguousScore: 0.5,
-    opponentLabel: "力量值-（對手）",
-    selfLabel: "力量值-（自己）",
-    ambiguousLabel: "力量值-",
-  },
-  {
-    pattern: /力量值[+＋]\d*/,
-    quantify: /[+＋](\d+)/,
-    quantifyDivisor: 1000,
-    opponentScore: -0.5,
-    selfScore: 1.5,
-    ambiguousScore: 1.5,
-    opponentLabel: "力量值+（對手）",
-    selfLabel: "力量值+（自己）",
-    ambiguousLabel: "力量值+",
-  },
-  {
-    pattern: /置為休息狀態/,
-    opponentScore: 2.0,
-    selfScore: -1.0,
-    ambiguousScore: 1.5,
-    opponentLabel: "置為休息狀態（對手）",
-    selfLabel: "置為休息狀態（自己）",
-    ambiguousLabel: "置為休息狀態",
-  },
-  {
-    pattern: /放置在廢棄區/,
-    opponentScore: 1.5,
-    selfScore: -1.5,
-    ambiguousScore: 0.5,
-    opponentLabel: "放置在廢棄區（對手）",
-    selfLabel: "放置在廢棄區（自己）",
-    ambiguousLabel: "放置在廢棄區",
-  },
-  {
-    pattern: /費用[+＋]\d*/,
-    quantify: /[+＋](\d+)/,
-    opponentScore: 1.5,
-    selfScore: -1.5,
-    ambiguousScore: 0.5,
-    opponentLabel: "費用+（對手）",
-    selfLabel: "費用+（自己）",
-    ambiguousLabel: "費用+",
-  },
-  {
-    pattern: /費用[-－]\d*/,
-    quantify: /[-－](\d+)/,
-    opponentScore: -1.0,
-    selfScore: 1.0,
-    ambiguousScore: 0.5,
-    opponentLabel: "費用-（對手）",
-    selfLabel: "費用-（自己）",
-    ambiguousLabel: "費用-",
-  },
-  {
-    pattern: /廢棄.*?張/,
-    quantify: /(\d+)張/,
-    opponentScore: 1.5,
-    selfScore: -1.5,
-    ambiguousScore: 0.5,
-    opponentLabel: "廢棄（對手）",
-    selfLabel: "廢棄（自己）",
-    ambiguousLabel: "廢棄",
-  },
-  {
-    pattern: /無法置為休息狀態/,
-    opponentScore: -1.0,
-    selfScore: 1.5,
-    ambiguousScore: 1.5,
-    opponentLabel: "無法置為休息狀態（對手）",
-    selfLabel: "無法置為休息狀態（自己）",
-    ambiguousLabel: "無法置為休息狀態",
-  },
-];
-
-// Extracts a numeric multiplier from a matched string.
-// quantify: regex with one capture group for the number.
-// divisor: normalise units (e.g. 1000 for power values so +2000 → 2).
-// Returns 1 (neutral) when no number is found.
-const getQuantifier = (matchedStr, quantify, divisor = 1) => {
-  if (!quantify) return 1;
-  const m = matchedStr.match(quantify);
-  if (!m) return 1;
-  const n = parseInt(m[1], 10);
-  return isNaN(n) ? 1 : n / divisor;
+const PASSIVE_KEYWORD_SCORES = {
+  速攻: 3.0,
+  雙重攻擊: 3.0,
+  防禦: 2.5,
+  防禦不可: 2.5,
+  消失: 2.0,
 };
 
-// Keywords that appear BEFORE ： as an activation cost — penalise them
-const ACTIVATION_COST_PENALTIES = [
-  { pattern: /廢棄/, penalty: 1.5 },
-  { pattern: /放置在廢棄區/, penalty: 1.5 },
-  { pattern: /咚.*?-(\d+)/, penalty: 1.5 },
-  { pattern: /咚!!-1/, penalty: 1.0 },
-  { pattern: /可將這張角色卡置為休息狀態/, penalty: 1.0 },
-  { pattern: /可以公開/, penalty: 1.0 },
-];
+// Maps effectParser action types to a score function (action, owner) => number.
+// owner: 'self' | 'opponent' | null (from action.filter?.owner)
+// Unlisted action types fall back to 0.5.
+const ACTION_SCORES = {
+  DRAW: (a) => 2.0 * (a.count ?? 1),
+  SEARCH: (a) => 2.0 + 0.5 * (a.takeCount ?? 1),
+  KO: (a) => 2.5 + 0.5 * Math.max(0, (a.count ?? 1) - 1),
+  DEPLOY: () => 3.0,
+  SELF_DEPLOY: () => 2.0,
+  SELF_DEPLOY_FROM_TRASH: () => 2.5,
+  CONDITIONAL_DEPLOY: () => 2.0,
+  DISCARD: (a, owner) =>
+    owner === "opponent" ? 1.5 * (a.count ?? 1) : -1.5 * (a.count ?? 1),
+  DISCARD_FREE: (a, owner) => (owner === "opponent" ? 2.0 : -0.5),
+  DISCARD_FIELD_CHAR: (a, owner) => (owner === "opponent" ? 2.0 : -1.0),
+  DISCARD_EQUAL_TO_DRAW: () => -0.5,
+  POWER_MOD: (a, owner) => {
+    const raw = Math.abs((a.amount ?? 1000) / 1000);
+    if (owner === "opponent")
+      return (a.amount ?? 0) < 0 ? raw * 1.0 : -raw * 0.5;
+    return (a.amount ?? 0) > 0 ? raw * 1.0 : -raw * 1.0;
+  },
+  SET_BASE_POWER: () => 1.5,
+  COPY_POWER_FROM_TARGET: () => 1.5,
+  REST: (a, owner) => (owner === "opponent" ? 2.0 : -1.0),
+  UNREST: (a, owner) => (owner === "self" ? 1.5 : -0.5),
+  UNREST_DON: () => 1.0,
+  GRANT_KEYWORD: (a) => PASSIVE_KEYWORD_SCORES[a.keyword] ?? 1.0,
+  DEAL_DAMAGE: (a) => 2.0 * (a.count ?? 1),
+  BLOCK_EFFECT: () => 2.0,
+  NULL_EFFECT: () => 2.0,
+  ATTACK_LOCK: (a, owner) => (owner === "opponent" ? 1.5 : -1.0),
+  PREVENT_REST: (a, owner) => (owner === "self" ? 1.5 : -1.0),
+  REFRESH_LOCK: (a, owner) => (owner === "opponent" ? 1.5 : -1.0),
+  BLOCK_DEPLOY: () => 2.0,
+  BLOCK_LIFE_TO_HAND: () => 1.5,
+  HAND_PLAY_LOCK: (a, owner) => (owner === "opponent" ? 2.0 : -1.5),
+  DRAW_LOCK: (a, owner) => (owner === "opponent" ? 1.5 : -1.0),
+  COST_MOD: (a, owner) => (owner === "opponent" ? 1.5 : -0.5),
+  HAND_COST_MOD: () => 1.0,
+  ATTACH_DON: (a) => 1.0 * (a.count ?? 1),
+  ADD_DON_FROM_DECK: (a) => 1.0 * (a.count ?? 1),
+  OPPONENT_DON_RETURN: (a) => 1.5 * (a.count ?? 1),
+  ADD_TO_HAND: (a) => 2.0 * (a.count ?? 1),
+  ADD_TO_LIFE: () => 2.0,
+  LIFE_TO_HAND: () => 1.0,
+  HAND_TO_DECK: (a, owner) => (owner === "opponent" ? 1.5 : -0.5),
+  HAND_TO_LIFE: () => 1.5,
+  DECK_TO_TRASH: () => 0.5,
+  FIELD_TO_LIFE: () => 1.0,
+  TRASH_TO_LIFE_OR_FIELD: () => 1.5,
+  FREE_EVENT: () => 2.5,
+  FLIP_LIFE_FACE_UP: () => 1.0,
+  LOOK_ARRANGE_LIFE: () => 1.0,
+  REVEAL_LIFE: () => 0.5,
+  OPPONENT_HAND_TO_DECK: () => 2.0,
+  REDIRECT_ATTACK_TARGET: () => 1.5,
+  INDESTRUCTIBLE_IN_BATTLE: () => 2.0,
+  INDESTRUCTIBLE_BY_EFFECT: () => 2.0,
+  FIRE_MAIN_EFFECT: () => 1.5,
+  SELECT_TARGET: () => 0.5,
+};
+
+function scoreEffectFromParsed(clauses) {
+  let total = 0;
+  const matchedKeywords = [];
+
+  for (const clause of clauses) {
+    // Effects that only fire when life is hit or the card attacks are worth less
+    // when evaluating the value of playing the card from hand.
+    let timingMult = 1.0;
+    if (clause.activated?.includes("反擊"))
+      timingMult = 0.1; // counter-step only, never played from hand
+    else if (clause.timings?.includes("觸發器")) timingMult = 0.5;
+    else if (clause.timings?.includes("攻擊時")) timingMult = 0.8;
+    else if (clause.timings?.includes("對方攻擊時")) timingMult = 0.7;
+
+    // Activation costs reduce the net value of the clause.
+    let activationPenalty = 0;
+    if (clause.donReturn) activationPenalty += 0.5 * clause.donReturn;
+    if (clause.donGate) activationPenalty += 0.2 * clause.donGate;
+    if (clause.oncePerTurn) activationPenalty += 0.2;
+    if (clause.condition) activationPenalty += 0.3;
+
+    let clauseScore = 0;
+
+    for (const action of clause.actions ?? []) {
+      const owner = action.filter?.owner ?? null;
+      const scorer = ACTION_SCORES[action.type];
+      const base = scorer ? scorer(action, owner) : 0.5;
+      if (base > 0) matchedKeywords.push(action.type);
+      clauseScore += base;
+    }
+
+    // Passive keywords are on the clause itself, not inside actions.
+    for (const kw of clause.passive ?? []) {
+      clauseScore += PASSIVE_KEYWORD_SCORES[kw] ?? 1.0;
+      matchedKeywords.push(kw);
+    }
+
+    total += (clauseScore - activationPenalty) * timingMult;
+  }
+
+  return { effectScore: total, matchedKeywords };
+}
 
 export function scoreCard(card) {
   const breakdown = {
@@ -206,98 +150,26 @@ export function scoreCard(card) {
     else if (card.counter === 1000) breakdown.counter = 0;
     else breakdown.counter = 1.0;
   } else {
-    breakdown.counter = (card.counter || 0) / 1000;
+    breakdown.counter = 0; // counter value is spent at the counter step, irrelevant to main-phase play
   }
-
-  const scoreText = (text, multiplier = 1) => {
-    for (const kw of EFFECT_KEYWORDS) {
-      const matches = text.match(new RegExp(kw.pattern.source, "g"));
-      if (!matches) continue;
-      if (!breakdown.matchedKeywords.includes(kw.label))
-        breakdown.matchedKeywords.push(kw.label);
-      let total = 0;
-      for (const m of matches)
-        total += kw.score * getQuantifier(m, kw.quantify);
-      breakdown.effect += total * multiplier;
-    }
-  };
-
-  // Strip remaining HTML tags, parenthetical notes, and normalise seeker pattern.
-  const cleanLine = (text) =>
-    text
-      .replace(/<[^>]+>/g, "")
-      .replace(/[（(][^（(）)]*[）)]/g, "")
-      .replace(
-        /查看[\d零一二三四五六七八九十]*張卡片[\s\S]*?加入手牌[\s\S]*?放到卡組下面[^。]*/g,
-        "加入手牌",
-      );
-
-  // Score one line: anything before ： is activation cost, anything after is the effect.
-  const scoreLine = (line, multiplier = 1) => {
-    const text = cleanLine(line);
-    if (!text.trim()) return;
-    const colonIdx = text.search(/[：:]/);
-    const costText = colonIdx !== -1 ? text.slice(0, colonIdx) : "";
-    const mainText = colonIdx !== -1 ? text.slice(colonIdx + 1) : text;
-
-    scoreText(mainText, multiplier);
-
-    // Context-aware keywords: value depends on whether the target is opponent or own card.
-    const isOpponent = /對手|對方/.test(mainText);
-    const isSelf = /自己|這張/.test(mainText);
-
-    for (const kw of CONTEXT_AWARE_KEYWORDS) {
-      const matches = mainText.match(new RegExp(kw.pattern.source, "g"));
-      if (!matches) continue;
-      const pts = isOpponent
-        ? kw.opponentScore
-        : isSelf
-          ? kw.selfScore
-          : kw.ambiguousScore;
-      const label = isOpponent
-        ? kw.opponentLabel
-        : isSelf
-          ? kw.selfLabel
-          : kw.ambiguousLabel;
-      let total = 0;
-      for (const m of matches)
-        total += pts * getQuantifier(m, kw.quantify, kw.quantifyDivisor);
-      breakdown.effect += total * multiplier;
-      if (!breakdown.matchedKeywords.includes(label))
-        breakdown.matchedKeywords.push(label);
-    }
-
-    for (const { pattern, penalty } of ACTIVATION_COST_PENALTIES) {
-      const matches = costText.match(new RegExp(pattern.source, "g"));
-      if (matches) breakdown.effect -= penalty * matches.length * multiplier;
-    }
-  };
-
-  const scoreEffect = (html) => {
-    if (card.category === "Event" || card.category === "事件") {
-      // For events, extract the 【主要】 section from plain text first,
-      // then score it as a single block (no line-split needed).
-      const plain = html.replace(/<[^>]+>/g, "");
-      const mainMatch = plain.match(/【主要】([\s\S]*?)(?=【反擊】|$)/);
-      if (mainMatch) scoreLine(mainMatch[1]);
-    } else {
-      // Split on <br> so each ability line is evaluated independently.
-      // A cost clause (text before ：) on line 2 must not swallow line 1's effects.
-      html.split(/<br\s*\/?>/i).forEach((line) => scoreLine(line));
-    }
-  };
 
   if (card.effect) {
-    scoreEffect(card.effect);
+    const clauses = parseEffect(card.effect);
+    const { effectScore, matchedKeywords } = scoreEffectFromParsed(clauses);
+    breakdown.effect = effectScore;
+    breakdown.matchedKeywords = matchedKeywords;
   }
-
-  // Trigger effects are ignored: they only activate when the card is in the life area
-  // and hit by an opponent's attack — not a benefit of playing the card from hand.
 
   const rawTotal = breakdown.power + breakdown.counter + breakdown.effect;
   // Normalise by cost so high-cost cards with many abilities don't dominate low-cost efficient cards.
   // Math.max(1, cost) guards against cost-0 stage cards.
-  const score = Math.round((rawTotal / Math.max(1, card.cost)) * 10) / 10;
+  // Events are one-shot (played once, sent to trash) while characters persist on the field —
+  // the 0.75× factor partially models that ongoing board presence.
+  const isEvent = card.category === "Event" || card.category === "事件";
+  const score =
+    Math.round(
+      (rawTotal / Math.max(1, card.cost)) * (isEvent ? 0.75 : 1.0) * 10,
+    ) / 10;
 
   let tier = "C";
   if (score >= TIER_THRESHOLDS.S) tier = "S";

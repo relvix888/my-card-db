@@ -32,7 +32,7 @@ export default function FieldCardSlot({
     );
   }
 
-  const { card, state: cardState, attachedDon, justDeployed } = fieldCard;
+  const { card, state: cardState, attachedDon, justDeployed, attackLocked, refreshLocked, restLocked, willBottomDeckAtEndOfTurn } = fieldCard;
   const isRested = cardState === 'rest';
   const imageUrl = getSafeImageUrl(card);
   const w = isSmall ? 'w-12' : 'w-14';
@@ -58,30 +58,23 @@ export default function FieldCardSlot({
       onMouseMove={e => setPreviewPos({ x: e.clientX, y: e.clientY })}
       onMouseLeave={() => setPreviewPos(null)}
     >
-      {/* DON!! cards peeking from the bottom edge — behind the main card */}
-      {attachedDon > 0 && (
-        <div
-          className="absolute bottom-0 left-0 right-0 flex justify-center"
-          style={{ zIndex: 0 }}
-        >
-          {Array.from({ length: attachedDon }).map((_, i) => (
-            <img
-              key={i}
-              src={DON_IMG}
-              alt="DON!!"
-              className="object-cover rounded-sm border border-teal-500"
-              style={{
-                width: isSmall ? '1.4rem' : '1.6rem',
-                height: isSmall ? '2rem' : '2.2rem',
-                marginLeft: i > 0 ? (isSmall ? '-16px' : '-18px') : 0,
-                zIndex: i,
-                marginBottom: isSmall ? '-12px' : '-14px',
-              }}
-              onError={e => { e.target.style.display = 'none'; }}
-            />
-          ))}
-        </div>
-      )}
+      {/* DON!! cards fanned behind right edge — each shows 15% of its width */}
+      {/* Card 0 has highest zIndex (topmost), so each successive card peeks past it */}
+      {attachedDon > 0 && Array.from({ length: attachedDon }).map((_, i) => (
+        <img
+          key={i}
+          src={DON_IMG}
+          alt="DON!!"
+          className="absolute top-0 rounded-sm border border-teal-500 object-cover"
+          style={{
+            width: isSmall ? '3rem' : '3.5rem',
+            height: isSmall ? '4rem' : '5rem',
+            left: `${(i + 1) * (isSmall ? 0.45 : 0.525)}rem`,
+            zIndex: attachedDon - i,
+          }}
+          onError={e => { e.target.style.display = 'none'; }}
+        />
+      ))}
 
       {/* Card image — sits on top of DON!! cards */}
       <div
@@ -91,7 +84,7 @@ export default function FieldCardSlot({
           transformOrigin: 'center center',
           transition: 'transform 0.2s ease',
           position: 'relative',
-          zIndex: 1,
+          zIndex: attachedDon + 2,
         }}
       >
         <img
@@ -103,6 +96,15 @@ export default function FieldCardSlot({
         {justDeployed && (
           <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center">
             <span className="text-[8px] font-black text-slate-300">Sick</span>
+          </div>
+        )}
+        {/* Status lock badges */}
+        {(attackLocked || refreshLocked || restLocked || willBottomDeckAtEndOfTurn) && (
+          <div className="absolute top-0.5 left-0.5 flex flex-col gap-0.5 z-10 pointer-events-none">
+            {attackLocked            && <span className="text-[7px] font-black px-0.5 py-px rounded bg-red-700/90    text-white leading-tight">NO ATK</span>}
+            {refreshLocked           && <span className="text-[7px] font-black px-0.5 py-px rounded bg-violet-700/90 text-white leading-tight">NO ↺</span>}
+            {restLocked              && <span className="text-[7px] font-black px-0.5 py-px rounded bg-orange-700/90 text-white leading-tight">NO REST</span>}
+            {willBottomDeckAtEndOfTurn && <span className="text-[7px] font-black px-0.5 py-px rounded bg-cyan-700/90   text-white leading-tight">↩ EOT</span>}
           </div>
         )}
         {/* Cost modifier badge */}

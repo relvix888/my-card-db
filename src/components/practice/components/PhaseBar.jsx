@@ -17,19 +17,7 @@ const PHASE_COLORS = {
   [PHASE.END]:     'bg-slate-700',
 };
 
-const ADVANCE_LABEL = {
-  [PHASE.REFRESH]: 'Refresh',
-  [PHASE.DRAW]:    'Draw Card',
-  [PHASE.DON]:     'Take DON!!',
-};
-
-const ADVANCE_ACTION = {
-  [PHASE.REFRESH]: 'REFRESH',
-  [PHASE.DRAW]:    'DRAW',
-  [PHASE.DON]:     'DON_PHASE',
-};
-
-export default function PhaseBar({ state, onEndTurn, onSkipBlock, onSkipCounter, onDispatch }) {
+export default function PhaseBar({ state, onEndTurn, onSkipBlock, onSkipCounter }) {
   const { phase, activePlayer, waitingFor, battle, turn } = state;
   const isYourTurn    = activePlayer === PLAYER.HUMAN;
   const isYourInput   = waitingFor   === PLAYER.HUMAN;
@@ -37,8 +25,6 @@ export default function PhaseBar({ state, onEndTurn, onSkipBlock, onSkipCounter,
   const inBattle      = !!battle;
   const inBlockStep   = inBattle && battle.step === BATTLE_STEP.BLOCK;
   const inCounterStep = inBattle && battle.step === BATTLE_STEP.COUNTER;
-  const isEarlyPhase  = phase === PHASE.REFRESH || phase === PHASE.DRAW || phase === PHASE.DON;
-
   return (
     <div className="flex items-center justify-between px-3 py-2 bg-slate-900 border-y border-slate-700 z-10">
       {/* Turn info */}
@@ -61,14 +47,6 @@ export default function PhaseBar({ state, onEndTurn, onSkipBlock, onSkipCounter,
 
       {/* Action buttons */}
       <div className="flex gap-2">
-        {isYourTurn && isYourInput && isEarlyPhase && (
-          <button
-            onClick={() => onDispatch({ type: ADVANCE_ACTION[phase] })}
-            className="px-4 py-1.5 text-xs font-black bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg active:scale-95 transition-all uppercase tracking-wide"
-          >
-            {ADVANCE_LABEL[phase]}
-          </button>
-        )}
         {isYourInput && inBlockStep && (
           <button
             onClick={onSkipBlock}

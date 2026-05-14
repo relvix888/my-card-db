@@ -7,7 +7,7 @@ export default function DonArea({ donDeck = [], isOpponent, onDonClick }) {
   return (
     <div className="flex flex-col items-center gap-0.5">
       <div
-        className="relative w-10 h-14"
+        className="relative w-14 h-20"
         title={`DON!! deck: ${donDeck.length} remaining`}
       >
         {/* Depth shadow cards */}
@@ -25,8 +25,8 @@ export default function DonArea({ donDeck = [], isOpponent, onDonClick }) {
           className="absolute inset-0 w-full h-full object-cover rounded-lg border border-teal-500 shadow"
           onError={e => { e.target.style.display = 'none'; }}
         />
-        <div className="absolute inset-0 flex items-end justify-center pb-1 rounded-lg bg-black/30">
-          <span className="text-white font-black text-xs drop-shadow">{donDeck.length}</span>
+        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/30">
+          <span className="bg-slate-900/70 text-white text-sm font-black px-1.5 py-0.5 rounded">{donDeck.length}</span>
         </div>
       </div>
       <span className="text-[7px] text-teal-600 font-bold uppercase tracking-wide">DON!!</span>

@@ -16,9 +16,9 @@ export default function AttackArrow({ battle }) {
 
       setCoords({
         x1: ar.left + ar.width / 2,
-        y1: ar.top,
+        y1: ar.top + ar.height / 2,
         x2: tr.left + tr.width / 2,
-        y2: tr.top + tr.height,
+        y2: tr.top + tr.height / 2,
       });
     }
 

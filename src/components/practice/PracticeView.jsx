@@ -1,24 +1,28 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { PHASE, BATTLE_STEP, PLAYER } from './engine/constants';
-import { gameReducer, createInitialState, calcPower, canAfford } from './engine/gameState';
+import { gameReducer, createInitialState, canAfford } from './engine/gameState';
 import { aiDecideBlock, aiDecideCounter, getAiTurnActions } from './engine/aiPlayer';
-import { hasBlocker, hasRush, hasActivatedMain, getActivatedMainStatus, evaluateContinuousKeywords } from './engine/effects';
+import { hasRush, hasActivatedMain, getActivatedMainStatus, evaluateContinuousKeywords, fcEffectiveHasBlocker } from './engine/effects';
 import { matchesFilter } from './engine/effectActions';
-import { getSafeImageUrl } from '../../utils/cardHelpers';
 import deckFinalData from '../../data/deck_final.json';
+import { useFlashQueue } from './hooks/useFlashQueue';
 
 import PlayerField    from './components/PlayerField';
 import HandArea       from './components/HandArea';
 import PhaseBar       from './components/PhaseBar';
 import BattleOverlay  from './components/BattleOverlay';
 import ActionMenu     from './components/ActionMenu';
-import TriggerModal   from './components/TriggerModal';
+import TriggerBar     from './components/TriggerModal';
+import DonReturnBar   from './components/DonReturnBar';
 import EffectModal    from './components/EffectModal';
 import GameLog        from './components/GameLog';
 import TrashModal     from './components/TrashModal';
 import AiDeckPicker   from './components/AiDeckPicker';
-import AttackArrow    from './components/AttackArrow';
-import StateSimulator from './components/StateSimulator';
+import AttackArrow       from './components/AttackArrow';
+import StateSimulator    from './components/StateSimulator';
+import CardFlashOverlay  from './components/CardFlashOverlay';
+import MulliganScreen    from './components/MulliganScreen';
+import PreGameAbilityScreen from './components/PreGameAbilityScreen';
 import { useDevToolsReducer } from './hooks/useDevToolsReducer';
 
 function parseDeckString(str) {
@@ -38,6 +42,7 @@ function rootReducer(state, action) {
 }
 
 const AI_ACTION_DELAY_MS = 700; // pause between AI actions for readability
+const AI_COUNTER_DELAY_MS = 1400; // longer delay so each counter card flash completes (flash lasts 1300ms)
 
 // ---------------------------------------------------------------------------
 // Expand deckList { id: count } into a flat Card[] using the card database
@@ -56,15 +61,15 @@ function expandDeck(deckList, allCards) {
 // Component
 // ---------------------------------------------------------------------------
 export default function PracticeView({ deckList, selectedLeader, cards, onClose }) {
-  const [logOpen, setLogOpen]         = useState(false);
-  const [trashView, setTrashView]     = useState(null); // null | 'human' | 'ai'
-  const [simOpen, setSimOpen]         = useState(false);
+  const [logOpen, setLogOpen]     = useState(false);
+  const [trashView, setTrashView] = useState(null); // null | 'human' | 'ai'
+  const [simOpen, setSimOpen]     = useState(false);
 
   // UI selection state
   const [selectedHandIndex, setSelectedHandIndex]     = useState(null);
   const [selectedFieldCard, setSelectedFieldCard]     = useState(null); // { zone, index }
   const [pendingAttackSrc, setPendingAttackSrc]       = useState(null); // { zone, index }
-  const [pendingDonTarget, setPendingDonTarget]       = useState(false);
+  const [pendingDonIds, setPendingDonIds]             = useState(new Set());
   const [selectedDonReturnIndices, setSelectedDonReturnIndices] = useState([]);
 
   const aiActionQueue = useRef([]);
@@ -74,6 +79,8 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
   // Everything below uses gs/gd
   const S = gs; // game state shorthand
   const D = gd; // dispatch shorthand
+
+  const { flashItem } = useFlashQueue(S?.cardFlashQueue, D);
 
   // ── Auto-advance AI turn ───────────────────────────────────────────────────
   useEffect(() => {
@@ -95,7 +102,8 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
     }
     if (S.battle?.step === BATTLE_STEP.COUNTER && S.waitingFor === PLAYER.AI) {
       const decision = aiDecideCounter(S);
-      const timer = setTimeout(() => D(decision), AI_ACTION_DELAY_MS);
+      const delay = decision.type === 'PLAY_COUNTER' ? AI_COUNTER_DELAY_MS : AI_ACTION_DELAY_MS;
+      const timer = setTimeout(() => D(decision), delay);
       return () => clearTimeout(timer);
     }
     if (S.battle?.step === BATTLE_STEP.DAMAGE && S.waitingFor === PLAYER.AI) {
@@ -141,6 +149,24 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
     setSelectedFieldCard(null);
   }, [S?.activePlayer]); // eslint-disable-line
 
+  // ── Auto-advance human early phases (Refresh → Draw → DON) ──────────────
+  useEffect(() => {
+    if (!S || S.winner) return;
+    if (S.mulligan === 'pending') return;
+    if (S.waitingFor !== PLAYER.HUMAN || S.activePlayer !== PLAYER.HUMAN) return;
+
+    const actionMap = {
+      [PHASE.REFRESH]: 'REFRESH',
+      [PHASE.DRAW]:    'DRAW',
+      [PHASE.DON]:     'DON_PHASE',
+    };
+    const action = actionMap[S.phase];
+    if (!action) return;
+
+    const timer = setTimeout(() => D({ type: action }), 400);
+    return () => clearTimeout(timer);
+  }, [S]); // eslint-disable-line
+
   // Counter step: do NOT auto-skip — human must choose to counter or skip
   // Block step: also do NOT auto-skip — human must choose to block or skip first
 
@@ -176,85 +202,12 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
     );
   }
 
-  // ── Mulligan screen ────────────────────────────────────────────────────────
-  if (S.mulligan === 'pending') {
-    return (
-      <div className="fixed inset-0 bg-slate-950 flex flex-col z-50">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
-          <button onClick={onClose} className="text-slate-400 hover:text-white text-sm font-bold">← Back</button>
-          <span className="text-slate-300 font-black text-sm tracking-wide">Opening Hand</span>
-          <span className={`text-xs font-bold ${S.firstPlayer === PLAYER.HUMAN ? 'text-emerald-400' : 'text-orange-400'}`}>
-            {S.firstPlayer === PLAYER.HUMAN ? 'You go first' : 'Opponent goes first'}
-          </span>
-        </div>
-
-        {/* Leader banner */}
-        <div className="flex items-center gap-3 px-4 pb-3">
-          <img
-            src={S.human.leader?.card ? getSafeImageUrl(S.human.leader.card) : '/images/card_back.png'}
-            alt="Leader"
-            className="w-10 h-14 object-cover rounded-lg border border-slate-600"
-            onError={e => { e.target.src = '/images/card_back.png'; }}
-          />
-          <div>
-            <p className="text-white font-black text-sm">{S.human.leader?.card?.name}</p>
-            <p className="text-slate-400 text-xs">Life: {S.human.lifeArea?.length ?? '—'} · Deck: {S.human.deck.length}</p>
-          </div>
-        </div>
-
-        {/* Hand */}
-        <div className="flex-1 flex flex-col justify-center px-4">
-          <p className="text-slate-400 text-xs font-bold mb-3 text-center">Your 5-card starting hand</p>
-          <div className="flex gap-2 justify-center overflow-x-auto pb-2">
-            {S.human.hand.map((card, i) => (
-              <div key={`${card.id}-${i}`} className="flex-shrink-0 relative">
-                <img
-                  src={getSafeImageUrl(card)}
-                  alt={card.name}
-                  className="w-16 h-22 rounded-xl object-cover border-2 border-slate-600 shadow-lg"
-                  style={{ height: '5.5rem' }}
-                  onError={e => { e.target.src = '/images/card_back.png'; }}
-                />
-                <div className="absolute top-1 left-1 bg-slate-900/80 text-white text-[9px] font-black px-1 rounded">
-                  {card.cost ?? '—'}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Buttons */}
-        <div className="flex gap-3 px-4 pb-8 pt-4">
-          <button
-            onClick={() => D({ type: 'MULLIGAN_REDRAW' })}
-            className="flex-1 py-4 bg-orange-700 hover:bg-orange-600 text-white font-black text-sm rounded-2xl active:scale-95 transition-all"
-          >
-            Mulligan (Redraw 5)
-          </button>
-          <button
-            onClick={() => D({ type: 'MULLIGAN_KEEP' })}
-            className="flex-1 py-4 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-sm rounded-2xl active:scale-95 transition-all"
-          >
-            Keep Hand
-          </button>
-        </div>
-      </div>
-    );
+  if (S.preGameAbility === 'STAGE_SEARCH') {
+    return <PreGameAbilityScreen state={S} dispatch={D} onClose={onClose} />;
   }
 
-  if (S.winner) {
-    const won = S.winner === PLAYER.HUMAN;
-    return (
-      <div className="fixed inset-0 bg-slate-950/95 flex flex-col items-center justify-center z-50 gap-6">
-        <div className={`text-5xl font-black ${won ? 'text-yellow-400' : 'text-red-400'}`}>
-          {won ? '🏆 You Win!' : '💀 You Lost'}
-        </div>
-        <button onClick={onClose} className="px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl">
-          Back to Deck Builder
-        </button>
-      </div>
-    );
+  if (S.mulligan === 'pending') {
+    return <MulliganScreen state={S} dispatch={D} onClose={onClose} />;
   }
 
   // ── Derived UI state ───────────────────────────────────────────────────────
@@ -279,37 +232,40 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
     const actions = [];
 
     if (card.category === 'Character' && isMyTurn && S.phase === PHASE.MAIN && !inBattle) {
-      const affordable = canAfford(humanPs.costArea, card.cost ?? 0);
+      const effectiveCost = Math.max(0, (card.cost ?? 0) + (handCostDeltas[index] ?? 0));
+      const affordable = canAfford(humanPs.costArea, effectiveCost);
       const fieldFull  = humanPs.characterArea.length >= 5;
       actions.push({
         label: 'Deploy Character',
         icon: '⚔',
         disabled: !affordable,
         hint: !affordable
-          ? `Need ${card.cost} DON!!`
-          : fieldFull ? `Cost ${card.cost} — replaces a character` : `Cost ${card.cost}`,
+          ? `Need ${effectiveCost} DON!!`
+          : fieldFull ? `Cost ${effectiveCost} — replaces a character` : `Cost ${effectiveCost}`,
         action: () => D({ type: 'PLAY_CHARACTER', handIndex: index }),
       });
     }
 
     if (card.category === 'Stage' && isMyTurn && S.phase === PHASE.MAIN && !inBattle) {
-      const affordable = canAfford(humanPs.costArea, card.cost ?? 0);
+      const effectiveCost = Math.max(0, (card.cost ?? 0) + (handCostDeltas[index] ?? 0));
+      const affordable = canAfford(humanPs.costArea, effectiveCost);
       actions.push({
         label: 'Deploy Stage',
         icon: '🏝',
         disabled: !affordable,
-        hint: `Cost ${card.cost}`,
+        hint: `Cost ${effectiveCost}`,
         action: () => D({ type: 'PLAY_STAGE', handIndex: index }),
       });
     }
 
     if (card.category === 'Event' && isMyTurn && S.phase === PHASE.MAIN && !inBattle) {
-      const affordable = canAfford(humanPs.costArea, card.cost ?? 0);
+      const effectiveCost = Math.max(0, (card.cost ?? 0) + (handCostDeltas[index] ?? 0));
+      const affordable = canAfford(humanPs.costArea, effectiveCost);
       actions.push({
         label: 'Activate Event',
         icon: '✨',
         disabled: !affordable,
-        hint: `Cost ${card.cost}`,
+        hint: `Cost ${effectiveCost}`,
         action: () => D({ type: 'PLAY_EVENT', handIndex: index }),
       });
     }
@@ -349,8 +305,11 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
     const actions = [];
 
     // Attack — Rush from unconditional keyword OR from a currently-met conditional grant
-    const hasConditionalRush = evaluateContinuousKeywords(fc, S.activePlayer, PLAYER.HUMAN, S).has('速攻');
-    const canAttack = fc.state === 'active' && (!fc.justDeployed || hasRush(card) || hasConditionalRush);
+    const continuousKws = evaluateContinuousKeywords(fc, S.activePlayer, PLAYER.HUMAN, S);
+    const hasConditionalRush = continuousKws.has('速攻');
+    const canAttack = fc.state === 'active'
+      && !continuousKws.has('CANNOT_ATTACK')
+      && (!fc.justDeployed || hasRush(card) || hasConditionalRush);
     if (zone !== 'stage') actions.push({
       label: 'Attack',
       icon: '⚔',
@@ -397,13 +356,6 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
     aiPs.characterArea.map((fc, i) => fc.state === 'rest' ? i : -1).filter(i => i >= 0)
   );
 
-  // My characters that can block (during AI's attack on my turn as defender)
-  const blockableMyChars = new Set(
-    humanPs.characterArea.map((fc, i) =>
-      hasBlocker(fc.card) && fc.state === 'active' ? i : -1
-    ).filter(i => i >= 0)
-  );
-
   function handleMyLeaderClick() {
     if (!isMyTurn || !isMyInput) return;
     if (S.phase !== PHASE.MAIN || inBattle) return;
@@ -419,7 +371,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
 
     // Block step: human defending against AI attack
     if (inBlock && S.battle.targetOwner === PLAYER.HUMAN && S.waitingFor === PLAYER.HUMAN) {
-      if (hasBlocker(humanPs.characterArea[i]?.card) && humanPs.characterArea[i]?.state === 'active') {
+      if (fcEffectiveHasBlocker(humanPs.characterArea[i], PLAYER.HUMAN, S.activePlayer, S) && humanPs.characterArea[i]?.state === 'active') {
         D({ type: 'USE_BLOCKER', blockerIndex: i });
       }
       return;
@@ -427,9 +379,9 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
 
     if (!isMyTurn || S.phase !== PHASE.MAIN || inBattle) return;
 
-    if (pendingDonTarget) {
-      D({ type: 'ATTACH_DON', targetZone: 'character', targetIndex: i });
-      setPendingDonTarget(false);
+    if (pendingDonIds.size > 0) {
+      D({ type: 'ATTACH_DON', targetZone: 'character', targetIndex: i, count: pendingDonIds.size });
+      setPendingDonIds(new Set());
       return;
     }
 
@@ -461,23 +413,26 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
     }
   }
 
-  function handleDonAreaClick() {
+  function handleDonCardClick(donId) {
     if (!isMyTurn || !isMyInput || S.phase !== PHASE.MAIN || inBattle) return;
-    if (humanPs.costArea.filter(d => d.state === 'active').length === 0) return;
-    setPendingDonTarget(true);
+    const isActive = humanPs.costArea.some(d => d._donId === donId && d.state === 'active');
+    if (!isActive) return;
+    setPendingDonIds(prev => {
+      const next = new Set(prev);
+      if (next.has(donId)) next.delete(donId); else next.add(donId);
+      return next;
+    });
     setSelectedHandIndex(null);
     setPendingAttackSrc(null);
   }
 
   function handleLeaderDonTarget() {
-    if (!pendingDonTarget) return;
-    D({ type: 'ATTACH_DON', targetZone: 'leader', targetIndex: -1 });
-    setPendingDonTarget(false);
+    if (!pendingDonIds.size) return;
+    D({ type: 'ATTACH_DON', targetZone: 'leader', targetIndex: -1, count: pendingDonIds.size });
+    setPendingDonIds(new Set());
   }
 
-  // Don return mode — player selects don directly on the field instead of a popup
   const donReturnOptions = donReturnMode ? S.pendingEffect.choices.options : null;
-  const donReturnCount   = donReturnMode ? S.pendingEffect.choices.count   : 0;
 
   function handleDonReturnClick(optionIndex) {
     const count = S.pendingEffect.choices.count;
@@ -514,19 +469,43 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
   }
 
   const attackMode  = !!pendingAttackSrc;
-  const donMode     = pendingDonTarget;
+  const donMode     = pendingDonIds.size > 0;
+
+  const gameOver = !!S.winner;
+  const humanWon = S.winner === PLAYER.HUMAN;
 
   return (
-    <div className="fixed inset-0 bg-slate-950 flex flex-col overflow-hidden z-50 select-none">
-      {/* Back button */}
+    <div className="fixed inset-0 bg-slate-950 flex flex-col overflow-hidden z-50 select-none"
+      onClick={() => { if (donMode) setPendingDonIds(new Set()); }}
+    >
+      {/* Back button / winner banner */}
       <div className="flex items-center justify-between px-3 pt-2 pb-1 bg-slate-950 border-b border-slate-800">
         <button onClick={onClose} className="text-slate-400 hover:text-white text-sm font-bold flex items-center gap-1">
           ← Back
         </button>
-        <span className="text-[10px] text-slate-500 font-mono">
-          {attackMode ? '⚔ Select target' : donMode ? '🟢 Select DON!! target' : donReturnMode ? `↩ Select DON!! to return (${selectedDonReturnIndices.length}/${donReturnCount})` : ''}
-        </span>
-        <span className="text-[10px] text-slate-600">Turn {S.turn}</span>
+        {gameOver ? (
+          <span className={`text-sm font-black ${humanWon ? 'text-yellow-400' : 'text-red-400'}`}>
+            {humanWon ? '🏆 You Win!' : '💀 You Lost'}
+          </span>
+        ) : (
+          <span className="text-[10px] text-slate-500 font-mono">
+            {attackMode ? '⚔ Select target' : donMode ? `🟢 Select target (${pendingDonIds.size} DON!! selected)` : ''}
+          </span>
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => D({ type: 'TOGGLE_REVEAL_OPPONENT' })}
+            title="Reveal opponent hand & life cards (dev)"
+            className={`text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors ${
+              S.devRevealOpponent
+                ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
+                : 'border-slate-700 text-slate-600 hover:text-slate-400'
+            }`}
+          >
+            {S.devRevealOpponent ? 'X-RAY ON' : 'X-RAY'}
+          </button>
+          <span className="text-[10px] text-slate-600">Turn {S.turn}</span>
+        </div>
       </div>
 
       {/* AI's field (top) */}
@@ -542,13 +521,13 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
           onLeaderClick={handleAiLeaderClick}
           onCharacterClick={handleAiCharacterClick}
           onTrashClick={() => setTrashView('ai')}
+          revealed={gameOver || S.devRevealOpponent}
         />
       </div>
 
       {/* Phase bar + battle info */}
       <PhaseBar
         state={S}
-        onDispatch={D}
         onEndTurn={() => D({ type: 'END_TURN' })}
         onSkipBlock={() => D({ type: 'SKIP_BLOCK' })}
         onSkipCounter={() => D({ type: 'SKIP_COUNTER' })}
@@ -573,12 +552,14 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
             if (!isMyTurn || !isMyInput || S.phase !== PHASE.MAIN || inBattle) return;
             setSelectedFieldCard({ zone: 'stage', index: 0 });
           }}
-          onDonAreaClick={handleDonAreaClick}
+          onDonCardClick={handleDonCardClick}
           onTrashClick={() => setTrashView('human')}
+          donPendingIds={pendingDonIds}
           donReturnMode={donReturnMode}
           donReturnOptions={donReturnOptions}
           selectedDonReturnIndices={selectedDonReturnIndices}
           onCostDonReturnClick={handleCostDonReturnClick}
+          revealed={gameOver}
         />
       </div>
 
@@ -590,7 +571,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
           selectedIndex={selectedHandIndex}
           onCardClick={(i) => {
             setPendingAttackSrc(null);
-            setPendingDonTarget(false);
+            setPendingDonIds(new Set());
             setSelectedHandIndex(prev => prev === i ? null : i);
           }}
           highlightIndices={
@@ -602,6 +583,18 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
           }
         />
       </div>
+
+      <DonReturnBar
+        pendingEffect={donReturnMode ? S.pendingEffect : null}
+        selectedCount={selectedDonReturnIndices.length}
+      />
+
+      <TriggerBar
+        trigger={S.pendingTrigger}
+        onResolve={(activate) => D({ type: 'RESOLVE_TRIGGER', activate })}
+      />
+
+      <GameLog log={S.log} isOpen={logOpen} onToggle={() => setLogOpen(v => !v)} />
 
       {/* Overlays */}
       {selectedHandCard && handActions.length > 0 && (
@@ -622,26 +615,19 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
         />
       )}
 
-      <TriggerModal
-        trigger={S.pendingTrigger}
-        onResolve={(activate) => D({ type: 'RESOLVE_TRIGGER', activate })}
-      />
-
       <EffectModal
         pendingEffect={donReturnMode ? null : S.pendingEffect}
         pendingReplace={S.pendingReplace}
         state={S}
-        onResolve={(selectedIndices) => D({ type: 'RESOLVE_EFFECT_CHOICE', selectedIndices })}
+        onResolve={(selectedIndices, meta) => D({ type: 'RESOLVE_EFFECT_CHOICE', selectedIndices, ...meta })}
         onReplace={(replaceIndex) => D({ type: 'RESOLVE_REPLACE', replaceIndex })}
       />
-
-      <GameLog log={S.log} isOpen={logOpen} onToggle={() => setLogOpen(v => !v)} />
 
       {/* State Simulator toggle button (dev/debug) */}
       <button
         onClick={() => setSimOpen(v => !v)}
         title="State Simulator (Redux DevTools)"
-        className="fixed bottom-14 right-3 z-40 w-8 h-8 rounded-full bg-purple-700/80 hover:bg-purple-600 text-white text-xs font-black shadow-lg flex items-center justify-center transition-colors"
+        className="fixed bottom-3 right-3 z-40 w-8 h-8 rounded-full bg-purple-700/80 hover:bg-purple-600 text-white text-xs font-black shadow-lg flex items-center justify-center transition-colors"
       >
         ⚙
       </button>
@@ -662,6 +648,8 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose 
           onClose={() => setTrashView(null)}
         />
       )}
+
+      <CardFlashOverlay flashItem={flashItem} />
     </div>
   );
 }

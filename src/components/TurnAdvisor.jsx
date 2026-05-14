@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { rankCardsForTurn } from '../utils/cardRanker';
+import React, { useState, useMemo } from "react";
+import { rankCardsForTurn } from "../utils/cardRanker";
 
 const TIER_STYLES = {
-  S: 'bg-amber-400 text-black',
-  A: 'bg-blue-500 text-white',
-  B: 'bg-slate-600 text-white',
-  C: 'bg-slate-800 text-slate-400',
+  S: "bg-amber-400 text-black",
+  A: "bg-blue-500 text-white",
+  B: "bg-slate-600 text-white",
+  C: "bg-slate-800 text-slate-400",
 };
 
 export default function TurnAdvisor({ orderedDeck }) {
@@ -50,8 +50,8 @@ export default function TurnAdvisor({ orderedDeck }) {
               onClick={() => setSelectedTurn(t)}
               className={`w-7 h-7 rounded text-xs font-black transition-all active:scale-95 ${
                 selectedTurn === t
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40"
+                  : "bg-slate-800 text-slate-400 hover:bg-slate-700"
               }`}
             >
               {t}
@@ -67,11 +67,19 @@ export default function TurnAdvisor({ orderedDeck }) {
       <div className="flex gap-3 mb-4">
         {Object.entries(TIER_STYLES).map(([tier, style]) => (
           <div key={tier} className="flex items-center gap-1">
-            <span className={`w-5 h-5 rounded text-[10px] font-black flex items-center justify-center ${style}`}>
+            <span
+              className={`w-5 h-5 rounded text-[10px] font-black flex items-center justify-center ${style}`}
+            >
               {tier}
             </span>
             <span className="text-[10px] text-slate-600">
-              {tier === 'S' ? '≥3.0' : tier === 'A' ? '1.8–3' : tier === 'B' ? '1.0–1.8' : '<1.0'}
+              {tier === "S"
+                ? "≥3.0"
+                : tier === "A"
+                  ? "1.8–3"
+                  : tier === "B"
+                    ? "1.0–1.8"
+                    : "<1.0"}
             </span>
           </div>
         ))}
@@ -152,12 +160,17 @@ export default function TurnAdvisor({ orderedDeck }) {
                   </div>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className={`w-3 h-3 text-slate-600 transition-transform ${expandedId === card.id ? 'rotate-180' : ''}`}
+                    className={`w-3 h-3 text-slate-600 transition-transform ${expandedId === card.id ? "rotate-180" : ""}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </div>
@@ -167,8 +180,15 @@ export default function TurnAdvisor({ orderedDeck }) {
                 <div className="px-4 pb-3 pt-2 border-t border-slate-800/60 grid grid-cols-2 gap-x-6 gap-y-1 animate-in fade-in duration-150">
                   <div className="flex justify-between text-xs">
                     <span className="text-slate-500">力量效率</span>
-                    <span className={card.breakdown.power >= 0 ? 'text-green-400' : 'text-red-400'}>
-                      {card.breakdown.power >= 0 ? '+' : ''}{card.breakdown.power.toFixed(1)}
+                    <span
+                      className={
+                        card.breakdown.power >= 0
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }
+                    >
+                      {card.breakdown.power >= 0 ? "+" : ""}
+                      {card.breakdown.power.toFixed(1)}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs">

@@ -2,11 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { getSafeImageUrl } from '../../../utils/cardHelpers';
 
-const PREVIEW_W = 200;
-const PREVIEW_H = Math.round(PREVIEW_W * 1.4);
-
 export default function CardPreview({ card, x, y }) {
   if (!card) return null;
+
+  const PREVIEW_H = Math.round(window.innerHeight * 0.5);
+  const PREVIEW_W = Math.round(PREVIEW_H / 1.4);
 
   let left = x + 20;
   let top  = y - PREVIEW_H / 2;
@@ -25,7 +25,7 @@ export default function CardPreview({ card, x, y }) {
         alt={card.name}
         className="rounded-xl border border-white/20"
         style={{ width: PREVIEW_W, height: PREVIEW_H, objectFit: 'cover' }}
-        onError={e => { e.target.src = '/back.png'; }}
+        onError={e => { e.target.src = '/images/card_back.png'; }}
       />
     </div>,
     document.body

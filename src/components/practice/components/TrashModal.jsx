@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { getSafeImageUrl } from '../../../utils/cardHelpers';
-import CardPreview from './CardPreview';
 
 export default function TrashModal({ trash = [], label, onClose }) {
-  const [preview, setPreview] = useState(null); // { card, x, y }
+  const [hoveredCard, setHoveredCard] = useState(null);
 
   return (
     <div
@@ -25,10 +24,25 @@ export default function TrashModal({ trash = [], label, onClose }) {
           </button>
         </div>
 
+        {/* Middle: enlarged card preview */}
+        <div className="flex-1 flex items-center justify-center px-4">
+          {hoveredCard ? (
+            <img
+              src={getSafeImageUrl(hoveredCard)}
+              alt={hoveredCard.name}
+              className="rounded-2xl shadow-2xl object-contain border-2 border-slate-400"
+              style={{ maxHeight: '100%', maxWidth: '55%' }}
+              onError={e => { e.target.src = '/images/card_back.png'; }}
+            />
+          ) : (
+            <p className="text-slate-600 text-sm select-none">Hover a card to preview</p>
+          )}
+        </div>
+
         {/* Card grid */}
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex-shrink-0 max-h-48 overflow-y-auto p-3 border-t border-slate-800">
           {trash.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-slate-500 text-sm font-bold">
+            <div className="flex items-center justify-center h-16 text-slate-500 text-sm font-bold">
               No cards in trash
             </div>
           ) : (
@@ -37,13 +51,15 @@ export default function TrashModal({ trash = [], label, onClose }) {
                 <div
                   key={`${card.id}-${i}`}
                   className="flex flex-col items-center gap-0.5"
-                  onMouseMove={e => setPreview({ card, x: e.clientX, y: e.clientY })}
-                  onMouseLeave={() => setPreview(null)}
+                  onMouseEnter={() => setHoveredCard(card)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  onTouchStart={() => setHoveredCard(card)}
+                  onTouchEnd={() => setHoveredCard(null)}
                 >
                   <img
                     src={getSafeImageUrl(card)}
                     alt={card.name}
-                    className="w-16 rounded-lg object-cover border border-slate-700 shadow cursor-pointer"
+                    className="w-16 rounded-lg object-cover border border-slate-700 hover:border-slate-300 shadow cursor-pointer transition-all"
                     style={{ height: '5.5rem' }}
                     onError={e => { e.target.src = '/images/card_back.png'; }}
                   />
@@ -53,7 +69,6 @@ export default function TrashModal({ trash = [], label, onClose }) {
           )}
         </div>
       </div>
-      {preview && <CardPreview card={preview.card} x={preview.x} y={preview.y} />}
     </div>
   );
 }
