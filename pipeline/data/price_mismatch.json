@@ -5056,6 +5056,14 @@
     "reason": "Check if OP10-111_p1 exists in 554901.json"
   },
   {
+    "base_id": "OP10-111",
+    "generated_id": "OP10-111_p1",
+    "rank": 1,
+    "name": "モンキー・D・ルフィ(パラレル)(フレンドタッグ交流会)",
+    "pack_id": "554901",
+    "reason": "Check if OP10-111_p1 exists in 554901.json"
+  },
+  {
     "base_id": "OP10-057",
     "generated_id": "OP10-057_p1",
     "rank": 1,
@@ -5078,6 +5086,14 @@
     "name": "神誅殺(ラメフォイル)",
     "pack_id": "554302",
     "reason": "Check if OP10-079 exists in 554302.json"
+  },
+  {
+    "base_id": "OP10-113",
+    "generated_id": "OP10-113_p1",
+    "rank": 1,
+    "name": "ロロノア・ゾロ(パラレル)(フレンドタッグ交流会)",
+    "pack_id": "554901",
+    "reason": "Check if OP10-113_p1 exists in 554901.json"
   },
   {
     "base_id": "OP10-114",
@@ -5790,5 +5806,13 @@
     "name": "サンジ(Vジャンプ2026年4月特大号)",
     "pack_id": "554901",
     "reason": "Check if P-120 exists in 554901.json"
+  },
+  {
+    "base_id": "P-110",
+    "generated_id": "P-110",
+    "rank": 0,
+    "name": "モンキー・D・ルフィ(プレミアムカードコレクション-ONE PIECE DAY’25-)",
+    "pack_id": "554901",
+    "reason": "Check if P-110 exists in 554901.json"
   }
 ]

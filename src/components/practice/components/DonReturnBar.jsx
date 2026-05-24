@@ -1,5 +1,5 @@
 import React from 'react';
-import { getSafeImageUrl } from '../../../utils/cardHelpers';
+import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 
 export default function DonReturnBar({ pendingEffect, selectedCount }) {
   if (!pendingEffect || pendingEffect.action?.type !== 'CHOOSE_DON_RETURN') return null;
@@ -21,7 +21,7 @@ export default function DonReturnBar({ pendingEffect, selectedCount }) {
           src={getSafeImageUrl(sourceCard)}
           alt={sourceCard.name}
           className="w-8 h-11 rounded object-cover border border-teal-400/60 flex-shrink-0"
-          onError={e => { e.target.src = '/images/card_back.png'; }}
+          onError={e => { e.target.src = cardBackImg; }}
         />
       )}
 

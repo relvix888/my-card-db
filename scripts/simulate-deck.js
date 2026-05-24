@@ -6,7 +6,7 @@ import {
 import {
   getAiTurnActions, aiDecideBlock, aiDecideCounter,
 } from '../src/components/practice/engine/aiPlayer.js';
-import { getActivatedMainStatus } from '../src/components/practice/engine/effects.js';
+import { getActivatedMainStatus, evaluateContinuousKeywords } from '../src/components/practice/engine/effects.js';
 import { parseEffect } from '../src/components/practice/engine/effectParser.js';
 import { PHASE, PLAYER, BATTLE_STEP, MAX_CHARACTERS } from '../src/components/practice/engine/constants.js';
 import { readFileSync, readdirSync } from 'fs';
@@ -304,8 +304,9 @@ function nextHumanAction(state) {
       };
     }
 
-    // Leader attacks last
-    if (ps.leader.state === 'active' && !ps.leader.attackLocked && !ps.rushCharOnly) {
+    // Leader attacks last (skip if CANNOT_ATTACK)
+    const leaderKws = evaluateContinuousKeywords(ps.leader, H, H, state);
+    if (ps.leader.state === 'active' && !ps.leader.attackLocked && !ps.rushCharOnly && !leaderKws.has('CANNOT_ATTACK')) {
       return {
         type: 'DECLARE_ATTACK',
         attackerZone: 'leader',

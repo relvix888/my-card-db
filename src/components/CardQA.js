@@ -1,12 +1,18 @@
 import React from 'react';
-import qaData from '../data/master_qa.json'; 
+import { useTranslation } from 'react-i18next';
+import qaDataZh from '../data/master_qa.json';
+import qaDataEn from '../data/master_qa_en.json';
 
 // This helper removes dashes and spaces to make matching bulletproof
 const normalize = (id) => id ? id.replace(/[-\s]/g, '').toUpperCase() : "";
 
 const CardQA = ({ currentCardId }) => {
+  const { i18n } = useTranslation();
+  const isEnglish = i18n.language.startsWith('en');
+  const qaData = isEnglish ? qaDataEn : qaDataZh;
+
   // 1. Filter the master list for this specific card
-  const matches = qaData.filter(item => 
+  const matches = qaData.filter(item =>
     normalize(item.cardId) === normalize(currentCardId)
   );
 
@@ -16,7 +22,7 @@ const CardQA = ({ currentCardId }) => {
   return (
     <div className="mt-6 border-t border-slate-700 pt-2">
       <h3 className="text-sm font-bold text-blue-400 mb-4 flex items-center gap-2">
-        常見問答 (Q&A)
+        {isEnglish ? 'Card Q&A' : '常見問答 (Q&A)'}
       </h3>
       
       <div className="space-y-4">

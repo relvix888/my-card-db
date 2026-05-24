@@ -3,7 +3,7 @@ const path = require("path");
 const os = require("os");
 
 // 1. Define paths
-const folderPath = path.resolve(os.homedir(), "opc-uploader", "data");
+const folderPath = path.resolve(os.homedir(), "opc-uploader", "data", "ZH");
 const outputPath = path.resolve(__dirname, "../../src/data/sorted_types.json");
 
 function processCardTypes() {

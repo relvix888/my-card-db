@@ -1,16 +1,14 @@
 import React from 'react';
+import { donBackImg } from '../../../utils/cardHelpers';
 
-const DON_IMG = '/don.png';
-
-// Just the DON!! deck stack — the cost area is rendered separately in PlayerField
-export default function DonArea({ donDeck = [], isOpponent, onDonClick }) {
+export default function DonArea({ donDeck = [], isOpponent, onDonClick, isSmall = false }) {
+  const cls = isSmall ? 'w-12 h-16' : 'w-14 h-20';
   return (
     <div className="flex flex-col items-center gap-0.5">
       <div
-        className="relative w-14 h-20"
+        className={`relative ${cls}`}
         title={`DON!! deck: ${donDeck.length} remaining`}
       >
-        {/* Depth shadow cards */}
         {donDeck.length > 2 && (
           <div className="absolute inset-0 rounded-lg border border-teal-800 bg-teal-950"
                style={{ transform: 'translate(3px, 3px)' }} />
@@ -20,7 +18,7 @@ export default function DonArea({ donDeck = [], isOpponent, onDonClick }) {
                style={{ transform: 'translate(1.5px, 1.5px)' }} />
         )}
         <img
-          src={DON_IMG}
+          src={donBackImg}
           alt="DON!! deck"
           className="absolute inset-0 w-full h-full object-cover rounded-lg border border-teal-500 shadow"
           onError={e => { e.target.style.display = 'none'; }}

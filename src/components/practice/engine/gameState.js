@@ -6,14 +6,15 @@ import {
 import {
   hasRush, hasCharacterRushOnly, hasTrigger, leaderDonDeckSize,
   resolveOnPlayEffect, resolveOnAttackEffect, resolveOnBlockEffect,
-  resolveOnKOEffect, resolveLeaderKOWatchEffect, resolveLeaderKOReplacementEffect, resolveOpponentKOWatchEffect, resolveCharacterLeaveFieldEffect, resolveTriggerEffect, resolveEventEffect, resolveCounterEffect,
-  resolveEndOfTurnEffects, resolveActivatedMainEffect, evaluateContinuousPower,
+  resolveOnKOEffect, resolveLeaderKOWatchEffect, resolveLeaderKOReplacementEffect, resolveOpponentKOWatchEffect, resolveCharacterLeaveFieldEffect, resolveLeaderOwnCharRemovedEffect, resolveTriggerEffect, resolveEventEffect, resolveCounterEffect, resolveSelfEventActivateEffect,
+  resolveEndOfTurnEffects, resolveOnTurnStartEffects, resolveEotEffectChoice, resumeEotSequence, resolveActivatedMainEffect, evaluateContinuousPower,
   resolveOnOpponentAttackEffect, evaluateContinuousKeywords, evaluateGlobalContinuousPower,
-  evaluateLeaderBasePowerOverride, evaluateCharBasePowerOverride, resolveOnLifeZeroEffect, resolveOnDamageTakenEffect,
-  fcHasDoubleAtk, fcHasBanish, fcHasUnblock, leaderHasDeployRestPassive,
-  resolveOpponentEventOrCounterEffect,
+  evaluateLeaderBasePowerOverride, evaluateCharBasePowerOverride, resolveOnLifeZeroEffect, resolveOnDamageTakenEffect, resolveOnDealDamageEffect,
+  fcHasDoubleAtk, fcEffectiveHasDoubleAtk, fcHasBanish, fcHasUnblock, leaderHasDeployRestPassive,
+  resolveOpponentEventOrCounterEffect, resolveAutoKOInBattle, resolveOnOpponentCharDeployEffect,
+  resolveOnDonAttachTrigger, resolveOnSelfNoEffectCharDeployEffect, resolveOnSelfAnyCharDeployEffect, resolveOnDonReturnTrigger,
 } from './effects';
-import { resolveEffectChoice, executeActionSequence, clearPowerMods, clearCostMods, clearHandCostMods, matchesFilter } from './effectActions';
+import { resolveEffectChoice, executeActionSequence, clearPowerMods, clearCostMods, clearHandCostMods, matchesFilter, getSelfCondHandCostDelta, shiftModsAfterRemoval } from './effectActions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -76,8 +77,12 @@ function buildPlayerState(leader, deckCards) {
 
 export function createInitialState(humanLeader, humanCards, aiLeader, aiCards) {
   const firstPlayer = Math.random() < 0.5 ? PLAYER.HUMAN : PLAYER.AI;
-  const leaderId = humanLeader?.id?.replace('_p1', '').replace('_p2', '');
-  const preGameAbility = leaderId === 'OP13-079' ? 'STAGE_SEARCH' : null;
+  const humanLeaderId = humanLeader?.id?.replace('_p1', '').replace('_p2', '');
+  const aiLeaderId    = aiLeader?.id?.replace('_p1', '').replace('_p2', '');
+  const preGameAbilityOwner =
+    humanLeaderId === 'OP13-079' ? PLAYER.HUMAN :
+    aiLeaderId    === 'OP13-079' ? PLAYER.AI    : null;
+  const preGameAbility = preGameAbilityOwner ? 'STAGE_SEARCH' : null;
   return {
     phase: PHASE.REFRESH,
     firstPlayer,
@@ -87,6 +92,7 @@ export function createInitialState(humanLeader, humanCards, aiLeader, aiCards) {
     winner: null,
     mulligan: 'pending', // 'pending' | 'done'
     preGameAbility,      // 'STAGE_SEARCH' | null
+    preGameAbilityOwner, // PLAYER.HUMAN | PLAYER.AI | null
 
     human: buildPlayerState(humanLeader, humanCards),
     ai: buildPlayerState(aiLeader, aiCards),
@@ -96,6 +102,10 @@ export function createInitialState(humanLeader, humanCards, aiLeader, aiCards) {
     battle: null,
     pendingTrigger: null,
     pendingReplace: null,
+    pendingOpponentDeployTrigger: null,
+    pendingSelfDeployTrigger: null,
+    pendingSelfAnyCharDeployTrigger: null,
+    sotEffectsDone: false,
 
     log: [{ text: 'Game started — choose your starting hand.', type: 'info', id: Date.now() }],
   };
@@ -105,15 +115,16 @@ export function createInitialState(humanLeader, humanCards, aiLeader, aiCards) {
 
 export function applyLeaderPreGameStage(state, { cardIndex }) {
   if (state.preGameAbility !== 'STAGE_SEARCH') return state;
-  let s = { ...state, preGameAbility: null };
+  const owner = state.preGameAbilityOwner ?? PLAYER.HUMAN;
+  let s = { ...state, preGameAbility: null, preGameAbilityOwner: null };
   if (cardIndex != null) {
-    const ps = s.human;
+    const ps = s[owner];
     const card = ps.deck[cardIndex];
     if (card && card.category === 'Stage') {
       const newDeck = ps.deck.filter((_, i) => i !== cardIndex);
       s = addLog({
         ...s,
-        human: { ...ps, deck: newDeck, stageArea: makeFieldCard(card) },
+        [owner]: { ...ps, deck: newDeck, stageArea: makeFieldCard(card) },
       }, `Leader ability: ${cn(card)} placed from deck to stage for free.`, 'action');
     }
   } else {
@@ -160,16 +171,20 @@ export function calcPower(fieldCard, activePlayer, owner, state = null) {
     const target   = isLeader ? 'leader' : (ps?.characterArea?.indexOf(fieldCard) ?? -1);
     const relevantMods = (ps?.powerMods ?? []).filter(m => m.target === target);
     if (relevantMods.some(m => m.setToZero)) return 0;
-    modBonus = relevantMods.reduce((sum, m) => sum + m.delta, 0);
-    modBonus += evaluateContinuousPower(fieldCard, activePlayer, owner, state);
-    modBonus += evaluateGlobalContinuousPower(fieldCard, activePlayer, owner, state);
-    if (isLeader) {
+    const setBaseMods = relevantMods.filter(m => m.setBase !== undefined);
+    if (setBaseMods.length > 0) {
+      // Timed POWER_SET takes priority over continuous SET_BASE_POWER
+      base = setBaseMods[setBaseMods.length - 1].setBase;
+    } else if (isLeader) {
       const baseOverride = evaluateLeaderBasePowerOverride(fieldCard, activePlayer, owner, state);
       if (baseOverride !== null) base = baseOverride;
     } else {
       const charOverride = evaluateCharBasePowerOverride(fieldCard, activePlayer, owner, state);
       if (charOverride !== null) base = charOverride;
     }
+    modBonus = relevantMods.filter(m => m.setBase === undefined).reduce((sum, m) => sum + (m.delta ?? 0), 0);
+    modBonus += evaluateContinuousPower(fieldCard, activePlayer, owner, state);
+    modBonus += evaluateGlobalContinuousPower(fieldCard, activePlayer, owner, state);
   }
 
   return base + donBonus + modBonus;
@@ -179,9 +194,29 @@ export function calcPower(fieldCard, activePlayer, owner, state = null) {
 // Win condition
 // ---------------------------------------------------------------------------
 
+// Returns true when the player's leader overrides the normal deck-empty loss
+// (e.g. OP15-022 Brook: "lose at end of TURN when deck=0", not immediately).
+function leaderHasDeckEmptyException(state, player) {
+  const effect = state[player]?.leader?.card?.effect ?? '';
+  return effect.includes('即使自己的卡組0張卡片，也不會輸掉遊戲');
+}
+
+// Returns true when the player's leader flips the deck-empty rule to a WIN instead of a loss
+// (e.g. OP03-040 Nami: "when your deck hits 0, you win instead of losing").
+function leaderWinsOnDeckEmpty(state, player) {
+  const effect = state[player]?.leader?.card?.effect ?? '';
+  return effect.includes('自己的卡組為0張卡片時，自己將獲勝');
+}
+
 export function checkWinner(state) {
-  if (state.human.deck.length === 0) return PLAYER.AI;
-  if (state.ai.deck.length === 0)    return PLAYER.HUMAN;
+  if (state.human.deck.length === 0) {
+    if (leaderWinsOnDeckEmpty(state, PLAYER.HUMAN)) return PLAYER.HUMAN;
+    if (!leaderHasDeckEmptyException(state, PLAYER.HUMAN)) return PLAYER.AI;
+  }
+  if (state.ai.deck.length === 0) {
+    if (leaderWinsOnDeckEmpty(state, PLAYER.AI)) return PLAYER.AI;
+    if (!leaderHasDeckEmptyException(state, PLAYER.AI)) return PLAYER.HUMAN;
+  }
   return null;
 }
 
@@ -247,7 +282,23 @@ function drainOnPlayTriggers(state) {
       s = resolveOnPlayEffect(card, s, owner);
       if (s.pendingEffect || s.pendingReplace) break;
     }
-    return s;
+    return drainOnPlayTriggers(s);
+  }
+  // After on-play triggers are exhausted, fire any opponent-deploy reactive trigger
+  // (e.g. OP12-081: "when opponent deploys cost 8+ char, opponent adds 1 life to hand")
+  if (!state.pendingEffect && !state.pendingReplace && !state.battle && !state.pendingOnPlayTriggers?.length && state.pendingOpponentDeployTrigger) {
+    const trig = state.pendingOpponentDeployTrigger;
+    return drainOnPlayTriggers(resolveOnOpponentCharDeployEffect(trig.card, { ...state, pendingOpponentDeployTrigger: null }, trig.deployOwner, trig.isViaCharEffect));
+  }
+  // Fire self-deploy leader triggers (e.g. OP02-026: when you deploy a no-effect character)
+  if (!state.pendingEffect && !state.pendingReplace && !state.battle && !state.pendingOnPlayTriggers?.length && !state.pendingOpponentDeployTrigger && state.pendingSelfDeployTrigger) {
+    const trig = state.pendingSelfDeployTrigger;
+    return drainOnPlayTriggers(resolveOnSelfNoEffectCharDeployEffect(trig.card, { ...state, pendingSelfDeployTrigger: null }, trig.owner));
+  }
+  // Fire any-character self-deploy leader triggers (e.g. OP14-041: draw when you deploy any character)
+  if (!state.pendingEffect && !state.pendingReplace && !state.battle && !state.pendingOnPlayTriggers?.length && !state.pendingOpponentDeployTrigger && !state.pendingSelfDeployTrigger && state.pendingSelfAnyCharDeployTrigger) {
+    const trig = state.pendingSelfAnyCharDeployTrigger;
+    return drainOnPlayTriggers(resolveOnSelfAnyCharDeployEffect(trig.card, { ...state, pendingSelfAnyCharDeployTrigger: null }, trig.owner));
   }
   return state;
 }
@@ -261,6 +312,15 @@ function drainOnPlayTriggers(state) {
 
 export function applyRefresh(state) {
   const p = state.activePlayer;
+
+  // "我方回合開始時" effects fire before cards are unrest.
+  // sotEffectsDone prevents re-prompting if the player declines and clicks Refresh again.
+  if (!state.sotEffectsDone) {
+    const s = resolveOnTurnStartEffects({ ...state, sotEffectsDone: true }, p);
+    if (s.pendingEffect) return s;
+    state = s;
+  }
+
   const ps = state[p];
 
   // Collect DON!! cards back from all attachments
@@ -274,10 +334,10 @@ export function applyRefresh(state) {
   const freshLeader = { ...ps.leader, state: ps.leader.refreshLocked ? 'rest' : 'active', attachedDon: 0, refreshLocked: false };
   const freshStage  = ps.stageArea ? { ...ps.stageArea, state: 'active' } : null;
 
-  // Unrest all cost-area DON and add the returned attached ones back as active
+  // Unrest all cost-area DON (skip refreshLocked ones) and add returned attached DON back as active
   const returnDons = Array.from({ length: returnedDon }, (_, i) => makeDon(`ref-ret-${i}`));
   const freshCost  = [
-    ...ps.costArea.map(d => ({ ...d, state: 'active' })),
+    ...ps.costArea.map(d => d.refreshLocked ? { ...d, state: 'rest', refreshLocked: false } : { ...d, state: 'active' }),
     ...returnDons,
   ];
 
@@ -285,26 +345,48 @@ export function applyRefresh(state) {
   let s = {
     ...state,
     phase: PHASE.DRAW,
+    pendingOpponentDeployTrigger: null,
+    pendingSelfDeployTrigger: null,
+    pendingSelfAnyCharDeployTrigger: null,
     [p]: {
       ...ps,
       leader: freshLeader, characterArea: freshChars,
       stageArea: freshStage, costArea: freshCost,
       effectUsed: {},
       onEventTriggers: [],
+      eventsPlayedThisTurn: [],
       lastDiscardCount: 0,
       deployBlockedThisTurn: false,
+      deployBlockCost: null,
       donUnrestByCharLocked: false,
       handPlayLocked: false,
+      lifeToHandBlocked: false,
     },
   };
   s = clearPowerMods(s, p, 'turn');
   s = clearPowerMods(s, p, 'opponent_turn_end');
+  s = clearPowerMods(s, p, 'startOfOwnTurn'); // "until start of your next turn" — same clearing point as opponent_turn_end
   s = clearCostMods(s, p, 'turn');
   s = clearCostMods(s, p, 'opponent_turn_end');
   s = clearHandCostMods(s, p, 'turn');
   s = clearHandCostMods(s, p, 'opponent_turn_end');
 
-  return addLog(s, `Refresh Phase.`, 'phase');
+  // Clear opponent_turn_end keyword grants on p's field cards (the opponent's turn just ended)
+  const refreshedCharsKws = s[p].characterArea.map(fc => ({ ...fc, opponentTurnEndKeywords: [] }));
+  const refreshedLeaderKws = { ...s[p].leader, opponentTurnEndKeywords: [] };
+  s = { ...s, [p]: { ...s[p], characterArea: refreshedCharsKws, leader: refreshedLeaderKws } };
+
+  // Clear the opponent's onPlayBlocked flag — it was set to last "until end of their next turn"
+  // and that turn just ended now that the active player is refreshing.
+  const oppPlayer = p === PLAYER.HUMAN ? PLAYER.AI : PLAYER.HUMAN;
+  if (s[oppPlayer]?.onPlayBlocked) {
+    s = { ...s, [oppPlayer]: { ...s[oppPlayer], onPlayBlocked: false } };
+  }
+
+  s = addLog({ ...s, sotEffectsDone: false }, `Refresh Phase.`, 'phase');
+  // Fire '咚‼卡被放回時' if any attached DON!! was returned (e.g. OP02-071 Magellan)
+  if (returnedDon > 0) s = resolveOnDonReturnTrigger(s, p);
+  return s;
 }
 
 // ── Draw Phase (auto) ─────────────────────────────────────────────────────
@@ -319,15 +401,16 @@ export function applyDraw(state) {
   }
 
   if (ps.deck.length === 0) {
+    if (leaderHasDeckEmptyException(state, p)) {
+      // Leader overrides immediate loss — player loses at end of turn instead (handled in applyEndTurn).
+      return { ...state, phase: PHASE.DON };
+    }
     return { ...state, winner: p === PLAYER.HUMAN ? PLAYER.AI : PLAYER.HUMAN };
   }
 
   const drawn = ps.deck[ps.deck.length - 1];
   const baseDrawState = { ...state, phase: PHASE.DON, [p]: { ...ps, hand: [...ps.hand, drawn], deck: ps.deck.slice(0, -1) } };
-  return addLog(
-    p === PLAYER.HUMAN ? appendFlash(baseDrawState, drawn, 'DRAW') : baseDrawState,
-    `Drew 1 card.`, 'info'
-  );
+  return addLog(appendFlash(baseDrawState, drawn, 'DRAW', { forPlayer: p }), `Drew 1 card.`, 'info');
 }
 
 // ── DON!! Phase (auto) ────────────────────────────────────────────────────
@@ -393,6 +476,12 @@ export function applyPlayCharacter(state, { handIndex }) {
   const charEffectiveCost = getEffectiveCost(card, ps.handCostMods);
   if (!canAfford(ps.costArea, charEffectiveCost)) return state;
   if (ps.deployBlockedThisTurn) return state;
+  if (ps.deployBlockCost) {
+    const { threshold, op } = ps.deployBlockCost;
+    const originalCost = card.cost ?? 0;
+    if (op === 'gte' && originalCost >= threshold) return state;
+    if (op === 'lte' && originalCost <= threshold) return state;
+  }
   if (ps.handPlayLocked) return state;
 
   const newCost = spendDon(ps.costArea, charEffectiveCost);
@@ -430,6 +519,9 @@ export function applyPlayCharacter(state, { handIndex }) {
   const fieldCard = makeFieldCard(card, { justDeployed: !hasRush(card), ...(hasCharacterRushOnly(card) && { rushCharOnly: true }), ...(enterRested && { state: 'rest' }) });
   const placed = addLog(appendFlash({
     ...state,
+    pendingOpponentDeployTrigger: { card, deployOwner: p, isViaCharEffect: false },
+    pendingSelfDeployTrigger: { card, owner: p },
+    pendingSelfAnyCharDeployTrigger: { card, owner: p },
     [p]: { ...ps, hand: newHand, costArea: newCost, characterArea: [...ps.characterArea, fieldCard] },
   }, card, 'PLAY_CHARACTER'), `Played ${cn(card)} (Cost ${card.cost ?? 0}).`, 'action');
   return resolveOnPlayEffect(card, placed, p);
@@ -467,7 +559,7 @@ export function applyPlayEvent(state, { handIndex }) {
 
   if (!card || card.category !== 'Event') return state;
   if (ps.handPlayLocked) return state;
-  const eventEffectiveCost = getEffectiveCost(card, ps.handCostMods);
+  const eventEffectiveCost = Math.max(0, getEffectiveCost(card, ps.handCostMods) + getSelfCondHandCostDelta(card, state, p));
   if (!canAfford(ps.costArea, eventEffectiveCost)) return state;
 
   const newCost  = spendDon(ps.costArea, eventEffectiveCost);
@@ -475,7 +567,7 @@ export function applyPlayEvent(state, { handIndex }) {
 
   const afterCost = addLog(appendFlash({
     ...state,
-    [p]: { ...ps, hand: newHand, costArea: newCost },
+    [p]: { ...ps, hand: newHand, costArea: newCost, eventsPlayedThisTurn: [...(ps.eventsPlayedThisTurn ?? []), card] },
   }, card, 'PLAY_EVENT'), `Activated Event: ${cn(card)} (Cost ${card.cost ?? 0}).`, 'action');
 
   const afterEffect = resolveEventEffect(card, afterCost, p);
@@ -490,6 +582,9 @@ export function applyPlayEvent(state, { handIndex }) {
       if (s.pendingEffect) break;
     }
   }
+
+  // Fire 「自己發動事件卡時」 on the event-activating player's leader/field cards (e.g. OP10-003).
+  if (!s.pendingEffect) s = resolveSelfEventActivateEffect(s, p);
 
   // Fire 「對手發動事件卡或【防禦】時」 on the non-active player's field cards (e.g. OP15-119).
   const oppPlayer = p === PLAYER.HUMAN ? PLAYER.AI : PLAYER.HUMAN;
@@ -525,7 +620,10 @@ export function applyAttachDon(state, { targetZone, targetIndex, count = 1 }) {
     newPs = { ...ps, costArea: newCost, characterArea: newChars };
   }
 
-  return addLog({ ...state, [p]: newPs }, `Attached ${attached} DON!!.`, 'action');
+  const targetFC = targetZone === 'leader' ? ps.leader : ps.characterArea[targetIndex];
+  const targetName = targetFC ? cn(targetFC.card) : targetZone;
+  const afterAttach = addLog({ ...state, [p]: newPs }, `Attached ${attached} DON!! to ${targetName}.`, 'action');
+  return resolveOnDonAttachTrigger(afterAttach, p);
 }
 
 // ── Remove 1 Character to make room ──────────────────────────────────────
@@ -542,7 +640,14 @@ export function applyRemoveCharacter(state, { index }) {
 
   return addLog({
     ...state,
-    [p]: { ...ps, characterArea: newChars, trash: [...ps.trash, fc.card], costArea: [...ps.costArea, ...returnedDon] },
+    [p]: {
+      ...ps,
+      characterArea: newChars,
+      powerMods: shiftModsAfterRemoval(ps.powerMods ?? [], index),
+      costMods:  shiftModsAfterRemoval(ps.costMods  ?? [], index),
+      trash: [...ps.trash, fc.card],
+      costArea: [...ps.costArea, ...returnedDon],
+    },
   }, `Sent ${cn(fc.card)} to trash to make room.`, 'action');
 }
 
@@ -573,6 +678,8 @@ export function applyDeclareAttack(state, { attackerZone, attackerIndex, targetO
   if (targetZone === 'character') {
     const tgt = defPs.characterArea[targetIndex];
     if (!tgt || tgt.state !== 'rest') return state;
+    // Check attack cost restriction (e.g. OP12-020 cannot attack chars with cost ≤ N)
+    if (attackerFC.attackCostRestriction && (tgt.card?.cost ?? 0) <= attackerFC.attackCostRestriction.costMax) return state;
   }
 
   // Rest the attacker
@@ -626,6 +733,7 @@ function finalizeBattleDeclaration(state, attacker, attackerZone, attackerIndex,
       targetOwner,
       targetZone,
       targetIndex,
+      targetCardId: targetZone === 'character' ? defPs2.characterArea[targetIndex]?.card.id ?? null : null,
       atkPower,
       defPower,
       blockerUsed: false,
@@ -662,8 +770,9 @@ function finalizeBattleDeclaration(state, attacker, attackerZone, attackerIndex,
       }
     }
   }
-  // If the effect was instant (no human interaction pending), recalculate defPower
-  // in case a power mod was applied (e.g. OP15-002 discards for +N*1000).
+  // If the effect was instant (no human interaction pending), recalculate both
+  // defPower and atkPower in case a power mod was applied to either side
+  // (e.g. OP15-002 boosts defender; OP13-002 Ace reduces attacker).
   if (!s.pendingEffect && s.battle) {
     const defFC = targetZone === 'leader'
       ? s[targetOwner].leader
@@ -672,6 +781,15 @@ function finalizeBattleDeclaration(state, attacker, attackerZone, attackerIndex,
       const newDefPower = calcPower(defFC, attacker, targetOwner, s);
       if (newDefPower !== s.battle.defPower) {
         s = { ...s, battle: { ...s.battle, defPower: newDefPower } };
+      }
+    }
+    const atkFC = attackerZone === 'leader'
+      ? s[attacker].leader
+      : s[attacker].characterArea[attackerIndex];
+    if (atkFC) {
+      const newAtkPower = calcPower(atkFC, attacker, attacker, s);
+      if (newAtkPower !== s.battle.atkPower) {
+        s = { ...s, battle: { ...s.battle, atkPower: newAtkPower } };
       }
     }
   }
@@ -695,36 +813,99 @@ export function applyUseBlocker(state, { blockerIndex }) {
 
   const defender = battle.targetOwner;
   const defPs = state[defender];
-  const blocker = defPs.characterArea[blockerIndex];
+
+  const isLeaderBlocker = blockerIndex === 'leader';
+  const blocker = isLeaderBlocker ? defPs.leader : defPs.characterArea[blockerIndex];
   if (!blocker || blocker.state !== 'active') return state;
 
-  const newChars = defPs.characterArea.map((fc, i) =>
-    i === blockerIndex ? { ...fc, state: 'rest' } : fc
-  );
-
-  let s = {
-    ...state,
-    [defender]: { ...defPs, characterArea: newChars },
-  };
-  s = resolveOnBlockEffect(blocker.card, s, defender, blockerIndex);
+  let s;
+  if (isLeaderBlocker) {
+    s = { ...state, [defender]: { ...defPs, leader: { ...defPs.leader, state: 'rest' } } };
+    s = resolveOnBlockEffect(blocker.card, s, defender, 'leader');
+  } else {
+    const newChars = defPs.characterArea.map((fc, i) =>
+      i === blockerIndex ? { ...fc, state: 'rest' } : fc
+    );
+    s = { ...state, [defender]: { ...defPs, characterArea: newChars } };
+    s = resolveOnBlockEffect(blocker.card, s, defender, blockerIndex);
+  }
 
   // Fire 「對手發動事件卡或【防禦】時」 on the attacker's field cards (e.g. OP15-119).
   // From the attacker's perspective, the opponent (defender) just used a blocker.
   if (!s.pendingEffect) s = resolveOpponentEventOrCounterEffect(s, battle.attackerOwner);
 
-  const newDefPower = calcPower(s[defender].characterArea[blockerIndex], battle.attackerOwner, defender, s);
+  const blockerFC = isLeaderBlocker ? s[defender].leader : s[defender].characterArea[blockerIndex];
+  const newDefPower = calcPower(blockerFC, battle.attackerOwner, defender, s);
+  const atkFC = battle.attackerZone === 'leader'
+    ? s[battle.attackerOwner].leader
+    : s[battle.attackerOwner].characterArea[battle.attackerIndex];
+  const newAtkPower = atkFC ? calcPower(atkFC, battle.attackerOwner, battle.attackerOwner, s) : battle.atkPower;
 
   return addLog({
     ...s,
     battle: {
       ...battle,
       step: BATTLE_STEP.COUNTER,
-      targetZone: 'character',
-      targetIndex: blockerIndex,
+      targetZone: isLeaderBlocker ? 'leader' : 'character',
+      targetIndex: isLeaderBlocker ? -1 : blockerIndex,
+      targetCardId: blockerFC?.card.id ?? null,
+      atkPower: newAtkPower,
       defPower: newDefPower,
       blockerUsed: true,
+      // save original target so Unblock can restore it
+      preBlockTargetZone: battle.targetZone,
+      preBlockTargetIndex: battle.targetIndex,
+      preBlockTargetCardId: battle.targetCardId ?? null,
+      preBlockDefPower: battle.defPower,
+      blockerIndex,
     },
   }, `Blocker! ${cn(blocker.card)} intercepts (${newDefPower}).`, 'battle');
+}
+
+export function applyUnblock(state) {
+  const { battle } = state;
+  if (!battle || !battle.blockerUsed) return state;
+
+  const defender = battle.targetOwner;
+  const defPs = state[defender];
+
+  // blockerIndex saved explicitly, or fall back to current targetIndex (same value after applyUseBlocker)
+  const blockerIdx = battle.blockerIndex ?? battle.targetIndex;
+  const blocker = defPs?.characterArea?.[blockerIdx];
+  if (!blocker) return state;
+
+  const newChars = defPs.characterArea.map((fc, i) =>
+    i === blockerIdx ? { ...fc, state: 'active' } : fc
+  );
+
+  // Restore original attack target; fall back to leader if preBlock fields are missing
+  const restoredZone  = battle.preBlockTargetZone  ?? 'leader';
+  const restoredIndex = battle.preBlockTargetIndex ?? -1;
+  const restoredPower = battle.preBlockDefPower
+    ?? calcPower(
+        restoredZone === 'leader' ? state[defender].leader : state[defender].characterArea[restoredIndex],
+        battle.attackerOwner, defender, state
+      );
+
+  return addLog({
+    ...state,
+    waitingFor: defender,
+    [defender]: { ...defPs, characterArea: newChars },
+    battle: {
+      ...battle,
+      step: BATTLE_STEP.BLOCK,
+      targetZone: restoredZone,
+      targetIndex: restoredIndex,
+      targetCardId: battle.preBlockTargetCardId ?? null,
+      defPower: restoredPower,
+      blockerUsed: false,
+      blockerIndex: undefined,
+      preBlockTargetZone: undefined,
+      preBlockTargetIndex: undefined,
+      preBlockTargetCardId: undefined,
+      preBlockDefPower: undefined,
+    },
+  }, `Unblocked — ${blocker.card.name} returned to active.`, 'battle');
 }
 
 export function applySkipBlock(state) {
@@ -756,17 +937,20 @@ export function applyPlayCounter(state, { handIndex }) {
 
   // Event card with 反擊 timing — must pay DON!! cost
   if (card.category === 'Event' && card.effect?.includes('【反擊】')) {
-    if (!canAfford(defPs.costArea, card.cost ?? 0)) return state;
-    const newCost = spendDon(defPs.costArea, card.cost ?? 0);
+    const counterEventCost = Math.max(0, (card.cost ?? 0) + getSelfCondHandCostDelta(card, state, defender));
+    if (!canAfford(defPs.costArea, counterEventCost)) return state;
+    const newCost = spendDon(defPs.costArea, counterEventCost);
     const newHand = defPs.hand.filter((_, i) => i !== handIndex);
     let s = addLog(appendFlash({
       ...state,
       [defender]: { ...defPs, hand: newHand, costArea: newCost },
-    }, card, 'COUNTER'), `Counter Event: ${cn(card)} (Cost ${card.cost ?? 0}).`, 'battle');
+    }, card, 'COUNTER'), `Counter Event: ${cn(card)} (Cost ${counterEventCost}).`, 'battle');
     s = resolveCounterEffect(card, s, defender);
     const afterPs = s[defender];
     s = { ...s, [defender]: { ...afterPs, trash: [...afterPs.trash, card] } };
-    // Re-calculate battle.defPower so power mods from the counter effect are visible to applyResolveDamage.
+    // Fire 「對手發動事件卡或防禦時」 on the attacker's field cards (e.g. OP15-119).
+    if (!s.pendingEffect) s = resolveOpponentEventOrCounterEffect(s, battle.attackerOwner);
+    // Re-calculate atkPower and defPower so power mods are visible to applyResolveDamage.
     if (s.battle) {
       const defFC = s.battle.targetZone === 'leader'
         ? s[defender].leader
@@ -775,6 +959,15 @@ export function applyPlayCounter(state, { handIndex }) {
         const newDefPower = calcPower(defFC, s.battle.attackerOwner, defender, s);
         if (newDefPower !== s.battle.defPower) {
           s = { ...s, battle: { ...s.battle, defPower: newDefPower } };
+        }
+      }
+      const atkFC2 = s.battle.attackerZone === 'leader'
+        ? s[s.battle.attackerOwner].leader
+        : s[s.battle.attackerOwner].characterArea[s.battle.attackerIndex];
+      if (atkFC2) {
+        const newAtkPower2 = calcPower(atkFC2, s.battle.attackerOwner, s.battle.attackerOwner, s);
+        if (newAtkPower2 !== s.battle.atkPower) {
+          s = { ...s, battle: { ...s.battle, atkPower: newAtkPower2 } };
         }
       }
     }
@@ -809,11 +1002,29 @@ export function applyResolveDamage(state) {
   }
 
   if (atkPower < defPower) {
-    return addLog(clearBattleMods({
+    let s = addLog(clearBattleMods({
       ...state,
       battle: null,
       waitingFor: state.activePlayer,
     }), `Attack failed. (${atkPower} < ${defPower})`, 'battle');
+
+    // AUTO_KO_IN_BATTLE: attacker character may optionally K.O. the target character (and self-KO)
+    if (battle.attackerZone === 'character' && targetZone === 'character') {
+      const attackerFC = s[attackerOwner].characterArea[battle.attackerIndex];
+      if (attackerFC) {
+        s = resolveAutoKOInBattle(attackerFC, battle.attackerIndex, s, attackerOwner, targetOwner, targetIndex);
+      }
+    }
+
+    // AUTO_KO_IN_BATTLE: target character (blocker) may optionally K.O. the attacker character (and self-KO)
+    if (!s.pendingEffect && targetZone === 'character' && battle.attackerZone === 'character') {
+      const targetFC = s[targetOwner].characterArea[targetIndex];
+      if (targetFC) {
+        s = resolveAutoKOInBattle(targetFC, targetIndex, s, targetOwner, attackerOwner, battle.attackerIndex);
+      }
+    }
+
+    return s;
   }
 
   // Attacker wins
@@ -833,7 +1044,7 @@ export function applyResolveDamage(state) {
       : s[attackerOwner].characterArea[battle.attackerIndex];
 
     const isBanish    = fcHasBanish(attackerFC);
-    const isDoubleAtk = fcHasDoubleAtk(attackerFC);
+    const isDoubleAtk = fcEffectiveHasDoubleAtk(attackerFC, state.activePlayer, attackerOwner, state);
 
     const lifeCard  = defPs.lifeArea[defPs.lifeArea.length - 1];
     const newLife   = defPs.lifeArea.slice(0, -1);
@@ -846,12 +1057,13 @@ export function applyResolveDamage(state) {
       s = addLog(
         humanLife ? appendFlash(baseBanish, lifeCard, 'LIFE_TO_TRASH') : baseBanish,
         `Banish! Life card trashed (no trigger). Life remaining: ${newLife.length}.`, 'damage');
-    } else if (hasTrigger(lifeCard) && targetOwner === PLAYER.HUMAN) {
-      // Human decides whether to activate trigger
+    } else if (hasTrigger(lifeCard) && (targetOwner === PLAYER.HUMAN || s.pvpMode)) {
+      // Defending player decides whether to activate trigger.
+      // Only show the card image to the defender — the attacker learns there is a trigger via the log.
       s = addLog(appendFlash({
         ...s,
         battle: null,
-        waitingFor: PLAYER.HUMAN,
+        waitingFor: targetOwner,
         pendingTrigger: {
           owner: targetOwner,
           lifeCard,
@@ -860,14 +1072,17 @@ export function applyResolveDamage(state) {
           doubleAtkBattle: (isDoubleAtk && !battle.secondHit && newLife.length > 0)
             ? { ...battle, step: BATTLE_STEP.DAMAGE, defPower: 0, secondHit: true }
             : null,
+          attackerOwner,
+          attackerZone: battle.attackerZone,
+          attackerIndex: battle.attackerIndex,
         },
         [targetOwner]: { ...defPs, lifeArea: newLife, lifeAreaFaceUp: newFaceUp },
-      }, lifeCard, 'LIFE_TO_HAND'), `Life card revealed: ${cn(lifeCard)} — has Trigger!`, 'damage');
+      }, lifeCard, 'LIFE_TO_HAND', { forPlayer: targetOwner }), `Life card revealed: ${cn(lifeCard)} — has Trigger!`, 'damage');
     } else {
-      // No trigger (or AI): card goes to hand
+      // No trigger (or AI): card goes to hand — private info, only show to the defending player.
       const baseNoDmg = { ...s, battle: null, waitingFor: s.activePlayer, [targetOwner]: { ...defPs, lifeArea: newLife, lifeAreaFaceUp: newFaceUp, hand: [...defPs.hand, lifeCard] } };
       s = addLog(
-        humanLife ? appendFlash(baseNoDmg, lifeCard, 'LIFE_TO_HAND') : baseNoDmg,
+        (humanLife || s.pvpMode) ? appendFlash(baseNoDmg, lifeCard, 'LIFE_TO_HAND', { forPlayer: targetOwner }) : baseNoDmg,
         `Damage! Life → hand. Life remaining: ${newLife.length}.`, 'damage');
 
       if (isDoubleAtk && !battle.secondHit && newLife.length > 0) {
@@ -885,6 +1100,14 @@ export function applyResolveDamage(state) {
       s = resolveOnDamageTakenEffect(s[targetOwner].leader.card, s, targetOwner);
     }
 
+    // Fire "造成傷害時" effects on the attacking card (e.g. OP03-040 Nami: mill 1 on damage).
+    if (!s.pendingTrigger && !s.winner) {
+      const atkCard = battle.attackerZone === 'leader'
+        ? s[attackerOwner].leader.card
+        : s[attackerOwner].characterArea[battle.attackerIndex]?.card;
+      if (atkCard) s = resolveOnDealDamageEffect(atkCard, s, attackerOwner, battle.attackerZone, battle.attackerIndex);
+    }
+
     // Win check: life = 0 AND leader is hit again = win
     // (The rule is: win when life = 0 AND attack succeeds against leader)
     if (s[targetOwner]?.lifeArea?.length === 0 && !s.pendingTrigger) {
@@ -895,7 +1118,17 @@ export function applyResolveDamage(state) {
   } else {
     // KO the target character
     const defPs = s[targetOwner];
-    const koFC  = defPs.characterArea[targetIndex];
+
+    // Re-locate target: a 對方攻擊時 effect may have trashed a character and shifted indices.
+    let resolvedTargetIndex = targetIndex;
+    if (battle.targetCardId && defPs.characterArea[targetIndex]?.card.id !== battle.targetCardId) {
+      resolvedTargetIndex = defPs.characterArea.findIndex(fc => fc.card.id === battle.targetCardId);
+    }
+    const koFC = defPs.characterArea[resolvedTargetIndex];
+    if (!koFC) {
+      // Target was already removed by a battle-effect — skip KO, clear battle state.
+      return clearBattleMods({ ...s, battle: null, waitingFor: s.activePlayer });
+    }
 
     const returnedDon = Array.from({ length: koFC.attachedDon }, (_, i) =>
       ({ ...makeDon(`ko-${i}`), state: 'rest' })
@@ -904,12 +1137,12 @@ export function applyResolveDamage(state) {
     // Check for character self leave-field replacement FIRST (e.g. EB04-044: discard to stay)
     const handCountBefore = defPs.hand.length;
     const selfReplaceState = resolveCharacterLeaveFieldEffect(
-      koFC.card, { target: targetIndex }, { ...s, battle: null, waitingFor: targetOwner }, targetOwner
+      koFC.card, { target: resolvedTargetIndex }, { ...s, battle: null, waitingFor: targetOwner }, targetOwner
     );
     if (selfReplaceState.pendingEffect) {
       return {
         ...selfReplaceState,
-        pendingLeaveField: { context: 'KO', targetOwner, koCard: koFC.card, targetIndex, returnedDon },
+        pendingLeaveField: { context: 'KO', targetOwner, koCard: koFC.card, targetIndex: resolvedTargetIndex, returnedDon },
       };
     }
     if (selfReplaceState[targetOwner].hand.length < handCountBefore) {
@@ -922,21 +1155,20 @@ export function applyResolveDamage(state) {
     }
 
     // Check for leader KO-replacement effect BEFORE applying the KO.
-    // Uses "KO替換時" timing so it doesn't re-trigger in the post-KO watch flow.
     const lifeCountBefore = defPs.lifeArea.length;
     const preKoState = resolveLeaderKOReplacementEffect(
-      koFC.card, { ...s, battle: null, waitingFor: targetOwner }, targetOwner
+      koFC.card, { ...s, battle: null, waitingFor: targetOwner }, targetOwner, resolvedTargetIndex
     );
     if (preKoState.pendingEffect) {
       // Human player must decide — store KO info and wait for RESOLVE_EFFECT_CHOICE
       return {
         ...preKoState,
-        pendingKOReplacement: { targetOwner, koCard: koFC.card, targetIndex, returnedDon },
+        pendingKOReplacement: { targetOwner, koCard: koFC.card, targetIndex: resolvedTargetIndex, returnedDon },
       };
     }
-    if (preKoState[targetOwner].lifeArea.length < lifeCountBefore) {
+    if (preKoState[targetOwner].lifeArea.length < lifeCountBefore || preKoState.leaderKOPreventionApplied) {
       // Replacement auto-fired (AI) — KO prevented; clear battle mods and return
-      s = clearPowerMods(preKoState, PLAYER.HUMAN, 'battle');
+      s = clearPowerMods({ ...preKoState, leaderKOPreventionApplied: undefined }, PLAYER.HUMAN, 'battle');
       s = clearPowerMods(s, PLAYER.AI, 'battle');
       s = drainOnPlayTriggers(s);
       const w = checkWinner(s);
@@ -949,7 +1181,9 @@ export function applyResolveDamage(state) {
       waitingFor: s.activePlayer,
       [targetOwner]: {
         ...defPs,
-        characterArea: defPs.characterArea.filter((_, i) => i !== targetIndex),
+        characterArea: defPs.characterArea.filter((_, i) => i !== resolvedTargetIndex),
+        powerMods: shiftModsAfterRemoval(defPs.powerMods ?? [], resolvedTargetIndex),
+        costMods:  shiftModsAfterRemoval(defPs.costMods  ?? [], resolvedTargetIndex),
         trash: [...defPs.trash, koFC.card],
         costArea: [...defPs.costArea, ...returnedDon],
       },
@@ -960,14 +1194,17 @@ export function applyResolveDamage(state) {
       s = resolveOnKOEffect(koFC.card, s, targetOwner);
       s = drainOnPlayTriggers(s);
     }
-    // Fire leader KO-watch effects (e.g. OP14-041: "when your 《九蛇海賊團》 char is KO'd, ...")
+    // Fire leader KO-watch effects for own-character KOs (e.g. OP14-041: "when your char is KO'd, ...")
     if (!s.pendingEffect) {
       s = resolveLeaderKOWatchEffect(koFC.card, s, targetOwner);
     }
+    // Fire leader KO-watch effects for opponent-character KOs on the attacker's leader (e.g. OP03-076 Lucci)
+    if (!s.pendingEffect) {
+      s = resolveLeaderKOWatchEffect(koFC.card, s, attackerOwner, 'opponent');
+    }
     // Fire field-character watch effects on the attacker's side (e.g. EB04-044: "when opponent char is KO'd, draw 1")
     if (!s.pendingEffect) {
-      const attackerPlayer = targetOwner === PLAYER.HUMAN ? PLAYER.AI : PLAYER.HUMAN;
-      s = resolveOpponentKOWatchEffect(koFC.card, s, attackerPlayer);
+      s = resolveOpponentKOWatchEffect(koFC.card, s, attackerOwner);
     }
   }
 
@@ -1007,31 +1244,56 @@ export function applyResolveTrigger(state, { activate }) {
     return applyResolveDamage({ ...s, battle: t.doubleAtkBattle });
   }
 
+  // Fire 受到傷害時 effects after trigger resolution — the damage happened before the
+  // trigger pause, so these effects are deferred until now.
+  function withDamageTakenEffects(s) {
+    let r = runEffectContinuation(s);
+    if (!r.pendingTrigger && !r.winner)
+      r = resolveOnDamageTakenEffect(r[t.owner].leader.card, r, t.owner);
+    // Fire "造成傷害時" on the attacker's card (deferred from trigger path, same as non-trigger path).
+    if (!r.pendingTrigger && !r.winner && t.attackerOwner) {
+      const atkCard = t.attackerZone === 'leader'
+        ? r[t.attackerOwner]?.leader?.card
+        : r[t.attackerOwner]?.characterArea?.[t.attackerIndex]?.card;
+      if (atkCard) r = resolveOnDealDamageEffect(atkCard, r, t.attackerOwner, t.attackerZone, t.attackerIndex);
+    }
+    // Fire "生命值卡變成0張時" if life hit zero and trigger deferred it (e.g. OP05-098 Enel).
+    if (!r.pendingTrigger && !r.winner && r[t.owner]?.lifeArea?.length === 0)
+      r = resolveOnLifeZeroEffect(r[t.owner].leader.card, r, t.owner);
+    return applyDoubleAtkSecondHit(r);
+  }
+
   if (!activate) {
-    const withCard = {
-      ...state,
-      pendingTrigger: null,
-      waitingFor: state.activePlayer,
-      [t.owner]: { ...ps, hand: [...ps.hand, t.lifeCard] },
-    };
-    const afterLog = addLog(withCard, `Trigger declined. ${cn(t.lifeCard)} added to hand.`, 'info');
-    return applyDoubleAtkSecondHit(runEffectContinuation(afterLog));
+    // Card already in its final zone (e.g. LIFE_TO_TRASH cost): don't move it again.
+    const withCard = t.cardAlreadyInZone
+      ? { ...state, pendingTrigger: null, waitingFor: state.activePlayer }
+      : { ...state, pendingTrigger: null, waitingFor: state.activePlayer, [t.owner]: { ...ps, hand: [...ps.hand, t.lifeCard] } };
+    const afterLog = addLog(withCard,
+      t.cardAlreadyInZone
+        ? `Trigger declined. ${cn(t.lifeCard)} stays in ${t.cardAlreadyInZone}.`
+        : `Trigger declined. ${cn(t.lifeCard)} added to hand.`,
+      'info');
+    return withDamageTakenEffects(afterLog);
   }
 
   // Event card triggers: card goes to trash when activated (it's consumed like a played event).
   // Other card types (Character, Stage) go to hand.
+  // If card is already in its final zone (e.g. LIFE_TO_TRASH), don't move it again.
   const isEvent = t.lifeCard.category === 'Event';
-  const withCard = {
-    ...state,
-    pendingTrigger: null,
-    waitingFor: state.activePlayer,
-    [t.owner]: isEvent
-      ? { ...ps, trash: [...ps.trash, t.lifeCard] }
-      : { ...ps, hand: [...ps.hand, t.lifeCard] },
-  };
+  const withCard = t.cardAlreadyInZone
+    ? { ...state, pendingTrigger: null, waitingFor: state.activePlayer }
+    : {
+        ...state,
+        pendingTrigger: null,
+        waitingFor: state.activePlayer,
+        [t.owner]: isEvent
+          ? { ...ps, trash: [...ps.trash, t.lifeCard] }
+          : { ...ps, hand: [...ps.hand, t.lifeCard] },
+      };
   const afterTrigger = resolveTriggerEffect(t.lifeCard, withCard, t.owner);
-  const afterLog = addLog(afterTrigger, `Trigger activated: ${cn(t.lifeCard)}.`, 'action');
-  return applyDoubleAtkSecondHit(runEffectContinuation(afterLog));
+  // Trigger activation is public — reveal the card to both players.
+  const afterLog = addLog(appendFlash(afterTrigger, t.lifeCard, 'TRIGGER'), `Trigger activated: ${cn(t.lifeCard)}.`, 'action');
+  return withDamageTakenEffects(afterLog);
 }
 
 // ── Activate: Main ───────────────────────────────────────────────────────────
@@ -1044,7 +1306,9 @@ export function applyActivateMain(state, { zone, index }) {
   const fc = zone === 'leader' ? ps.leader : zone === 'stage' ? ps.stageArea : ps.characterArea[index];
   if (!fc) return state;
 
-  let s = resolveActivatedMainEffect(fc.card, state, p, zone, index);
+  const stateWithLog = addLog(state, `Activated main effect: ${cn(fc.card)}.`, 'action');
+  let s = resolveActivatedMainEffect(fc.card, stateWithLog, p, zone, index);
+  if (s === stateWithLog) return state; // no effect triggered — discard the log entry
   // Drain KO-timing effects queued by any non-interactive KOs during activation
   if (!s.pendingEffect && !s.pendingReplace && s.pendingKOEffects?.length) {
     const koEffects = s.pendingKOEffects;
@@ -1055,6 +1319,12 @@ export function applyActivateMain(state, { zone, index }) {
         s = resolveLeaderKOWatchEffect(card, s, koOwner);
       if (s.pendingEffect || s.pendingReplace) break;
     }
+  }
+  // Fire 自己角色效果離場時 on the active player's leader if a character was removed by effect
+  if (!s.pendingEffect && !s.pendingReplace && s.pendingOwnCharRemovedFor) {
+    const removedOwner = s.pendingOwnCharRemovedFor;
+    s = { ...s, pendingOwnCharRemovedFor: null };
+    s = resolveLeaderOwnCharRemovedEffect(s, removedOwner);
   }
   return s;
 }
@@ -1096,6 +1366,7 @@ export function applyResolveReplace(state, { replaceIndex }) {
   }, card, null), `Replaced ${cn(replaceFC.card)} with ${cn(card)}.`, 'action');
 
   if (type === 'PLAY_CHARACTER') {
+    s = { ...s, pendingOpponentDeployTrigger: s.pendingOpponentDeployTrigger ?? { card, deployOwner: owner, isViaCharEffect: false } };
     return resolveOnPlayEffect(card, s, owner);
   }
   // DEPLOY / DEPLOY_FROM_TRASH: queue on-play trigger for the replaced-in card
@@ -1114,12 +1385,29 @@ export function applyEndTurn(state) {
   const next    = current === PLAYER.HUMAN ? PLAYER.AI : PLAYER.HUMAN;
   const newTurn = next === state.firstPlayer ? state.turn + 1 : state.turn;
 
+  const humanLabel = state.playerNames?.human;
+  const aiLabel    = state.playerNames?.ai;
+  const humanTurn  = humanLabel ? `${humanLabel}'s turn` : 'Your turn';
+  const aiTurn     = aiLabel    ? `${aiLabel}'s turn`    : "AI's turn";
+  const humanLose  = humanLabel ? `${humanLabel} loses`  : 'You lose';
+  const aiLose     = aiLabel    ? `${aiLabel} loses`     : 'AI loses';
+
+  // OP15-022 Brook rule: lose at end of turn if deck is 0 (delayed loss instead of immediate).
+  if (leaderHasDeckEmptyException(state, current) && state[current].deck.length === 0) {
+    return addLog({ ...state, winner: next }, `Deck is empty — ${current === PLAYER.HUMAN ? humanLose : aiLose} at end of turn.`, 'phase');
+  }
+
   // Fire end-of-turn effects before switching player
   let s = resolveEndOfTurnEffects(state, current);
 
+  // Clear turn-duration power/cost mods for the player whose turn is ending
+  s = clearPowerMods(s, current, 'turn');
+  s = clearCostMods(s, current, 'turn');
+  s = clearHandCostMods(s, current, 'turn');
+
   // Clear justDeployed, rushCharOnly, restLocked, attackLocked, and temp keyword grants on the current player's characters and leader
-  const cleanChars = s[current].characterArea.map(fc => ({ ...fc, justDeployed: false, rushCharOnly: false, restLocked: false, attackLocked: false, willBottomDeckAtEndOfTurn: false, tempKeywords: [] }));
-  const cleanLeader = { ...s[current].leader, tempKeywords: [] };
+  const cleanChars = s[current].characterArea.map(fc => ({ ...fc, justDeployed: false, rushCharOnly: false, restLocked: false, attackLocked: false, willBottomDeckAtEndOfTurn: false, tempKeywords: [], attackCostRestriction: null }));
+  const cleanLeader = { ...s[current].leader, tempKeywords: [], attackCostRestriction: null };
 
   return addLog({
     ...s,
@@ -1128,7 +1416,7 @@ export function applyEndTurn(state) {
     phase: PHASE.REFRESH,
     turn: newTurn,
     [current]: { ...s[current], characterArea: cleanChars, leader: cleanLeader },
-  }, `─── Turn ${newTurn}: ${next === PLAYER.HUMAN ? 'Your turn' : "AI's turn"} ───`, 'phase');
+  }, `─── Turn ${newTurn}: ${next === PLAYER.HUMAN ? humanTurn : aiTurn} ───`, 'phase');
 }
 
 // ---------------------------------------------------------------------------
@@ -1140,6 +1428,12 @@ export function gameReducer(state, action) {
     return { ...state, devRevealOpponent: !state.devRevealOpponent };
   }
 
+  if (action.type === 'CONCEDE') {
+    const loser = action.player;
+    const winner = loser === PLAYER.HUMAN ? PLAYER.AI : PLAYER.HUMAN;
+    return addLog({ ...state, winner }, `${loser === PLAYER.HUMAN ? 'You conceded' : 'Opponent conceded'}.`, 'phase');
+  }
+
   if (state.winner) return state; // Game over — no more actions
 
   switch (action.type) {
@@ -1149,17 +1443,37 @@ export function gameReducer(state, action) {
     case 'PLAY_CHARACTER':   return applyPlayCharacter(state, action);
     case 'PLAY_STAGE':       return applyPlayStage(state, action);
     case 'PLAY_EVENT':       return applyPlayEvent(state, action);
-    case 'ATTACH_DON':       return applyAttachDon(state, action);
+    case 'ATTACH_DON': {
+      const next = applyAttachDon(state, action);
+      // Guard: if applyAttachDon returns the same reference (no active DON!! available),
+      // return a new object so React re-renders and the AI useEffect re-fires — prevents
+      // a permanent AI freeze when the planned DON count diverges from real game state.
+      return next === state ? { ...state } : next;
+    }
     case 'REMOVE_CHARACTER': return applyRemoveCharacter(state, action);
-    case 'DECLARE_ATTACK':   return applyDeclareAttack(state, action);
+    case 'DECLARE_ATTACK': {
+      const next = applyDeclareAttack(state, action);
+      // Guard: if applyDeclareAttack returns the same reference (attacker has CANNOT_ATTACK,
+      // is rested, or target is invalid), return a new object so React re-renders and the
+      // AI useEffect re-fires — prevents permanent freeze on stale DECLARE_ATTACK actions.
+      return next === state ? { ...state } : next;
+    }
     case 'USE_BLOCKER':      return applyUseBlocker(state, action);
+    case 'UNBLOCK':          return applyUnblock(state);
     case 'SKIP_BLOCK':       return applySkipBlock(state);
     case 'PLAY_COUNTER':     return applyPlayCounter(state, action);
     case 'SKIP_COUNTER':     return applySkipCounter(state);
     case 'RESOLVE_DAMAGE':   return applyResolveDamage(state);
     case 'RESOLVE_TRIGGER':       return applyResolveTrigger(state, action);
     case 'RESOLVE_EFFECT_CHOICE': {
+      if (state.pendingEffect?.choices?.type === 'CHOOSE_EOT_EFFECT_ORDER') {
+        const pickedIdx = action.selectedIndices?.[0] ?? 0;
+        return drainOnPlayTriggers(resolveEotEffectChoice(state, pickedIdx));
+      }
+      const wasDonReturn = state.pendingEffect?.choices?.type === 'CHOOSE_DON_RETURN';
+      const donReturnOwner = state.pendingEffect?.owner;
       let s = drainOnPlayTriggers(resolveEffectChoice(state, action));
+      if (wasDonReturn && !s.pendingEffect) s = resolveOnDonReturnTrigger(s, donReturnOwner);
       // If a pending KO replacement just resolved (confirmed or rejected), clear battle-duration mods.
       if (state.pendingKOReplacement && !s.pendingKOReplacement) {
         s = clearPowerMods(s, PLAYER.HUMAN, 'battle');
@@ -1175,6 +1489,12 @@ export function gameReducer(state, action) {
             s = resolveLeaderKOWatchEffect(card, s, koOwner);
           if (s.pendingEffect || s.pendingReplace) break;
         }
+      }
+      // Fire 自己角色效果離場時 on the active player's leader if a character was removed by effect
+      if (!s.pendingEffect && !s.pendingReplace && s.pendingOwnCharRemovedFor) {
+        const removedOwner = s.pendingOwnCharRemovedFor;
+        s = { ...s, pendingOwnCharRemovedFor: null };
+        s = resolveLeaderOwnCharRemovedEffect(s, removedOwner);
       }
       // If an on-attack interactive effect just resolved and there's a pending battle,
       // finalize the battle declaration now that the effect is done.
@@ -1220,7 +1540,8 @@ export function gameReducer(state, action) {
           }
         }
       }
-      // Recalculate battle defPower after 對方攻擊時 interactive effects (power mods may have changed).
+      // Recalculate battle atkPower and defPower after 對方攻擊時 interactive effects
+      // (power mods may have changed either side — e.g. OP13-002 reduces atkPower).
       if (!s.pendingEffect && !s.pendingBattle && s.battle) {
         const battle = s.battle;
         const defFC  = battle.targetZone === 'leader'
@@ -1229,14 +1550,33 @@ export function gameReducer(state, action) {
         if (defFC) {
           const newDefPower = calcPower(defFC, battle.attackerOwner, battle.targetOwner, s);
           if (newDefPower !== battle.defPower) {
-            s = { ...s, battle: { ...battle, defPower: newDefPower } };
+            s = { ...s, battle: { ...s.battle, defPower: newDefPower } };
           }
         }
+        const atkFC = battle.attackerZone === 'leader'
+          ? s[battle.attackerOwner].leader
+          : s[battle.attackerOwner].characterArea[battle.attackerIndex];
+        if (atkFC) {
+          const newAtkPower = calcPower(atkFC, battle.attackerOwner, battle.attackerOwner, s);
+          if (newAtkPower !== s.battle.atkPower) {
+            s = { ...s, battle: { ...s.battle, atkPower: newAtkPower } };
+          }
+        }
+      }
+      // Resume remaining EOT effects queued by the ordering prompt.
+      if (!s.pendingEffect && !s.pendingReplace && s.pendingEotSources?.remaining?.length) {
+        s = resumeEotSequence(s);
       }
       return s;
     }
     case 'RESOLVE_REPLACE':       return applyResolveReplace(state, action);
-    case 'ACTIVATE_MAIN':         return applyActivateMain(state, action);
+    case 'ACTIVATE_MAIN': {
+      const next = applyActivateMain(state, action);
+      // Guard: if applyActivateMain returns the same reference (no effect triggered or
+      // precondition failed), return a new object so React re-renders and the AI
+      // useEffect re-fires — prevents permanent AI freeze on stale ACTIVATE_MAIN actions.
+      return next === state ? { ...state } : next;
+    }
     case 'END_TURN':          return applyEndTurn(state);
     case 'MULLIGAN_KEEP':          return applyMulliganKeep(state);
     case 'MULLIGAN_REDRAW':        return applyMulliganRedraw(state);

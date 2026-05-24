@@ -245,10 +245,10 @@ const MarketplaceView = ({
                 {/* 1. Table Header: Define 4 Clear Columns */}
                 <thead className="sticky top-0 z-10 bg-slate-900 border-b border-slate-700">
                   <tr className="text-slate-400 text-[9px] uppercase tracking-widest">
-                    <th className="px-3 py-3 font-bold">卡牌 (Card)</th>
-                    <th className="px-3 py-3 font-bold text-right">單價 ($)</th>
-                    <th className="px-3 py-3 font-bold text-center">數量</th>
-                    <th className="px-3 py-3 font-bold text-right">總計</th>
+                    <th className="px-3 py-3 font-bold">{t("market_card_col")}</th>
+                    <th className="px-3 py-3 font-bold text-right">{t("market_unit_price")}</th>
+                    <th className="px-3 py-3 font-bold text-center">{t("market_qty")}</th>
+                    <th className="px-3 py-3 font-bold text-right">{t("market_total")}</th>
                   </tr>
                 </thead>
 
@@ -300,7 +300,7 @@ const MarketplaceView = ({
                     {/* Use a solid bg here so rows don't bleed through */}
                     <td colSpan="2" className="px-3 py-4">
                       <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">
-                        {isMarketMode ? "Bulk Total 總計" : "Grand Total 總計"}
+                        {isMarketMode ? t("market_bulk_total") : t("market_grand_total")}
                       </span>
                     </td>
                     <td colSpan="2" className="px-3 py-4 text-right">
@@ -321,8 +321,8 @@ const MarketplaceView = ({
 
           <button
             onClick={generateMarketShareUrl}
-            className="px-6 py-4 rounded-xl flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-900/40 group active:scale-95 text-white font-bold"
-            title="分享市場報價 / Share Market Prices"
+            className="px-6 py-2 rounded-xl flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-900/40 group active:scale-95 text-white font-bold"
+            title={t("share_price")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -333,7 +333,7 @@ const MarketplaceView = ({
               <path d="M448 256c-10.6 0-20.9 1.9-30.4 5.4L214.7 150.2c.2-2 .3-4.1 .3-6.2c0-35.3-28.7-64-64-64s-64 28.7-64 64s28.7 64 64 64c10.6 0 20.9-1.9 30.4-5.4L385.3 313.8c-.2 2-.3 4.1-.3 6.2s.1 4.2 .3 6.2L181.3 430.6c-9.5-3.5-19.8-5.4-30.4-5.4c-35.3 0-64 28.7-64 64s28.7 64 64 64s64-28.7 64-64c0-2.1-.1-4.2-.3-6.2L417.6 383.4c9.5 3.5 19.8 5.4 30.4 5.4c35.3 0 64-28.7 64-64s-28.7-64-64-64z" />
             </svg>
             <span className="font-bold text-xs tracking-wide text-white whitespace-nowrap">
-              分享市場報價
+              {t("share_price")}
             </span>
           </button>
           <button
@@ -414,7 +414,7 @@ const MarketplaceView = ({
                 {integrity.missingData.length > 0 && (
                   <div>
                     <p className="text-amber-500 text-[11px] font-bold uppercase mb-1">
-                      ⚠️ 找不到卡牌資料:
+                      {t("card_not_found")}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {integrity.missingData.map((id) => (
@@ -632,12 +632,12 @@ const MarketplaceView = ({
                   {/* 1. Table Header: Define 4 Clear Columns */}
                   <thead className="sticky top-0 z-10 bg-slate-900 border-b border-slate-700">
                     <tr className="text-slate-400 text-[9px] uppercase tracking-widest">
-                      <th className="px-3 py-3 font-bold">卡牌 (Card)</th>
+                      <th className="px-3 py-3 font-bold">{t("market_card_col")}</th>
                       <th className="px-3 py-3 font-bold text-right">
                         單價 ($)
                       </th>
-                      <th className="px-3 py-3 font-bold text-center">數量</th>
-                      <th className="px-3 py-3 font-bold text-right">總計</th>
+                      <th className="px-3 py-3 font-bold text-center">{t("market_qty")}</th>
+                      <th className="px-3 py-3 font-bold text-right">{t("market_total")}</th>
                     </tr>
                   </thead>
 
@@ -721,7 +721,7 @@ const MarketplaceView = ({
                 >
                   <path d="M448 256c-10.6 0-20.9 1.9-30.4 5.4L214.7 150.2c.2-2 .3-4.1 .3-6.2c0-35.3-28.7-64-64-64s-64 28.7-64 64s28.7 64 64 64c10.6 0 20.9-1.9 30.4-5.4L385.3 313.8c-.2 2-.3 4.1-.3 6.2s.1 4.2 .3 6.2L181.3 430.6c-9.5-3.5-19.8-5.4-30.4-5.4c-35.3 0-64 28.7-64 64s28.7 64 64 64s64-28.7 64-64c0-2.1-.1-4.2-.3-6.2L417.6 383.4c9.5 3.5 19.8 5.4 30.4 5.4c35.3 0 64-28.7 64-64s-28.7-64-64-64z" />
                 </svg>
-                分享市場報價
+                {t("share_price")}
               </button>
               <button
                 onClick={copySimFormat}

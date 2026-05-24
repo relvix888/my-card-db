@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-export function useFlashQueue(cardFlashQueue, dispatch) {
+export function useFlashQueue(cardFlashQueue, dispatch, myRole = null) {
   const localFlashQueue = useRef([]);
   const activeFlashRef  = useRef(null);
   const flashTimerRef   = useRef(null);
@@ -21,9 +21,13 @@ export function useFlashQueue(cardFlashQueue, dispatch) {
 
   useEffect(() => {
     if (!cardFlashQueue?.length) return;
-    localFlashQueue.current.push(...cardFlashQueue);
+    // Filter out flashes tagged for a specific player that isn't the current viewer.
+    const visible = myRole
+      ? cardFlashQueue.filter(f => !f.forPlayer || f.forPlayer === myRole)
+      : cardFlashQueue;
+    localFlashQueue.current.push(...visible);
     dispatch({ type: 'CONSUME_FLASH_QUEUE' });
-    if (!activeFlashRef.current) {
+    if (!activeFlashRef.current && visible.length > 0) {
       advanceFlash();
     }
   }, [cardFlashQueue?.length]); // eslint-disable-line

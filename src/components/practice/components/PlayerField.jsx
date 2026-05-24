@@ -1,10 +1,12 @@
 import React from 'react';
 import FieldCardSlot from './FieldCardSlot';
 import DonArea from './DonArea';
-import { getSafeImageUrl } from '../../../utils/cardHelpers';
-import { evaluateContinuousPower, evaluateGlobalContinuousPower, evaluateCharBasePowerOverride, evaluateLeaderBasePowerOverride } from '../engine/effects';
+import { getSafeImageUrl, cardBackImg, donImg } from '../../../utils/cardHelpers';
+import { evaluateContinuousPower, evaluateGlobalContinuousPower, evaluateCharBasePowerOverride, evaluateLeaderBasePowerOverride, fcEffectiveHasDoubleAtk, fcEffectiveHasBlocker, fcHasBanish, fcHasUnblock, fcHasRush, fcHasCharRushOnly } from '../engine/effects';
+import { evaluateContinuousCostDelta } from '../engine/effectActions';
+import { BATTLE_STEP } from '../engine/constants';
 
-const DON_IMG = '/don.png';
+const DON_IMG = donImg;
 
 export default function PlayerField({
   playerState,
@@ -19,14 +21,17 @@ export default function PlayerField({
   onLeaderClick,
   onCharacterClick,
   onStageClick,
-  onDonCardClick,
+  onDonAreaClick,
   onTrashClick,
   donPendingIds,
   donReturnMode,
   donReturnOptions,
   selectedDonReturnIndices,
   onCostDonReturnClick,
+  effectHighlight = null,
   revealed = false,
+  isCompact = false,
+  disableStats = false,
 }) {
   const { leader, characterArea = [], stageArea, lifeArea = [], lifeAreaFaceUp = [], costArea = [], donDeck = [], trash = [] } = playerState;
 
@@ -46,7 +51,7 @@ export default function PlayerField({
   }
 
   const activeDonCount = costArea.filter(d => d.state === 'active').length;
-  const small = false;
+  const small = isCompact;
 
   // How many attached don from each source are selected for return
   const selectedLeaderDonCount = donReturnMode && donReturnOptions
@@ -57,6 +62,16 @@ export default function PlayerField({
         donReturnOptions.filter((o, i) => o.source === 'character' && o.charIndex === ci && selectedDonReturnIndices?.includes(i)).length
       )
     : [];
+
+  // ── Blocker eligibility ────────────────────────────────────────────────────
+  const inBlockStep = battle?.step === BATTLE_STEP.BLOCK;
+  const isDefender  = inBlockStep && owner === battle?.targetOwner;
+  const attackerFC  = inBlockStep
+    ? (battle.attackerZone === 'leader'
+        ? state?.[battle.attackerOwner]?.leader
+        : state?.[battle.attackerOwner]?.characterArea?.[battle.attackerIndex])
+    : null;
+  const attackerHasUnblock = attackerFC ? fcHasUnblock(attackerFC) : false;
 
   // ── 1. Character area ──────────────────────────────────────────────────────
   const CharRow = (
@@ -75,7 +90,14 @@ export default function PlayerField({
           + charBaseDelta;
         const charCostModDelta = (playerState.costMods ?? [])
           .filter(m => m.target === i)
-          .reduce((sum, m) => sum + m.delta, 0);
+          .reduce((sum, m) => sum + m.delta, 0)
+          + (state ? evaluateContinuousCostDelta(fc, owner, state) : 0);
+        const charHasDoubleAtk  = state ? fcEffectiveHasDoubleAtk(fc, activePlayer, owner, state) : false;
+        const charHasBlocker    = state ? fcEffectiveHasBlocker(fc, owner, activePlayer, state) : false;
+        const charHasBanish     = fcHasBanish(fc);
+        const charHasUnblock    = fcHasUnblock(fc);
+        const charHasRush       = fcHasRush(fc);
+        const charHasCharRush   = fcHasCharRushOnly(fc);
         return (
           <div key={`${fc.card.id}-${i}`} className="relative flex-shrink-0">
             <FieldCardSlot
@@ -83,12 +105,21 @@ export default function PlayerField({
               isSelected={selectedZone === 'character' && selectedIndex === i && owner === 'human'}
               isAttacker={isAttacker('character', i)}
               isTargetable={(targetableChars && targetableChars.has(i)) || isTarget('character', i) || (donReturnMode && charHasReturnable)}
+              isEffectHighlight={effectHighlight?.zone === 'character' && effectHighlight?.index === i && (!effectHighlight?.targetOwner || effectHighlight?.targetOwner === owner)}
+              isEligibleBlocker={isDefender && !attackerHasUnblock && fc.state === 'active' && charHasBlocker}
               isSmall={small}
               activePlayer={activePlayer}
               owner={owner}
               powerModDelta={charPowerModDelta}
               costModDelta={charCostModDelta}
+              hasDoubleAtk={charHasDoubleAtk}
+              hasBlocker={charHasBlocker}
+              hasBanish={charHasBanish}
+              hasUnblock={charHasUnblock}
+              hasRush={charHasRush}
+              hasCharRush={charHasCharRush}
               battleRole={isAttacker('character', i) ? 'attacker' : isTarget('character', i) ? 'target' : undefined}
+              disableStats={disableStats}
               onClick={() => onCharacterClick?.(i)}
             />
             {donReturnMode && charAttached > 0 && (
@@ -124,10 +155,10 @@ export default function PlayerField({
         {playerState.deck.length > 0 ? (
           <>
             <img
-              src={revealed ? getSafeImageUrl(playerState.deck[playerState.deck.length - 1]) : '/images/card_back.png'}
+              src={revealed ? getSafeImageUrl(playerState.deck[playerState.deck.length - 1]) : cardBackImg}
               alt="Deck"
               className="w-full h-full object-cover"
-              onError={e => { e.target.src = '/images/card_back.png'; }}
+              onError={e => { e.target.src = cardBackImg; }}
             />
             <span className="absolute inset-0 flex items-center justify-center">
               <span className="bg-slate-900/70 text-white text-sm font-black px-1.5 py-0.5 rounded">
@@ -173,7 +204,7 @@ export default function PlayerField({
                 style={{ width: lcH, height: lcW, left: 0, bottom: i * lcOffset, zIndex: i }}
               >
                 <img
-                  src={isFaceUp ? getSafeImageUrl(card) : '/images/card_back.png'}
+                  src={isFaceUp ? getSafeImageUrl(card) : cardBackImg}
                   alt="Life card"
                   className="object-cover"
                   style={{
@@ -184,7 +215,7 @@ export default function PlayerField({
                     left: '50%',
                     transform: 'translate(-50%, -50%) rotate(90deg)',
                   }}
-                  onError={e => { e.target.src = '/images/card_back.png'; }}
+                  onError={e => { e.target.src = cardBackImg; }}
                 />
               </div>
             );
@@ -203,18 +234,18 @@ export default function PlayerField({
     </div>
   );
 
-  // ── Top row: Life + Characters + Deck (bottom-aligned, mirrored for opponent)
+  // ── Top row: Life + Characters (bottom-aligned)
   const TopRow = (
     <div className="flex gap-1 items-end">
-      {isOpponent ? DeckWidget : LifeStack}
+      {!isOpponent && LifeStack}
       <div className="flex-1 min-w-0">{CharRow}</div>
-      {isOpponent ? LifeStack : DeckWidget}
+      {isOpponent && LifeStack}
     </div>
   );
 
   // ── Bottom row elements (extracted so opponent can reverse the order) ───────
   const DonDeckEl = (
-    <DonArea donDeck={donDeck} isOpponent={isOpponent} />
+    <DonArea donDeck={donDeck} isOpponent={isOpponent} isSmall={small} />
   );
 
   const pendingSelectedDonIndices = (() => {
@@ -226,78 +257,86 @@ export default function PlayerField({
     return indices;
   })();
 
-  const DonCostEl = (
+  const selectedDonCount = pendingSelectedDonIndices.size;
+
+  const DonCostEl = donReturnMode ? (
+    // Return-mode: compact scrollable row of individual cards for DON return selection
+    <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+      <div
+        className="relative flex gap-0.5 overflow-x-auto scrollbar-hide bg-slate-900/40 rounded-lg border border-slate-700 px-1"
+        style={{ height: small ? 'h-12' : '3.75rem', maxWidth: '7rem' }}
+      >
+        {costArea.map((don, i) => {
+          const returnOptIdx = donReturnOptions
+            ? donReturnOptions.findIndex(o => o.source === 'cost' && o.donId === don._donId)
+            : -1;
+          const isSelectedForReturn = returnOptIdx >= 0 && selectedDonReturnIndices?.includes(returnOptIdx);
+          const isReturnable = returnOptIdx >= 0;
+          const isRested = don.state === 'rest';
+          const boxSize = small ? '2rem' : '2.5rem';
+          return (
+            <div
+              key={don._donId || i}
+              className={`relative flex-shrink-0 flex items-center justify-center ${!isOpponent && isReturnable ? 'cursor-pointer active:scale-95' : ''}`}
+              style={{ width: boxSize, height: boxSize }}
+              onClick={!isOpponent && isReturnable ? (e) => { e.stopPropagation(); onCostDonReturnClick?.(don._donId); } : undefined}
+            >
+              <img
+                src={DON_IMG}
+                alt="DON!!"
+                className={`object-cover rounded ${isSelectedForReturn ? 'border-2 border-red-400' : isRested ? 'border border-slate-400' : 'border border-teal-600'}`}
+                style={{
+                  width: small ? '1.5rem' : '1.875rem',
+                  height: small ? '2rem' : '2.5rem',
+                  transform: isRested ? 'rotate(90deg)' : 'none',
+                  transition: 'transform 0.2s ease',
+                  transformOrigin: 'center center',
+                  opacity: isRested ? 0.75 : 1,
+                }}
+                onError={e => { e.target.style.display = 'none'; }}
+              />
+              {isSelectedForReturn && (
+                <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-white font-black text-[9px] bg-red-600/80 rounded px-0.5">↩</span>
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <span className="text-[7px] text-teal-600 font-bold uppercase tracking-wide">DON!!</span>
+    </div>
+  ) : (
+    // Normal mode: vertical compact card + fraction label, matches DeckWidget style
     <div
-      className="flex-1 relative bg-slate-900/40 rounded-lg border border-slate-700"
-      style={{ height: '5rem' }}
+      className={`flex flex-col items-center gap-0.5 flex-shrink-0 select-none
+        ${!isOpponent && activeDonCount > 0 ? 'cursor-pointer' : ''}`}
+      onClick={!isOpponent && activeDonCount > 0 ? (e) => { e.stopPropagation(); onDonAreaClick?.(); } : undefined}
     >
-      {costArea.map((don, i) => {
-        const isActive = don.state === 'active';
-        const returnOptIdx = donReturnMode && donReturnOptions
-          ? donReturnOptions.findIndex(o => o.source === 'cost' && o.donId === don._donId)
-          : -1;
-        const isSelectedForReturn = returnOptIdx >= 0 && selectedDonReturnIndices?.includes(returnOptIdx);
-        const isReturnable = returnOptIdx >= 0;
-        const isSelectedForAttach = pendingSelectedDonIndices.has(i);
-        const clickable = donReturnMode ? (!isOpponent && isReturnable) : (!isOpponent && isActive);
-        return (
-          <div
-            key={don._donId || i}
-            className={`absolute ${clickable ? 'cursor-pointer active:scale-95' : ''}`}
-            style={{
-              ...(isOpponent ? { right: `${i * 30}px` } : { left: `${i * 30}px` }),
-              top: 0,
-              bottom: 0,
-              display: 'flex',
-              alignItems: 'center',
-              transform: don.state === 'rest' ? 'rotate(90deg) translateY(4px)' : 'none',
-              transition: 'transform 0.2s ease',
-              opacity: donReturnMode ? 1 : (don.state === 'rest' ? 0.5 : 1),
-              zIndex: i,
-            }}
-            onClick={
-              donReturnMode
-                ? (!isOpponent && isReturnable ? (e) => { e.stopPropagation(); onCostDonReturnClick?.(don._donId); } : undefined)
-                : (!isOpponent && isActive ? (e) => { e.stopPropagation(); onDonCardClick?.(don._donId); } : undefined)
-            }
-          >
-            <img
-              src={DON_IMG}
-              alt="DON!!"
-              className={`object-cover rounded shadow-md ${
-                isSelectedForReturn
-                  ? 'border-2 border-red-400 ring-1 ring-red-400'
-                  : isSelectedForAttach
-                    ? 'border-2 border-yellow-400 ring-1 ring-yellow-400'
-                    : (isActive && !isOpponent ? 'border-2 border-teal-400' : 'border border-teal-600')
-              }`}
-              style={{ width: '3.5rem', height: '5rem' }}
-              onError={e => { e.target.style.display = 'none'; }}
-            />
-            {isSelectedForReturn && (
-              <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="text-white font-black text-[10px] bg-red-600/80 rounded px-0.5">↩</span>
-              </span>
-            )}
-            {isSelectedForAttach && (
-              <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="text-white font-black text-[10px] bg-yellow-600/80 rounded px-0.5">✓</span>
-              </span>
-            )}
-          </div>
-        );
-      })}
-      {costArea.length > 0 && (
-        <span
-          className="absolute text-sm font-black text-white bg-slate-900/80 px-1.5 py-0.5 rounded"
-          style={{
-            ...(isOpponent ? { right: `${costArea.length * 30 + 8}px` } : { left: `${costArea.length * 30 + 8}px` }),
-            top: '50%', transform: 'translateY(-50%)', whiteSpace: 'nowrap', zIndex: 20,
-          }}
-        >
-          {activeDonCount}/{costArea.length}
-        </span>
-      )}
+      <div className={`relative ${small ? 'w-12 h-16' : 'w-14 h-20'} rounded-lg overflow-hidden border ${
+        selectedDonCount > 0 ? 'border-yellow-400' :
+        (activeDonCount > 0 && !isOpponent ? 'border-teal-400' : 'border-teal-700')
+      }`}>
+        <img
+          src={DON_IMG}
+          alt="DON!!"
+          className={`w-full h-full object-cover transition-opacity duration-300 ${activeDonCount === 0 ? 'opacity-30' : 'opacity-100'}`}
+          onError={e => { e.target.style.display = 'none'; }}
+        />
+        {selectedDonCount > 0 && (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="bg-yellow-400/90 text-black font-black text-sm px-1 rounded">
+              {selectedDonCount}
+            </span>
+          </span>
+        )}
+      </div>
+      <span className={`text-[8px] font-bold ${
+        selectedDonCount > 0 ? 'text-yellow-400' :
+        activeDonCount === 0 ? 'text-slate-500' : 'text-teal-400'
+      }`}>
+        {activeDonCount}/{costArea.length}
+      </span>
     </div>
   );
 
@@ -308,11 +347,19 @@ export default function PlayerField({
         isSelected={selectedZone === 'leader' && owner === 'human'}
         isAttacker={isAttacker('leader', -1)}
         isTargetable={isTarget('leader', -1) || (targetableChars && targetableChars.has('leader')) || (donReturnMode && leaderHasReturnable)}
-        isSmall={false}
+        isEffectHighlight={effectHighlight?.zone === 'leader' && (!effectHighlight?.targetOwner || effectHighlight?.targetOwner === owner)}
+        isSmall={small}
         activePlayer={activePlayer}
         owner={owner}
         powerModDelta={leaderPowerModDelta}
         battleRole={isAttacker('leader', -1) ? 'attacker' : isTarget('leader', -1) ? 'target' : undefined}
+        disableStats={disableStats}
+        hasDoubleAtk={state ? fcEffectiveHasDoubleAtk(leader, activePlayer, owner, state) : false}
+        hasBlocker={state ? fcEffectiveHasBlocker(leader, owner, activePlayer, state) : false}
+        hasBanish={fcHasBanish(leader)}
+        hasUnblock={fcHasUnblock(leader)}
+        hasRush={fcHasRush(leader)}
+        hasCharRush={fcHasCharRushOnly(leader)}
         onClick={() => onLeaderClick?.()}
       />
       {donReturnMode && leaderAttached > 0 && (
@@ -327,8 +374,9 @@ export default function PlayerField({
     <FieldCardSlot
       fieldCard={stageArea}
       label="STAGE"
-      isSmall={false}
+      isSmall={small}
       empty={!stageArea}
+      disableStats={disableStats}
       onClick={onStageClick}
     />
   );
@@ -339,14 +387,14 @@ export default function PlayerField({
       onClick={() => onTrashClick?.()}
       title={`Trash: ${trash.length} cards`}
     >
-      <div className="relative w-14 h-20 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden">
+      <div className={`relative ${small ? 'w-12 h-16' : 'w-14 h-20'} rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden`}>
         {trash.length > 0 ? (
           <>
             <img
               src={getSafeImageUrl(trash[trash.length - 1])}
               alt="Trash"
               className="w-full h-full object-cover opacity-70"
-              onError={e => { e.target.src = '/images/card_back.png'; }}
+              onError={e => { e.target.src = cardBackImg; }}
             />
             <span className="absolute inset-0 flex items-center justify-center">
               <span className="bg-slate-900/70 text-white text-sm font-black px-1.5 py-0.5 rounded">
@@ -362,12 +410,13 @@ export default function PlayerField({
     </div>
   );
 
-  // Opponent mirrors the order: Trash | Stage | Leader | DON cost | DON deck
+  // Human:   DON deck | DON area | Leader | Stage | Deck | Trash
+  // Opponent: Trash | Deck | Stage | Leader | DON area | DON deck
   const BottomRow = (
     <div className="flex items-center gap-1.5">
       {isOpponent
-        ? <>{TrashEl}{StageEl}{LeaderEl}{DonCostEl}{DonDeckEl}</>
-        : <>{DonDeckEl}{DonCostEl}{LeaderEl}{StageEl}{TrashEl}</>
+        ? <>{TrashEl}{DeckWidget}{StageEl}{LeaderEl}{DonCostEl}{DonDeckEl}</>
+        : <>{DonDeckEl}{DonCostEl}{LeaderEl}{StageEl}{DeckWidget}{TrashEl}</>
       }
     </div>
   );
@@ -383,13 +432,13 @@ export default function PlayerField({
             key={i}
             src={getSafeImageUrl(card)}
             alt={card.name}
-            className="w-14 h-20 flex-shrink-0 rounded-lg border border-slate-500 object-cover shadow"
-            onError={e => { e.target.src = '/images/card_back.png'; }}
+            className={`${small ? 'w-12 h-16' : 'w-14 h-20'} flex-shrink-0 rounded-lg border border-slate-500 object-cover shadow`}
+            onError={e => { e.target.src = cardBackImg; }}
           />
         ))
       ) : (
         Array.from({ length: playerState.hand.length }).map((_, i) => (
-          <div key={i} className="w-14 h-20 flex-shrink-0 rounded-lg bg-slate-800 border border-slate-700" />
+          <div key={i} className={`${small ? 'w-12 h-16' : 'w-14 h-20'} flex-shrink-0 rounded-lg bg-slate-800 border border-slate-700`} />
         ))
       )}
     </div>

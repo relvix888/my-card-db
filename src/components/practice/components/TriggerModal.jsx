@@ -1,43 +1,44 @@
 import React from 'react';
-import { getSafeImageUrl } from '../../../utils/cardHelpers';
+import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 
 export default function TriggerBar({ trigger, onResolve }) {
   if (!trigger) return null;
 
   return (
-    <div className="flex-shrink-0 flex items-center gap-3 px-3 py-2 bg-yellow-950/80 border-y border-yellow-500/60">
-      {/* Badge */}
-      <span className="text-yellow-400 font-black text-[10px] uppercase tracking-widest whitespace-nowrap">
-        ⚡ Trigger!
-      </span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+      <div className="pointer-events-auto flex flex-col gap-3 px-5 py-4 bg-yellow-950/95 border border-yellow-500/70 rounded-2xl shadow-2xl shadow-yellow-900/60 backdrop-blur-sm max-w-xs w-full mx-4">
+        {/* Title */}
+        <p className="text-yellow-400 font-black text-sm uppercase tracking-widest text-center">
+          ⚡ Trigger!
+        </p>
 
-      {/* Card thumbnail */}
-      <img
-        src={getSafeImageUrl(trigger.lifeCard)}
-        alt={trigger.lifeCard.name}
-        className="w-8 h-11 rounded object-cover border border-yellow-400/60 flex-shrink-0"
-        onError={e => { e.target.src = '/images/card_back.png'; }}
-      />
+        {/* Body: thumbnail + effect text */}
+        <div className="flex items-start gap-3">
+          <img
+            src={getSafeImageUrl(trigger.lifeCard)}
+            alt={trigger.lifeCard.name}
+            className="w-14 h-20 rounded object-cover border border-yellow-400/60 flex-shrink-0"
+            onError={e => { e.target.src = cardBackImg; }}
+          />
+          <p className="text-yellow-200 text-[11px] leading-snug">{trigger.lifeCard.trigger}</p>
+        </div>
 
-      {/* Card info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-white font-bold text-[10px] truncate">{trigger.lifeCard.name}</p>
-        <p className="text-yellow-300 text-[9px] leading-tight line-clamp-2">{trigger.lifeCard.trigger}</p>
+        {/* Actions */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => onResolve(true)}
+            className="flex-1 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-black text-xs rounded-lg active:scale-95 transition-all"
+          >
+            Activate
+          </button>
+          <button
+            onClick={() => onResolve(false)}
+            className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs rounded-lg active:scale-95 transition-all"
+          >
+            {trigger.cardAlreadyInZone ? 'Decline' : 'To Hand'}
+          </button>
+        </div>
       </div>
-
-      {/* Actions */}
-      <button
-        onClick={() => onResolve(true)}
-        className="flex-shrink-0 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-black font-black text-[10px] rounded-lg active:scale-95 transition-all"
-      >
-        Activate
-      </button>
-      <button
-        onClick={() => onResolve(false)}
-        className="flex-shrink-0 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white font-bold text-[10px] rounded-lg active:scale-95 transition-all"
-      >
-        To Hand
-      </button>
     </div>
   );
 }

@@ -3,10 +3,13 @@ const path = require("path");
 const axios = require("axios");
 
 // Adjust these paths based on your folder structure
-const dataFolderPath = path.resolve(__dirname, "../../../opc-uploader/data/");
+const dataFolderPath = path.resolve(
+  __dirname,
+  "../../../opc-uploader/data/ZH/",
+);
 const outputFolder = path.resolve(
   __dirname,
-  "../../../opc-uploader/data/images",
+  "../../../opc-uploader-images/images",
 );
 
 // CONFIGURATION: Adjust these if you get blocked
@@ -80,9 +83,18 @@ async function downloadImage(url, cardId, attempt = 1) {
 }
 
 async function startDownload() {
+  // e.g. node download_images.js 554901 554801 554101
+  const packFilters = process.argv.slice(2);
+
   const files = fs
     .readdirSync(dataFolderPath)
-    .filter((f) => f.endsWith(".json"));
+    .filter((f) => f.endsWith(".json"))
+    .filter((f) => packFilters.length === 0 || packFilters.some((p) => f.includes(p)));
+
+  if (packFilters.length > 0) {
+    console.log(`📦 Filtering to packs: ${packFilters.join(", ")} (${files.length} file(s) matched)`);
+  }
+
   let allCards = [];
 
   // 1. Gather all card data

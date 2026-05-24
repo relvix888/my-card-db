@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { getSafeImageUrl } from '../../../utils/cardHelpers';
+import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 
 const LABEL_CONFIG = {
   KO:            { symbol: '☠',  text: 'KO',           bg: 'bg-red-600/90' },
@@ -17,6 +17,8 @@ const LABEL_CONFIG = {
   COUNTER:       { symbol: '🛡', text: 'Counter',        bg: 'bg-cyan-600/90' },
   DISCARD:       { symbol: '🗑', text: 'Discard',        bg: 'bg-red-600/90' },
   LIFE_TO_HAND:  { symbol: '🤲', text: 'Life → Hand',   bg: 'bg-teal-600/90' },
+  REVEAL:        { symbol: '👁', text: 'Reveal',         bg: 'bg-yellow-500/90' },
+  TRIGGER:       { symbol: '⚡', text: 'Trigger!',       bg: 'bg-orange-500/90' },
 };
 
 const LABEL_FLOW = {
@@ -34,6 +36,7 @@ const LABEL_FLOW = {
   BOTTOM_DECK:   { from: 'hand',      to: 'deck'      },
   TOP_DECK:      { from: 'hand',      to: 'deck'      },
   RETURN_HAND:   { from: 'character', to: 'hand'      },
+  REVEAL:        { from: 'deck',      to: 'hand'      },
 };
 
 const ZONE_CONFIG = {
@@ -60,7 +63,7 @@ export default function CardFlashOverlay({ flashItem }) {
 
   const labelCfg = display.label ? LABEL_CONFIG[display.label] : null;
   const flow = display.label ? LABEL_FLOW[display.label] : null;
-  const imgSrc = display.faceDown ? '/images/card_back.png' : getSafeImageUrl(display.card);
+  const imgSrc = display.faceDown ? cardBackImg : getSafeImageUrl(display.card);
 
   return ReactDOM.createPortal(
     <div
@@ -73,8 +76,8 @@ export default function CardFlashOverlay({ flashItem }) {
           src={imgSrc}
           alt={display.faceDown ? 'Card' : display.card.name}
           className="rounded-2xl shadow-2xl border-2 border-white/40"
-          style={{ height: '52vh', width: 'auto', objectFit: 'contain' }}
-          onError={e => { e.target.src = '/images/card_back.png'; }}
+          style={{ height: Math.round(window.innerHeight * 0.62), width: 'auto', objectFit: 'contain' }}
+          onError={e => { e.target.src = cardBackImg; }}
         />
         {display.counterBonus && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600/90 text-white font-black rounded-full px-4 py-1 text-xl shadow-lg border border-white/30 whitespace-nowrap">

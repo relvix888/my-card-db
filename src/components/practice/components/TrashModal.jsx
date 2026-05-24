@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getSafeImageUrl } from '../../../utils/cardHelpers';
+import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 
 export default function TrashModal({ trash = [], label, onClose }) {
   const [hoveredCard, setHoveredCard] = useState(null);
@@ -30,9 +30,9 @@ export default function TrashModal({ trash = [], label, onClose }) {
             <img
               src={getSafeImageUrl(hoveredCard)}
               alt={hoveredCard.name}
-              className="rounded-2xl shadow-2xl object-contain border-2 border-slate-400"
-              style={{ maxHeight: '100%', maxWidth: '55%' }}
-              onError={e => { e.target.src = '/images/card_back.png'; }}
+              className="rounded-2xl shadow-2xl border-2 border-white/40"
+              style={{ height: '52vh', width: 'auto', objectFit: 'contain' }}
+              onError={e => { e.target.src = cardBackImg; }}
             />
           ) : (
             <p className="text-slate-600 text-sm select-none">Hover a card to preview</p>
@@ -61,7 +61,7 @@ export default function TrashModal({ trash = [], label, onClose }) {
                     alt={card.name}
                     className="w-16 rounded-lg object-cover border border-slate-700 hover:border-slate-300 shadow cursor-pointer transition-all"
                     style={{ height: '5.5rem' }}
-                    onError={e => { e.target.src = '/images/card_back.png'; }}
+                    onError={e => { e.target.src = cardBackImg; }}
                   />
                 </div>
               ))}

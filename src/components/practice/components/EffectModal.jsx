@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { getSafeImageUrl } from '../../../utils/cardHelpers';
+import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
+import { formatEffectText } from '../../../utils/formatEffect';
 import DraggablePanel from './DraggablePanel';
+import CardDetailOverlay from './CardDetailOverlay';
 
-function buildChoiceConfig(choices, pendingEffect, state) {
+function buildChoiceConfig(choices, pendingEffect, state, getName) {
   const { type } = choices;
 
   if (type === 'CHOOSE_KO_TARGET') return {
@@ -13,8 +16,23 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.indices.map(i => ({
       key: i,
       card: state[choices.targetOwner].characterArea[i].card,
-      label: `${state[choices.targetOwner].characterArea[i].card.name} (${state[choices.targetOwner].characterArea[i].card.power ?? '?'})`,
+      label: `${getName(state[choices.targetOwner].characterArea[i].card)} (${state[choices.targetOwner].characterArea[i].card.power ?? '?'})`,
     })),
+  };
+
+  if (type === 'CHOOSE_CONDITIONAL_KO_TARGET') return {
+    title: 'Select Target',
+    subtitle: 'Choose a rested opponent character — K.O. it if its cost equals its attached DON!! count.',
+    maxSelect: 1,
+    canSkip: true,
+    items: choices.indices.map(i => {
+      const fc = state[choices.targetOwner].characterArea[i];
+      return {
+        key: i,
+        card: fc.card,
+        label: `${getName(fc.card)} (cost ${fc.card.cost ?? '?'}, ${fc.attachedDon} DON!!)`,
+      };
+    }),
   };
 
   if (type === 'CHOOSE_REDIRECT_ATTACK_TARGET') {
@@ -24,8 +42,8 @@ function buildChoiceConfig(choices, pendingEffect, state) {
       subtitle: 'Choose a new attack target',
       maxSelect: 1,
       items: choices.targets.map((t, i) => {
-        if (t.zone === 'leader') return { key: i, card: rps.leader.card, label: `${rps.leader.card.name} [Leader]` };
-        return { key: i, card: rps.characterArea[t.index].card, label: rps.characterArea[t.index].card.name };
+        if (t.zone === 'leader') return { key: i, card: rps.leader.card, label: `${getName(rps.leader.card)} [Leader]` };
+        return { key: i, card: rps.characterArea[t.index].card, label: getName(rps.characterArea[t.index].card) };
       }),
     };
   }
@@ -40,7 +58,7 @@ function buildChoiceConfig(choices, pendingEffect, state) {
       return {
         key: i,
         card: fc.card,
-        label: `${fc.card.name} (Cost ${fc.card.cost ?? 0})${t.owner !== pendingEffect.owner ? ' [Opp]' : ''}`,
+        label: `${getName(fc.card)} (Cost ${fc.card.cost ?? 0})${t.owner !== pendingEffect.owner ? ' [Opp]' : ''}`,
       };
     }),
   };
@@ -54,11 +72,11 @@ function buildChoiceConfig(choices, pendingEffect, state) {
       ? choices.indices.map(i => ({
           key: i,
           card: state[choices.sourceOwner].trash[i],
-          label: `${state[choices.sourceOwner].trash[i].name} (Cost ${state[choices.sourceOwner].trash[i].cost ?? 0})`,
+          label: `${getName(state[choices.sourceOwner].trash[i])} (Cost ${state[choices.sourceOwner].trash[i].cost ?? 0})`,
         }))
       : choices.targets.map((t, i) => {
           const fc = state[t.owner].characterArea[t.charIndex];
-          return { key: i, card: fc.card, label: `${fc.card.name} (Cost ${fc.card.cost ?? 0})` };
+          return { key: i, card: fc.card, label: `${getName(fc.card)} (Cost ${fc.card.cost ?? 0})` };
         }),
   };
 
@@ -73,12 +91,12 @@ function buildChoiceConfig(choices, pendingEffect, state) {
       ? choices.indices.map(i => ({
           key: i,
           card: state[choices.targetOwner].trash[i],
-          label: `${state[choices.targetOwner].trash[i].name} (Cost ${state[choices.targetOwner].trash[i].cost ?? 0})`,
+          label: `${getName(state[choices.targetOwner].trash[i])} (Cost ${state[choices.targetOwner].trash[i].cost ?? 0})`,
         }))
       : choices.indices.map(i => ({
           key: i,
           card: state[choices.targetOwner].characterArea[i].card,
-          label: `${state[choices.targetOwner].characterArea[i].card.name} (${state[choices.targetOwner].characterArea[i].card.power ?? '?'})`,
+          label: `${getName(state[choices.targetOwner].characterArea[i].card)} (${state[choices.targetOwner].characterArea[i].card.power ?? '?'})`,
         })),
   };
 
@@ -92,16 +110,31 @@ function buildChoiceConfig(choices, pendingEffect, state) {
       canCancel: !!choices.cancelable,
       items: choices.targets
         ? choices.targets.map((t, i) => {
-            if (t.zone === 'leader')    return { key: i, card: tps.leader.card,                 label: `${tps.leader.card.name} [Leader]` };
-            if (t.zone === 'character') return { key: i, card: tps.characterArea[t.index].card, label: tps.characterArea[t.index].card.name };
-            if (t.zone === 'stage')     return { key: i, card: tps.stageArea.card,               label: `${tps.stageArea.card.name} [Stage]` };
+            if (t.zone === 'leader')    return { key: i, card: tps.leader.card,                 label: `${getName(tps.leader.card)} [Leader]` };
+            if (t.zone === 'character') return { key: i, card: tps.characterArea[t.index].card, label: getName(tps.characterArea[t.index].card) };
+            if (t.zone === 'stage')     return { key: i, card: tps.stageArea.card,               label: `${getName(tps.stageArea.card)} [Stage]` };
             return { key: i, card: null, label: 'DON!!' };
           })
         : choices.indices.map(i => ({
             key: i,
             card: tps.characterArea[i].card,
-            label: tps.characterArea[i].card.name,
+            label: getName(tps.characterArea[i].card),
           })),
+    };
+  }
+
+  if (type === 'CHOOSE_GRANT_KEYWORD_TARGET') {
+    const tps = state[choices.targetOwner];
+    return {
+      title: `Grant 【${choices.keyword}】`,
+      subtitle: `Choose up to ${choices.max} character(s) to gain 【${choices.keyword}】`,
+      maxSelect: choices.max,
+      canSkip: true,
+      items: choices.indices.map(i => ({
+        key: i,
+        card: tps.characterArea[i].card,
+        label: `${getName(tps.characterArea[i].card)} (Cost ${tps.characterArea[i].card.cost ?? 0})`,
+      })),
     };
   }
 
@@ -113,18 +146,20 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.targets.map((t, i) => {
       const tps = state[choices.targetOwner];
       const card = t.zone === 'leader' ? tps.leader.card : tps.characterArea[t.index].card;
-      return { key: i, card, label: `${card.name}${t.zone === 'leader' ? ' [Leader]' : ''}` };
+      return { key: i, card, label: `${getName(card)}${t.zone === 'leader' ? ' [Leader]' : ''}` };
     }),
   };
 
   if (type === 'CHOOSE_REFRESH_LOCK_TARGET') return {
     title: 'Choose Refresh Lock Target',
-    subtitle: `Choose up to ${choices.max} rested opponent leader/character(s) — they cannot refresh next turn`,
+    subtitle: `Choose up to ${choices.max} rested opponent card(s) — they cannot refresh next turn`,
     maxSelect: choices.max,
     canSkip: true,
-    items: choices.indices.map(i => {
-      const fc = i === -1 ? state[choices.targetOwner].leader : state[choices.targetOwner].characterArea[i];
-      return { key: i, card: fc.card, label: `${fc.card.name} (${i === -1 ? 'Leader' : `Cost ${fc.card.cost ?? 0}`})` };
+    items: choices.targets.map((t, i) => {
+      const tps = state[choices.targetOwner];
+      if (t.zone === 'leader') return { key: i, card: tps.leader.card, label: `${getName(tps.leader.card)} [Leader]` };
+      if (t.zone === 'don')    return { key: i, card: null, label: 'DON!!' };
+      return { key: i, card: tps.characterArea[t.index].card, label: `${getName(tps.characterArea[t.index].card)} (Cost ${tps.characterArea[t.index].card.cost ?? 0})` };
     }),
   };
 
@@ -136,7 +171,7 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.indices.map(i => ({
       key: i,
       card: state[choices.targetOwner].characterArea[i].card,
-      label: `${state[choices.targetOwner].characterArea[i].card.name} (Cost ${state[choices.targetOwner].characterArea[i].card.cost ?? 0})`,
+      label: `${getName(state[choices.targetOwner].characterArea[i].card)} (Cost ${state[choices.targetOwner].characterArea[i].card.cost ?? 0})`,
     })),
   };
 
@@ -148,7 +183,7 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.indices.map(i => ({
       key: i,
       card: state[choices.targetOwner].characterArea[i].card,
-      label: `${state[choices.targetOwner].characterArea[i].card.name} (Cost ${state[choices.targetOwner].characterArea[i].card.cost ?? 0})`,
+      label: `${getName(state[choices.targetOwner].characterArea[i].card)} (Cost ${state[choices.targetOwner].characterArea[i].card.cost ?? 0})`,
     })),
   };
 
@@ -162,7 +197,34 @@ function buildChoiceConfig(choices, pendingEffect, state) {
       canSkip: true,
       items: choices.targets.map((t, i) => {
         const card = t.zone === 'leader' ? pmPs.leader.card : pmPs.characterArea[t.index].card;
-        return { key: i, card, label: `${card.name} (${card.power ?? '?'})` };
+        return { key: i, card, label: `${getName(card)} (${card.power ?? '?'})` };
+      }),
+    };
+  }
+
+  if (type === 'CHOOSE_SWAP_POWER_TARGET') {
+    const swapOwner = pendingEffect.owner;
+    if (choices.leaderTarget) {
+      const leaderCard = state[swapOwner].leader.card;
+      return {
+        title: 'Swap Base Power with Leader',
+        subtitle: `Leader (${leaderCard.power ?? '?'}) — choose 1 character to swap base power for this battle`,
+        maxSelect: 1,
+        canSkip: false,
+        items: choices.targets.map((t, i) => {
+          const card = state[swapOwner].characterArea[t.index].card;
+          return { key: i, card, label: `${getName(card)} (${card.power ?? '?'})` };
+        }),
+      };
+    }
+    return {
+      title: 'Swap Base Power',
+      subtitle: 'Choose 2 characters to swap base power this turn',
+      maxSelect: 2,
+      canSkip: false,
+      items: choices.targets.map((t, i) => {
+        const card = state[swapOwner].characterArea[t.index].card;
+        return { key: i, card, label: `${getName(card)} (${card.power ?? '?'})` };
       }),
     };
   }
@@ -175,8 +237,28 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.indices.map(i => ({
       key: i,
       card: state[choices.targetOwner].characterArea[i].card,
-      label: `${state[choices.targetOwner].characterArea[i].card.name} (Cost ${state[choices.targetOwner].characterArea[i].card.cost ?? 0})`,
+      label: `${getName(state[choices.targetOwner].characterArea[i].card)} (Cost ${state[choices.targetOwner].characterArea[i].card.cost ?? 0})`,
     })),
+  };
+
+  if (type === 'CHOOSE_COST_SET_TARGET') return {
+    title: 'Choose Cost Target',
+    subtitle: `Set cost to ${pendingEffect.action.targetCost}`,
+    maxSelect: 1,
+    canSkip: true,
+    items: choices.indices.map(i => ({
+      key: i,
+      card: state[choices.targetOwner].characterArea[i].card,
+      label: `${getName(state[choices.targetOwner].characterArea[i].card)} (Cost ${state[choices.targetOwner].characterArea[i].card.cost ?? 0})`,
+    })),
+  };
+
+  if (type === 'CHOOSE_DEPLOY_FROM_LIFE') return {
+    title: 'Deploy from Life?',
+    subtitle: `You may deploy ${getName(choices.lifeCard) ?? 'this card'} (Cost ${choices.lifeCard?.cost ?? '?'}) for free`,
+    maxSelect: 1,
+    canSkip: true,
+    items: [{ key: 0, card: choices.lifeCard, label: `${getName(choices.lifeCard)} (Cost ${choices.lifeCard?.cost ?? '?'})` }],
   };
 
   if (type === 'CHOOSE_DEPLOY_FROM_HAND') return {
@@ -187,7 +269,7 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.indices.map(i => ({
       key: i,
       card: state[choices.sourceOwner].hand[i],
-      label: `${state[choices.sourceOwner].hand[i].name} (Cost ${state[choices.sourceOwner].hand[i].cost ?? 0})`,
+      label: `${getName(state[choices.sourceOwner].hand[i])} (Cost ${state[choices.sourceOwner].hand[i].cost ?? 0})`,
     })),
   };
 
@@ -201,7 +283,7 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.indices.map(i => ({
       key: i,
       card: state[choices.sourceOwner].trash[i],
-      label: `${state[choices.sourceOwner].trash[i].name} (Cost ${state[choices.sourceOwner].trash[i].cost ?? 0})`,
+      label: `${getName(state[choices.sourceOwner].trash[i])} (Cost ${state[choices.sourceOwner].trash[i].cost ?? 0})`,
     })),
   };
 
@@ -213,33 +295,65 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.indices.map(i => ({
       key: i,
       card: state[pendingEffect.owner].characterArea[i].card,
-      label: `${state[pendingEffect.owner].characterArea[i].card.name} (Cost ${state[pendingEffect.owner].characterArea[i].card.cost ?? 0})`,
+      label: `${getName(state[pendingEffect.owner].characterArea[i].card)} (Cost ${state[pendingEffect.owner].characterArea[i].card.cost ?? 0})`,
     })),
   };
 
-  if (type === 'CHOOSE_TRASH_FOR_LIFE_OR_FIELD') return {
-    title: 'Choose Card from Trash',
-    subtitle: `Choose up to ${choices.max} card(s) to add face-up to life top or deploy`,
-    maxSelect: choices.max,
-    canSkip: true,
-    items: choices.indices.map(i => ({
-      key: i,
-      card: state[choices.sourceOwner].trash[i],
-      label: `${state[choices.sourceOwner].trash[i].name} (Cost ${state[choices.sourceOwner].trash[i].cost ?? 0})`,
-    })),
-  };
-
-  if (type === 'CHOOSE_DISCARD') return {
-    title: 'Choose Cards to Discard',
-    subtitle: `Discard exactly ${choices.count} card(s)`,
+  if (type === 'CHOOSE_TRASH_RECYCLE') return {
+    title: 'Return Cards to Deck',
+    subtitle: `Choose exactly ${choices.count} card(s) from your trash to return to deck (deck will be shuffled)`,
     maxSelect: choices.count,
-    confirmLabel: `Discard ${choices.count}`,
+    canSkip: false,
     items: choices.indices.map(i => ({
       key: i,
-      card: state[pendingEffect.owner].hand[i],
-      label: state[pendingEffect.owner].hand[i].name,
+      card: state[pendingEffect.owner].trash[i],
+      label: `${getName(state[pendingEffect.owner].trash[i])} (Cost ${state[pendingEffect.owner].trash[i].cost ?? 0})`,
     })),
   };
+
+  if (type === 'CHOOSE_TRASH_FOR_LIFE_OR_FIELD') {
+    const srcZone = choices.sourceZone ?? 'trash';
+    const srcPool = state[choices.sourceOwner][srcZone] ?? [];
+    return {
+      title: srcZone === 'hand' ? 'Choose Card from Hand' : 'Choose Card from Trash',
+      subtitle: `Choose up to ${choices.max} card(s) to add face-up to life top or deploy`,
+      maxSelect: choices.max,
+      canSkip: true,
+      items: choices.indices.map(i => ({
+        key: i,
+        card: srcPool[i],
+        label: `${getName(srcPool[i])} (Cost ${srcPool[i]?.cost ?? 0})`,
+      })),
+    };
+  }
+
+  if (type === 'CHOOSE_DISCARD') {
+    if (choices.fromZone === 'field') {
+      const owner = pendingEffect.owner;
+      return {
+        title: 'Choose Character to Trash',
+        subtitle: `Trash exactly ${choices.count} character(s) from your field`,
+        maxSelect: choices.count,
+        confirmLabel: `Trash ${choices.count}`,
+        items: choices.indices.map(i => ({
+          key: i,
+          card: state[owner].characterArea[i]?.card,
+          label: getName(state[owner].characterArea[i]?.card),
+        })),
+      };
+    }
+    return {
+      title: 'Choose Cards to Discard',
+      subtitle: `Discard exactly ${choices.count} card(s)`,
+      maxSelect: choices.count,
+      confirmLabel: `Discard ${choices.count}`,
+      items: choices.indices.map(i => ({
+        key: i,
+        card: state[pendingEffect.owner].hand[i],
+        label: getName(state[pendingEffect.owner].hand[i]),
+      })),
+    };
+  }
 
   if (type === 'CHOOSE_REVEAL_CARDS') return {
     title: 'Reveal Cards',
@@ -249,9 +363,40 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.indices.map(i => ({
       key: i,
       card: state[pendingEffect.owner].hand[i],
-      label: state[pendingEffect.owner].hand[i].name,
+      label: getName(state[pendingEffect.owner].hand[i]),
     })),
   };
+
+  if (type === 'CHOOSE_REVEAL_HAND') return {
+    title: 'Reveal from Hand',
+    subtitle: `Choose up to ${choices.max} matching card(s) to reveal`,
+    maxSelect: choices.max,
+    canSkip: false,
+    items: choices.indices.map(i => ({
+      key: i,
+      card: state[pendingEffect.owner].hand[i],
+      label: `${getName(state[pendingEffect.owner].hand[i])} (Cost ${state[pendingEffect.owner].hand[i].cost ?? 0})`,
+      eligible: true,
+    })),
+  };
+
+  if (type === 'CHOOSE_DEPLOY_REVEALED') {
+    const restNote = choices.restIfCostLte !== null
+      ? ` (other deploys rested if cost ≤ ${choices.restIfCostLte})`
+      : '';
+    return {
+      title: 'Deploy Revealed Card',
+      subtitle: `Choose ${choices.deployCount} card(s) to deploy active${restNote}`,
+      maxSelect: choices.deployCount,
+      canSkip: false,
+      items: choices.revealed.map((card, i) => ({
+        key: i,
+        card,
+        label: `${getName(card)} (Cost ${card.cost ?? 0})`,
+        eligible: true,
+      })),
+    };
+  }
 
   if (type === 'CHOOSE_HAND_TO_DECK') return {
     title: 'Place Hand Cards on Deck',
@@ -261,7 +406,7 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.indices.map(i => ({
       key: i,
       card: state[pendingEffect.owner].hand[i],
-      label: state[pendingEffect.owner].hand[i].name,
+      label: getName(state[pendingEffect.owner].hand[i]),
     })),
   };
 
@@ -273,7 +418,7 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.indices.map(i => ({
       key: i,
       card: state[pendingEffect.owner].hand[i],
-      label: state[pendingEffect.owner].hand[i].name,
+      label: getName(state[pendingEffect.owner].hand[i]),
     })),
   };
 
@@ -285,23 +430,44 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.indices.map(i => ({
       key: i,
       card: state[pendingEffect.owner].hand[i],
-      label: `${state[pendingEffect.owner].hand[i].name} (Cost ${state[pendingEffect.owner].hand[i].cost ?? 0})`,
+      label: `${getName(state[pendingEffect.owner].hand[i])} (Cost ${state[pendingEffect.owner].hand[i].cost ?? 0})`,
     })),
   };
 
   if (type === 'SEARCH_PICK') {
     const hasFilter = choices.eligibleIndices && choices.eligibleIndices.length < choices.revealed.length;
+    const destHint = choices.destination === 'life'
+      ? 'chosen goes face-up to top of life, others go to bottom of deck'
+      : choices.remainderToTrash ? 'others go to trash'
+      : choices.canPlaceOnTop ? 'others go to top or bottom of deck'
+      : 'others go back to the bottom';
     return {
       title: 'Search — Choose Cards',
       subtitle: hasFilter
-        ? `Take up to ${choices.take} matching card(s) — others go back to the bottom`
-        : `Take up to ${choices.take} card(s) — others go back to the bottom`,
+        ? `Take up to ${choices.take} matching card(s) — ${destHint}`
+        : `Take up to ${choices.take} card(s) — ${destHint}`,
       maxSelect: choices.take,
       items: choices.revealed.map((card, i) => ({
         key: i,
         card,
-        label: `${card.name} (Cost ${card.cost ?? 0})`,
+        label: `${getName(card)} (Cost ${card.cost ?? 0})`,
         eligible: !choices.eligibleIndices || choices.eligibleIndices.includes(i),
+      })),
+    };
+  }
+
+  if (type === 'CHOOSE_DEPLOY_FROM_REVEALED') {
+    const destNote = choices.canPlaceOnTop ? '(others go to top or bottom of deck)' : '(others go to bottom of deck)';
+    return {
+      title: 'Deck Reveal — Deploy',
+      subtitle: `Choose up to ${choices.max} card(s) to deploy ${destNote}`,
+      maxSelect: choices.max,
+      canSkip: true,
+      items: choices.revealed.map((card, i) => ({
+        key: i,
+        card,
+        label: `${getName(card)} (Cost ${card.cost ?? 0})`,
+        eligible: choices.eligibleIndices.includes(i),
       })),
     };
   }
@@ -314,7 +480,7 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: choices.indices.map(i => ({
       key: i,
       card: state[pendingEffect.owner].hand[i],
-      label: state[pendingEffect.owner].hand[i].name,
+      label: getName(state[pendingEffect.owner].hand[i]),
       eligible: true,
     })),
   };
@@ -322,20 +488,28 @@ function buildChoiceConfig(choices, pendingEffect, state) {
   if (type === 'CHOOSE_ADD_TO_LIFE') {
     const targetDesc = choices.targetOwner === 'opponent' ? "opponent's" : 'your';
     const posDesc    = choices.positionChoice ? '' : choices.position === 'bottom' ? ' (bottom)' : ' (top)';
+    const orderHint  = !choices.positionChoice && choices.position !== 'bottom' && (choices.count ?? 1) > 1
+      ? ' — select in order (1st = below, last = top)'
+      : '';
     return {
       title: 'Move to Life Area',
-      subtitle: `Choose ${choices.count} card(s) to place in ${targetDesc} life${posDesc}`,
+      subtitle: `Choose ${choices.count} card(s) to place in ${targetDesc} life${posDesc}${orderHint}`,
       maxSelect: choices.count,
       confirmLabel: 'Move to Life',
       items: choices.targets.map((t, i) => {
         let card, label;
-        if (choices.sourceZone === 'hand') {
+        const resolvedZone = t.zone ?? (choices.sourceZone === 'hand' ? 'hand' : 'character');
+        if (resolvedZone === 'hand') {
           card  = state[t.ownerKey].hand[t.index];
-          label = `${card.name} (Cost ${card.cost ?? 0})`;
+          label = `${getName(card)} (Cost ${card.cost ?? 0})`;
+        } else if (resolvedZone === 'trash') {
+          card  = state[t.ownerKey].trash[t.index];
+          label = `${getName(card)} (Cost ${card.cost ?? 0}) [Trash]`;
         } else {
           const fc = state[t.ownerKey].characterArea[t.index];
           card  = fc.card;
-          label = `${card.name} (${card.power?.toLocaleString() ?? '?'})${t.ownerKey !== pendingEffect.owner ? ' [Opp]' : ''}`;
+          const effectivePow = (card.power ?? 0) + (fc.attachedDon ?? 0) * 1000;
+          label = `${getName(card)} (${effectivePow.toLocaleString()})${t.ownerKey !== pendingEffect.owner ? ' [Opp]' : ''}`;
         }
         return { key: i, card, label, eligible: true };
       }),
@@ -364,10 +538,10 @@ function buildChoiceConfig(choices, pendingEffect, state) {
           sourceLabel = 'Cost Area';
         } else if (opt.source === 'leader') {
           donLabel = 'Attached';
-          sourceLabel = ps.leader.card?.name ?? 'Leader';
+          sourceLabel = getName(ps.leader.card) ?? 'Leader' ?? 'Leader';
         } else {
           donLabel = 'Attached';
-          sourceLabel = ps.characterArea[opt.charIndex]?.card?.name ?? 'Character';
+          sourceLabel = getName(ps.characterArea[opt.charIndex]?.card) ?? 'Character' ?? 'Character';
         }
         return { key: i, card: null, donLabel, sourceLabel, eligible: true };
       }),
@@ -376,22 +550,23 @@ function buildChoiceConfig(choices, pendingEffect, state) {
 
   if (type === 'SEARCH_ORDER') return {
     title: choices.canPlaceOnTop ? 'Arrange Cards' : 'Arrange Bottom Cards',
-    subtitle: 'Pre-assigned left→right — tap to deselect, tap again to move to end',
+    subtitle: 'Drag to reorder — leftmost = top (drawn first), rightmost = bottom',
     maxSelect: choices.remaining.length,
     confirmLabel: 'Confirm Order',
-    items: choices.remaining.map((card, i) => ({ key: i, card, label: card.name, eligible: true })),
+    items: choices.remaining.map((card, i) => ({ key: i, card, label: getName(card), eligible: true })),
   };
 
   if (type === 'CHOOSE_DON_ATTACH_TARGET') {
-    const aps = state[pendingEffect.owner];
+    const maxT = choices.maxTargets ?? 1;
     return {
       title: 'Attach DON!!',
-      subtitle: `Choose a target to attach ${choices.count} DON!!${choices.donState === 'rest' ? ' (rested)' : ''}`,
-      maxSelect: 1,
-      canSkip: true,
+      subtitle: `Choose up to ${maxT} target${maxT > 1 ? 's' : ''} to attach ${choices.count} DON!!${choices.donState === 'rest' ? ' (rested)' : ''} each`,
+      maxSelect: maxT,
+      canSkip: choices.canSkip ?? true,
       items: choices.targets.map((t, i) => {
-        const card = t.zone === 'leader' ? aps.leader.card : aps.characterArea[t.index].card;
-        return { key: i, card, label: card.name, eligible: true };
+        const tps = state[t.owner ?? choices.targetOwner ?? pendingEffect.owner];
+        const card = t.zone === 'leader' ? tps.leader.card : tps.characterArea[t.index].card;
+        return { key: i, card, label: getName(card), eligible: true };
       }),
     };
   }
@@ -404,6 +579,26 @@ function buildChoiceConfig(choices, pendingEffect, state) {
     items: [],
   };
 
+  if (type === 'CHOOSE_ARRANGE_LIFE') return {
+    title: 'Arrange Life Cards',
+    subtitle: `Tap cards in the order you want (top → bottom). Must order all ${choices.lifeCards.length}.`,
+    maxSelect: choices.lifeCards.length,
+    confirmLabel: 'Confirm Order',
+    items: choices.lifeCards.map((card, i) => ({ key: i, card, label: getName(card), eligible: true })),
+  };
+
+  if (type === 'CHOOSE_EOT_EFFECT_ORDER') return {
+    title: '【我方回合結束時】效果順序',
+    subtitle: '選擇哪張卡的效果先發動',
+    maxSelect: 1,
+    canSkip: false,
+    items: choices.sources.map((src, i) => ({
+      key: i,
+      card: src.card,
+      label: getName(src.card),
+    })),
+  };
+
   return null;
 }
 
@@ -411,14 +606,37 @@ function buildChoiceConfig(choices, pendingEffect, state) {
  * Modal for interactive card effect choices and full-field replacement.
  * Shows replace UI when pendingReplace is set; effect UI when pendingEffect is set.
  */
-export default function EffectModal({ pendingEffect, pendingReplace, state, onResolve, onReplace }) {
+const TIMING_TITLES = {
+  '攻擊時': 'When Attacking',
+  '對方攻擊時': "On Opponent's Attack",
+  '防禦時': 'On Block',
+  '登場時': 'On Play',
+  'KO時': 'On KO',
+  '我方回合結束時': 'End of Turn',
+  '我方回合開始時': 'Start of Turn',
+  '離場時': 'On Leave',
+  '觸發器': 'Trigger',
+  '啟動主要': 'Activate: Main',
+};
+
+export default function EffectModal({ pendingEffect, pendingReplace, state, onResolve, onReplace, onHoverTarget }) {
   const [selected, setSelected] = useState([]);
   const [placeOnTop, setPlaceOnTop] = useState(false);
   const [koDiscardMode, setKoDiscardMode] = useState(null); // null | 'ko' | 'discard'
   const [deployZone, setDeployZone] = useState(null); // null | 'hand' | 'trash'
+  const [hoveredCard, setHoveredCard] = useState(null);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [overIndex, setOverIndex] = useState(null);
+  const orderRowRef = useRef(null);
+  const { i18n } = useTranslation();
+  const isEn = i18n.language.startsWith('en');
+  const langCode = isEn ? 'en' : 'zh';
+  const getName = (card) => (isEn && card?.enName) ? card.enName : (card?.name ?? '');
+
+  const timingTitle = TIMING_TITLES[pendingEffect?.timing] ?? 'Effect';
 
   const modalType = pendingReplace ? 'replace' : pendingEffect ? 'effect' : null;
-  useEffect(() => { setSelected([]); setPlaceOnTop(false); setKoDiscardMode(null); setDeployZone(null); }, [modalType]);
+  useEffect(() => { setSelected([]); setPlaceOnTop(false); setKoDiscardMode(null); setDeployZone(null); setHoveredCard(null); }, [modalType]);
   useEffect(() => {
     if (pendingEffect?.choices?.orderMode) {
       const { indices, max } = pendingEffect.choices;
@@ -449,7 +667,7 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
 
           <div className="bg-orange-700 px-4 py-2 flex items-center gap-2">
             <span className="text-white font-black text-xs uppercase tracking-widest">↔ Replace</span>
-            <span className="text-orange-200 text-xs truncate ml-auto">{card.name}</span>
+            <span className="text-orange-200 text-xs truncate ml-auto">{getName(card)}</span>
           </div>
 
           <div className="px-4 pt-3 pb-1">
@@ -473,10 +691,10 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
                   >
                     <img
                       src={getSafeImageUrl(fc.card)}
-                      alt={fc.card.name}
+                      alt={getName(fc.card)}
                       className="w-16 rounded-xl object-cover"
                       style={{ height: '5.5rem' }}
-                      onError={e => { e.target.src = '/images/card_back.png'; }}
+                      onError={e => { e.target.src = cardBackImg; }}
                     />
                     <div className="absolute bottom-1 left-0 right-0 text-center">
                       <span className="bg-slate-900/80 text-white text-[8px] font-bold px-1 rounded">
@@ -522,8 +740,8 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
       <DraggablePanel>
         <div className="bg-slate-900/95 border border-blue-500/40 overflow-hidden pb-safe">
           <div className="bg-blue-700 px-3 py-1.5 flex items-center gap-2">
-            <span className="text-white font-black text-xs uppercase tracking-widest">✦ Effect</span>
-            <span className="text-blue-200 text-xs truncate ml-auto">{sourceCard?.name}</span>
+            <span className="text-white font-black text-xs uppercase tracking-widest">✦ {timingTitle}</span>
+            <span className="text-blue-200 text-xs truncate ml-auto">{getName(sourceCard)}</span>
           </div>
           <div className="px-3 pt-2 pb-1">
             {pendingEffect.owner !== choices.targetOwner ? (
@@ -559,21 +777,44 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
 
   // ── Confirmation modal (optional cost) ─────────────────────────────────────
   if (choices.type === 'CONFIRM_OPTIONAL_ACTIVATION') {
+    const timingTitle = TIMING_TITLES[pendingEffect.timing] ?? 'Effect';
     return (
       <DraggablePanel>
         <div className="bg-slate-900/95 border border-blue-500/40 overflow-hidden pb-safe">
           <div className="bg-blue-700 px-3 py-1.5 flex items-center gap-2">
-            <span className="text-white font-black text-xs uppercase tracking-widest">✦ Effect</span>
-            <span className="text-blue-200 text-xs truncate ml-auto">{sourceCard?.name}</span>
+            <span className="text-white font-black text-xs uppercase tracking-widest">✦ {timingTitle}</span>
           </div>
-          <div className="px-3 pt-2 pb-1 flex items-baseline gap-2">
-            <p className="text-white font-black text-sm">Activate?</p>
-            <p className="text-slate-400 text-xs">
-              <span className="text-slate-300 font-semibold">Cost: </span>
-              {choices.costDescription}
-            </p>
+          <div className="flex gap-3 px-3 pt-3 pb-2 items-start">
+            {sourceCard && (
+              <img
+                src={getSafeImageUrl(sourceCard)}
+                alt={getName(sourceCard)}
+                className="w-14 flex-shrink-0 rounded-lg object-cover border border-slate-600 shadow"
+                style={{ height: '4.8rem' }}
+                onError={e => { e.target.src = cardBackImg; }}
+              />
+            )}
+            <p
+              className="text-slate-200 text-sm leading-snug pt-0.5"
+              dangerouslySetInnerHTML={{ __html: (() => {
+                let raw;
+                if (!isEn) {
+                  raw = choices.costDescription;
+                } else if (choices.costDescriptionEn) {
+                  raw = choices.costDescriptionEn;
+                } else if (sourceCard?.enEffect && choices.clauseRaw) {
+                  const cnClauses = (sourceCard.effect ?? '').split(/<br\s*\/?>/i);
+                  const enClauses = sourceCard.enEffect.split(/<br\s*\/?>/i);
+                  const idx = cnClauses.findIndex(c => c.trim() === choices.clauseRaw.trim());
+                  raw = (idx >= 0 && enClauses[idx]) ? enClauses[idx].trim() : sourceCard.enEffect.replace(/<br\s*\/?>/gi, ' ');
+                } else {
+                  raw = sourceCard?.enEffect?.replace(/<br\s*\/?>/gi, ' ') ?? choices.costDescription;
+                }
+                return formatEffectText(raw, langCode);
+              })() }}
+            />
           </div>
-          <div className="flex gap-2 px-3 pb-3 pt-2">
+          <div className="flex gap-2 px-3 pb-3 pt-1">
             <button
               onClick={() => { onResolve([]); }}
               className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm rounded-xl active:scale-95 transition-all"
@@ -592,6 +833,39 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
     );
   }
 
+  // ── AUTO_KO_IN_BATTLE: optional K.O. of battled opponent character (self-KO if yes) ──
+  if (choices.type === 'CHOOSE_AUTO_KO_IN_BATTLE') {
+    const targetName = getName(choices.targetCard) || 'opponent\'s character';
+    return (
+      <DraggablePanel>
+        <div className="bg-slate-900/95 border border-red-500/40 overflow-hidden pb-safe">
+          <div className="bg-red-700 px-3 py-1.5 flex items-center gap-2">
+            <span className="text-white font-black text-xs uppercase tracking-widest">✦ {timingTitle}</span>
+            <span className="text-red-200 text-xs truncate ml-auto">{getName(sourceCard)}</span>
+          </div>
+          <div className="px-3 pt-2 pb-1">
+            <p className="text-white font-black text-sm">K.O. {targetName}?</p>
+            <p className="text-slate-400 text-xs mt-0.5">If you do, {getName(sourceCard)} will also be K.O.'d.</p>
+          </div>
+          <div className="flex gap-2 px-3 pb-3 pt-2">
+            <button
+              onClick={() => { onResolve([]); }}
+              className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm rounded-xl active:scale-95 transition-all"
+            >
+              No
+            </button>
+            <button
+              onClick={() => { onResolve([1]); }}
+              className="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white font-black text-sm rounded-xl active:scale-95 transition-all"
+            >
+              K.O.
+            </button>
+          </div>
+        </div>
+      </DraggablePanel>
+    );
+  }
+
   // ── KO or Discard: two-step UI (mode selector → card picker) ──────────────
   if (choices.type === 'CHOOSE_KO_OR_DISCARD_HAND') {
     const ps = state[pendingEffect.owner];
@@ -603,8 +877,8 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
         <DraggablePanel>
           <div className="bg-slate-900 border border-blue-500/40 overflow-hidden pb-safe">
             <div className="bg-blue-700 px-4 py-2 flex items-center gap-2">
-              <span className="text-white font-black text-xs uppercase tracking-widest">✦ Effect</span>
-              <span className="text-blue-200 text-xs truncate ml-auto">{sourceCard?.name}</span>
+              <span className="text-white font-black text-xs uppercase tracking-widest">✦ {timingTitle}</span>
+              <span className="text-blue-200 text-xs truncate ml-auto">{getName(sourceCard)}</span>
             </div>
             <div className="px-4 pt-3 pb-1">
               <p className="text-white font-black text-sm">KO or Discard</p>
@@ -655,7 +929,7 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
           <div className="bg-slate-900 border border-red-500/40 overflow-hidden pb-safe">
             <div className="bg-red-700 px-4 py-2 flex items-center gap-2">
               <span className="text-white font-black text-xs uppercase tracking-widest">✦ KO Character</span>
-              <span className="text-red-200 text-xs truncate ml-auto">{sourceCard?.name}</span>
+              <span className="text-red-200 text-xs truncate ml-auto">{getName(sourceCard)}</span>
             </div>
             <div className="px-4 pt-3 pb-1">
               <p className="text-white font-black text-sm">Choose a Character to KO</p>
@@ -675,10 +949,10 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
                     >
                       <img
                         src={getSafeImageUrl(fc.card)}
-                        alt={fc.card.name}
+                        alt={getName(fc.card)}
                         className="w-16 rounded-xl object-cover"
                         style={{ height: '5.5rem' }}
-                        onError={e => { e.target.src = '/images/card_back.png'; }}
+                        onError={e => { e.target.src = cardBackImg; }}
                       />
                       <div className="absolute bottom-1 left-0 right-0 text-center">
                         <span className="bg-slate-900/80 text-white text-[8px] font-bold px-1 rounded">{fc.card.cost ?? ''}</span>
@@ -720,7 +994,7 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
         <div className="bg-slate-900 border border-blue-500/40 overflow-hidden pb-safe">
           <div className="bg-blue-700 px-4 py-2 flex items-center gap-2">
             <span className="text-white font-black text-xs uppercase tracking-widest">✦ Discard from Hand</span>
-            <span className="text-blue-200 text-xs truncate ml-auto">{sourceCard?.name}</span>
+            <span className="text-blue-200 text-xs truncate ml-auto">{getName(sourceCard)}</span>
           </div>
           <div className="px-4 pt-3 pb-1">
             <p className="text-white font-black text-sm">Choose a Card to Discard</p>
@@ -741,10 +1015,10 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
                   >
                     <img
                       src={getSafeImageUrl(card)}
-                      alt={card.name}
+                      alt={getName(card)}
                       className="w-16 rounded-xl object-cover"
                       style={{ height: '5.5rem' }}
-                      onError={e => { e.target.src = '/images/card_back.png'; }}
+                      onError={e => { e.target.src = cardBackImg; }}
                     />
                     <div className="absolute bottom-1 left-0 right-0 text-center">
                       <span className="bg-slate-900/80 text-white text-[8px] font-bold px-1 rounded">{card.cost ?? ''}</span>
@@ -792,8 +1066,8 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
         <DraggablePanel>
           <div className="bg-slate-900 border border-blue-500/40 overflow-hidden pb-safe">
             <div className="bg-blue-700 px-4 py-2 flex items-center gap-2">
-              <span className="text-white font-black text-xs uppercase tracking-widest">✦ Effect</span>
-              <span className="text-blue-200 text-xs truncate ml-auto">{sourceCard?.name}</span>
+              <span className="text-white font-black text-xs uppercase tracking-widest">✦ {timingTitle}</span>
+              <span className="text-blue-200 text-xs truncate ml-auto">{getName(sourceCard)}</span>
             </div>
             <div className="px-4 pt-3 pb-1">
               <p className="text-white font-black text-sm">Deploy from Hand or Trash</p>
@@ -852,7 +1126,7 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
             <span className="text-white font-black text-xs uppercase tracking-widest">
               ✦ Deploy from {deployZone === 'hand' ? 'Hand' : 'Trash'}
             </span>
-            <span className="text-blue-200 text-xs truncate ml-auto">{sourceCard?.name}</span>
+            <span className="text-blue-200 text-xs truncate ml-auto">{getName(sourceCard)}</span>
           </div>
           <div className="px-4 pt-3 pb-1">
             <p className="text-white font-black text-sm">Choose up to {choices.max} card(s) to deploy for free</p>
@@ -873,10 +1147,10 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
                   >
                     <img
                       src={getSafeImageUrl(card)}
-                      alt={card.name}
+                      alt={getName(card)}
                       className="w-16 rounded-xl object-cover"
                       style={{ height: '5.5rem' }}
-                      onError={e => { e.target.src = '/images/card_back.png'; }}
+                      onError={e => { e.target.src = cardBackImg; }}
                     />
                     <div className="absolute bottom-1 left-0 right-0 text-center">
                       <span className="bg-slate-900/80 text-white text-[8px] font-bold px-1 rounded">
@@ -920,7 +1194,7 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
         <div className="bg-slate-900 border border-purple-500/40 overflow-hidden pb-safe">
           <div className="bg-purple-700 px-4 py-2 flex items-center gap-2">
             <span className="text-white font-black text-xs uppercase tracking-widest">⊕ Choose Destination</span>
-            <span className="text-purple-200 text-xs truncate ml-auto">{sourceCard?.name}</span>
+            <span className="text-purple-200 text-xs truncate ml-auto">{getName(sourceCard)}</span>
           </div>
           <div className="px-4 pt-3 pb-1">
             <p className="text-white font-black text-sm">{choices.cardName} — choose where to send it</p>
@@ -944,25 +1218,25 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
     );
   }
 
-  if (choices.type === 'CHOOSE_ONE_OPTION') {
+  if (choices.type === 'CHOOSE_KEYWORD_TO_GRANT') {
     return (
       <DraggablePanel>
         <div className="bg-slate-900 border border-purple-500/40 overflow-hidden pb-safe">
           <div className="bg-purple-700 px-4 py-2 flex items-center gap-2">
-            <span className="text-white font-black text-xs uppercase tracking-widest">⊕ Choose One</span>
-            <span className="text-purple-200 text-xs truncate ml-auto">{sourceCard?.name}</span>
+            <span className="text-white font-black text-xs uppercase tracking-widest">⊕ Choose Keyword</span>
+            <span className="text-purple-200 text-xs truncate ml-auto">{getName(sourceCard)}</span>
           </div>
           <div className="px-4 pt-3 pb-1">
-            <p className="text-white font-black text-sm">Select one effect to activate</p>
+            <p className="text-white font-black text-sm">Choose one keyword to grant</p>
           </div>
           <div className="px-4 pb-4 flex flex-col gap-2 pt-2">
-            {choices.options.map(({ key, label }) => (
+            {choices.keywords.map((kw, i) => (
               <button
-                key={key}
-                onClick={() => onResolve([key])}
+                key={i}
+                onClick={() => onResolve([i])}
                 className="w-full py-3 px-4 text-left rounded-xl border-2 border-slate-600 bg-slate-800 hover:border-purple-400 hover:bg-purple-900/30 active:scale-95 transition-all"
               >
-                <span className="text-white text-sm font-semibold leading-snug">{label}</span>
+                <span className="text-white text-sm font-semibold leading-snug">【{kw}】</span>
               </button>
             ))}
           </div>
@@ -971,10 +1245,41 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
     );
   }
 
-  const choiceConfig = buildChoiceConfig(choices, pendingEffect, state);
+  if (choices.type === 'CHOOSE_ONE_OPTION') {
+    return (
+      <DraggablePanel>
+        <div className="bg-slate-900 border border-purple-500/40 overflow-hidden pb-safe">
+          <div className="bg-purple-700 px-4 py-2 flex items-center gap-2">
+            <span className="text-white font-black text-xs uppercase tracking-widest">⊕ Choose One</span>
+            <span className="text-purple-200 text-xs truncate ml-auto">{getName(sourceCard)}</span>
+          </div>
+          <div className="px-4 pt-3 pb-1">
+            <p className="text-white font-black text-sm">Select one effect to activate</p>
+          </div>
+          <div className="px-4 pb-4 flex flex-col gap-2 pt-2">
+            {choices.options.map(({ key, label, enLabel }) => (
+              <button
+                key={key}
+                onClick={() => onResolve([key])}
+                className="w-full py-3 px-4 text-left rounded-xl border-2 border-slate-600 bg-slate-800 hover:border-purple-400 hover:bg-purple-900/30 active:scale-95 transition-all"
+              >
+                <span className="text-white text-sm font-semibold leading-snug">{isEn ? (enLabel ?? label) : label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </DraggablePanel>
+    );
+  }
+
+  const choiceConfig = buildChoiceConfig(choices, pendingEffect, state, getName);
   if (!choiceConfig) return null;
 
   const { title, subtitle, items, maxSelect, canSkip, canCancel } = choiceConfig;
+
+  const previewCard = hoveredCard ?? (
+    selected.length === 1 ? (items.find(it => it.key === selected[0])?.card ?? null) : null
+  );
   let confirmLabel = choiceConfig.confirmLabel ?? 'Confirm';
   if (choices.type === 'SEARCH_PICK')      confirmLabel = `Take ${selected.length}`;
   if (choices.type === 'CHOOSE_DISCARD_FREE') confirmLabel = selected.length ? `Discard ${selected.length}` : 'Skip';
@@ -1036,15 +1341,19 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
             ? selected.length === choices.max
             : choices.type === 'CHOOSE_DON_RETURN'
               ? selected.length === choices.count
-              : selected.length > 0;
+              : choices.type === 'CHOOSE_ARRANGE_LIFE'
+                ? selected.length === choices.lifeCards.length
+                : selected.length > 0;
 
   return (
+    <>
+      {previewCard && <CardDetailOverlay card={previewCard} x={0} y={0} />}
     <DraggablePanel>
       <div className="bg-slate-900 border border-blue-500/40 overflow-hidden pb-safe">
 
         <div className="bg-blue-700 px-4 py-2 flex items-center gap-2">
-          <span className="text-white font-black text-xs uppercase tracking-widest">✦ Effect</span>
-          <span className="text-blue-200 text-xs truncate ml-auto">{sourceCard?.name}</span>
+          <span className="text-white font-black text-xs uppercase tracking-widest">✦ {timingTitle}</span>
+          <span className="text-blue-200 text-xs truncate ml-auto">{getName(sourceCard)}</span>
         </div>
 
         <div className="px-4 pt-3 pb-1">
@@ -1091,66 +1400,144 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
           </div>
         )}
 
-        <div className="px-4 pb-3 overflow-y-auto max-h-56">
-          <div className="flex flex-wrap gap-2 pt-2">
-            {items.map(({ key, card, eligible, donLabel, sourceLabel }) => {
-              const isSelected   = selected.includes(key);
-              const isIneligible = eligible === false;
-              return (
-                <button
-                  key={key}
-                  onClick={() => toggle(key)}
-                  disabled={isIneligible}
-                  className={`relative flex-shrink-0 rounded-xl border-2 transition-all active:scale-95
-                    ${isIneligible
-                      ? 'border-slate-700 opacity-30 cursor-not-allowed'
-                      : isSelected
-                        ? 'border-blue-400 shadow-lg shadow-blue-500/40 scale-105'
-                        : 'border-slate-600 opacity-80'
-                    }`}
-                >
-                  {card ? (
-                    <>
-                      <img
-                        src={getSafeImageUrl(card)}
-                        alt={card.name}
-                        className="w-16 rounded-xl object-cover"
-                        style={{ height: '5.5rem' }}
-                        onError={e => { e.target.src = '/images/card_back.png'; }}
-                      />
-                      <div className="absolute bottom-1 left-0 right-0 text-center">
-                        <span className="bg-slate-900/80 text-white text-[8px] font-bold px-1 rounded truncate">
-                          {card.cost ?? ''}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <div
-                      className="w-16 rounded-xl bg-yellow-700 flex flex-col items-center justify-center gap-0.5 px-1"
+        {choices.type === 'SEARCH_ORDER' ? (
+          <div className="px-4 pb-3 overflow-x-auto">
+            <div ref={orderRowRef} className="flex gap-2 pt-2 items-end">
+              <span className="text-[10px] text-blue-300 font-bold pb-2 flex-shrink-0">TOP</span>
+              {selected.map((key, selIdx) => {
+                const item = items.find(it => it.key === key);
+                if (!item?.card) return null;
+                const isDragging = dragIndex === selIdx;
+                const isOver     = overIndex === selIdx && dragIndex !== selIdx;
+                return (
+                  <div
+                    key={key}
+                    data-sel-idx={selIdx}
+                    draggable
+                    onDragStart={e => { setDragIndex(selIdx); setOverIndex(selIdx); e.dataTransfer.effectAllowed = 'move'; }}
+                    onDragOver={e => { e.preventDefault(); setOverIndex(selIdx); }}
+                    onDrop={e => {
+                      e.preventDefault();
+                      if (dragIndex !== null && dragIndex !== selIdx) {
+                        setSelected(prev => {
+                          const arr = [...prev];
+                          const [m] = arr.splice(dragIndex, 1);
+                          arr.splice(selIdx, 0, m);
+                          return arr;
+                        });
+                      }
+                      setDragIndex(null); setOverIndex(null);
+                    }}
+                    onDragEnd={() => { setDragIndex(null); setOverIndex(null); }}
+                    onTouchStart={() => { setDragIndex(selIdx); setOverIndex(selIdx); }}
+                    onTouchMove={e => {
+                      const touch = e.touches[0];
+                      if (!orderRowRef.current) return;
+                      for (const el of orderRowRef.current.querySelectorAll('[data-sel-idx]')) {
+                        const r = el.getBoundingClientRect();
+                        if (touch.clientX >= r.left && touch.clientX <= r.right &&
+                            touch.clientY >= r.top  && touch.clientY <= r.bottom) {
+                          setOverIndex(parseInt(el.dataset.selIdx));
+                          break;
+                        }
+                      }
+                    }}
+                    onTouchEnd={() => {
+                      if (dragIndex !== null && overIndex !== null && dragIndex !== overIndex) {
+                        setSelected(prev => {
+                          const arr = [...prev];
+                          const [m] = arr.splice(dragIndex, 1);
+                          arr.splice(overIndex, 0, m);
+                          return arr;
+                        });
+                      }
+                      setDragIndex(null); setOverIndex(null);
+                    }}
+                    style={{ touchAction: 'none' }}
+                    className={`relative flex-shrink-0 rounded-xl border-2 cursor-grab active:cursor-grabbing transition-all select-none${isDragging ? ' opacity-40 scale-95 border-slate-500' : isOver ? ' border-yellow-300 scale-105 shadow-lg shadow-yellow-400/30' : ' border-blue-400 shadow-md shadow-blue-500/30'}`}
+                  >
+                    <img
+                      src={getSafeImageUrl(item.card)}
+                      alt={getName(item.card)}
+                      className="w-16 rounded-xl object-cover pointer-events-none"
                       style={{ height: '5.5rem' }}
-                    >
-                      <span className="text-yellow-300 font-black text-[10px]">DON!!</span>
-                      <span className="text-white text-[9px] font-bold text-center leading-tight">{donLabel}</span>
-                      <span className="text-yellow-200 text-[8px] text-center leading-tight w-full truncate">{sourceLabel}</span>
-                    </div>
-                  )}
-                  {isSelected && (choices.type === 'SEARCH_ORDER' || choices.orderMode) && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-blue-500/30">
-                      <span className="bg-blue-600 text-white text-sm font-black w-7 h-7 rounded-full flex items-center justify-center">
-                        {selected.indexOf(key) + 1}
+                      onError={e => { e.target.src = cardBackImg; }}
+                    />
+                    <div className="absolute bottom-1 left-0 right-0 flex justify-center">
+                      <span className="bg-blue-600/90 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">
+                        {selIdx + 1}
                       </span>
                     </div>
-                  )}
-                  {isSelected && choices.type !== 'SEARCH_ORDER' && !choices.orderMode && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-blue-500/20">
-                      <span className="text-white text-lg font-black">✓</span>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                  </div>
+                );
+              })}
+              <span className="text-[10px] text-slate-500 font-bold pb-2 flex-shrink-0">BTM</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="px-4 pb-3 overflow-y-auto max-h-56">
+            <div className="flex flex-wrap gap-2 pt-2">
+              {items.map(({ key, card, eligible, donLabel, sourceLabel }) => {
+                const isSelected   = selected.includes(key);
+                const isIneligible = eligible === false;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => toggle(key)}
+                    disabled={isIneligible}
+                    onMouseEnter={() => { if (!isIneligible) { onHoverTarget?.(key); if (card) setHoveredCard(card); } }}
+                    onMouseLeave={() => { onHoverTarget?.(null); setHoveredCard(null); }}
+                    className={`relative flex-shrink-0 rounded-xl border-2 transition-all active:scale-95
+                      ${isIneligible
+                        ? 'border-slate-700 opacity-30 cursor-not-allowed'
+                        : isSelected
+                          ? 'border-blue-400 shadow-lg shadow-blue-500/40 scale-105'
+                          : 'border-slate-600 opacity-80'
+                      }`}
+                  >
+                    {card ? (
+                      <>
+                        <img
+                          src={getSafeImageUrl(card)}
+                          alt={getName(card)}
+                          className="w-16 rounded-xl object-cover"
+                          style={{ height: '5.5rem' }}
+                          onError={e => { e.target.src = cardBackImg; }}
+                        />
+                        <div className="absolute bottom-1 left-0 right-0 text-center">
+                          <span className="bg-slate-900/80 text-white text-[8px] font-bold px-1 rounded truncate">
+                            {card.cost ?? ''}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div
+                        className="w-16 rounded-xl bg-yellow-700 flex flex-col items-center justify-center gap-0.5 px-1"
+                        style={{ height: '5.5rem' }}
+                      >
+                        <span className="text-yellow-300 font-black text-[10px]">DON!!</span>
+                        <span className="text-white text-[9px] font-bold text-center leading-tight">{donLabel}</span>
+                        <span className="text-yellow-200 text-[8px] text-center leading-tight w-full truncate">{sourceLabel}</span>
+                      </div>
+                    )}
+                    {isSelected && choices.orderMode && (
+                      <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-blue-500/30">
+                        <span className="bg-blue-600 text-white text-sm font-black w-7 h-7 rounded-full flex items-center justify-center">
+                          {selected.indexOf(key) + 1}
+                        </span>
+                      </div>
+                    )}
+                    {isSelected && !choices.orderMode && (
+                      <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-blue-500/20">
+                        <span className="text-white text-lg font-black">✓</span>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-2 px-4 pb-4 pt-2 border-t border-slate-700">
           {canCancel && (
@@ -1183,5 +1570,6 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
         </div>
       </div>
     </DraggablePanel>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { getSafeImageUrl } from '../../../utils/cardHelpers';
+import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 
 export default function CardPreview({ card, x, y }) {
   if (!card) return null;
@@ -25,7 +25,7 @@ export default function CardPreview({ card, x, y }) {
         alt={card.name}
         className="rounded-xl border border-white/20"
         style={{ width: PREVIEW_W, height: PREVIEW_H, objectFit: 'cover' }}
-        onError={e => { e.target.src = '/images/card_back.png'; }}
+        onError={e => { e.target.src = cardBackImg; }}
       />
     </div>,
     document.body

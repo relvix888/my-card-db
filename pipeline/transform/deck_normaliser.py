@@ -39,7 +39,9 @@ ID_MAP = {
     "Gold D Roger": "OP13-003", 
     "Blue Jinbei": "OP11-021", 
     "Rebecca": "OP15-039", 
+    "Blue Rebecca": "OP15-039",
     "GB Brook": "OP15-022", 
+    "BG Brook": "OP15-022",
     "BR Ace": "OP13-002", 
     "Imu": "OP13-079", 
     "BY Moria": "OP14-080", 
@@ -68,6 +70,9 @@ ID_MAP = {
     "RY Bonney": "EB04-001",
     "YG Yamato": "OP06-022",
     "Koala": "OP12-081",
+    "BY Koala": "OP12-081",
+    "G Jinbe": "OP11-021",
+    "Y Enel": "OP05-098",
 }
 
 def migrate_database():

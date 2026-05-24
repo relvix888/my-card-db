@@ -53,7 +53,7 @@ const ImportView = ({
   return (
     <div className="max-w-7xl mx-auto w-full px-4 py-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
       <header className="mb-10 font-bold text-center text-xl sm:text-left">
-        今日想砌咩Deck?
+        {t("import_title")}
       </header>
 
       {/* OPTION A: AUTO-BUILD (Meta Decks) */}
@@ -64,7 +64,7 @@ const ImportView = ({
               className="w-1.5 h-4 rounded-full transition-colors duration-200"
               style={{ backgroundColor: isGG ? "#0d9488" : "#a855f7" }}
             />
-            A餐: 今期流行
+            {t("meta_section")}
           </h3>
           <span
             className="text-[10px] font-bold px-2 py-1 rounded border transition-colors duration-200"
@@ -82,7 +82,7 @@ const ImportView = ({
                   }
             }
           >
-            {isGG ? t("latest_event") : "熱門領航"}
+            {isGG ? t("latest_event") : t("hot_leaders")}
           </span>
         </div>
 
@@ -149,7 +149,7 @@ const ImportView = ({
                     backgroundColor: isGG ? "#0d9488" : "#d97706",
                   }}
                 >
-                  組建 {leader.name} 牌組
+                  {t("build_deck_tooltip", { name: leader.name })}
                 </div>
               </div>
           ))}
@@ -161,17 +161,17 @@ const ImportView = ({
         <div className="mb-6 flex items-center justify-between">
           <h3 className="text-sm font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
             <span className="w-1.5 h-4 bg-blue-500 rounded-full" />
-            B餐: 抄人Deck
+            {t("copy_section")}
           </h3>
           <span className="text-[10px] font-bold px-2 py-1 bg-blue-500/10 text-blue-400 rounded border border-blue-500/20">
-            上載代碼
+            {t("upload_code")}
           </span>
         </div>
 
         <div className="space-y-4">
           <textarea
             className="w-full h-40 bg-slate-950 border border-slate-700 rounded-xl p-4 font-mono text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-slate-200 transition-all placeholder:text-slate-600 resize-none"
-            placeholder={`在此貼上...
+            placeholder={`${t("paste_here")}
 1xOP15-058
 3xOP12-071
 4xOP15-061
@@ -189,7 +189,7 @@ const ImportView = ({
             }}
             className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-sm tracking-widest transition-all shadow-lg active:scale-[0.98] uppercase"
           >
-            上載 / Upload
+            {t("upload_btn")}
           </button>
         </div>
       </div>

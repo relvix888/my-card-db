@@ -6,8 +6,9 @@
 //   node --input-type=module scripts/audit-effects.js OP14-084     # single card report
 //   node --input-type=module scripts/audit-effects.js --missing    # cards with missing handlers
 //   node --input-type=module scripts/audit-effects.js --deck EB02-010  # full deck audit by leader ID
+//   node --input-type=module scripts/audit-effects.js --set ST30   # audit all cards in a set
 
-import { parseEffect } from '../src/components/practice/engine/effectParser.js';
+import { parseEffect, parseEffectBilingual, parseEffectEN, parseEffectForCard } from '../src/components/practice/engine/effectParser.js';
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 
@@ -17,16 +18,28 @@ import { join } from 'path';
 const KNOWN_HANDLERS = new Set([
   'ADD_DON_FROM_DECK', 'ADD_TO_HAND', 'ADD_TO_LIFE', 'ATTACH_DON', 'BLOCK_DEPLOY', 'BOTTOM_DECK', 'CONFIRM_OPTIONAL_ACTIVATION',
   'COPY_POWER_FROM_TARGET', 'COST_MOD', 'DEAL_DAMAGE', 'DECK_TO_LIFE', 'DECK_TO_TRASH', 'DEPLOY', 'DISCARD', 'DISCARD_FREE',
-  'DISCARD_EQUAL_TO_DRAW', 'DRAW', 'FIRE_MAIN_EFFECT', 'FLIP_LIFE_FACE_UP', 'FREE_EVENT', 'GRANT_KEYWORD',
+  'DISCARD_EQUAL_TO_DRAW', 'DISCARD_TO_SIZE', 'DRAW', 'FIRE_MAIN_EFFECT', 'FLIP_LIFE_FACE_UP', 'FREE_EVENT', 'GRANT_KEYWORD',
   'FIELD_TO_LIFE', 'HAND_TO_DECK', 'HAND_TO_LIFE', 'KO', 'LIFE_TO_HAND', 'LIFE_TO_TRASH', 'TRASH_TO_LIFE_OR_FIELD',
-  'OPPONENT_DON_REST_DEFERRED', 'POWER_MOD', 'POWER_MOD_BY_LIFE_COST', 'POWER_MOD_PER_DON_RESTED', 'POWER_PER_DISCARD', 'PREVENT_REST',
-  'ATTACK_LOCK', 'CHOOSE_ONE', 'KO_OR_DISCARD_HAND', 'LOCK_DON_UNREST_BY_CHAR',
+  'OPPONENT_ADD_DON', 'OPPONENT_DON_REST_DEFERRED', 'POWER_MOD', 'POWER_MOD_BY_LIFE_COST', 'POWER_MOD_PER_DON_RESTED', 'POWER_MOD_PER_SELF_DON', 'POWER_PER_DISCARD', 'POWER_SET', 'PREVENT_REST',
+  'ATTACK_LOCK', 'CHOOSE_GRANT_KEYWORD', 'CHOOSE_ONE', 'KO_OR_DISCARD_HAND', 'LOCK_DON_UNREST_BY_CHAR',
   'REDIRECT_ATTACK_TARGET', 'REFRESH_LOCK', 'REGISTER_ON_EVENT_TRIGGER',
-  'REMAINDER_TO_TRASH', 'REST', 'RETURN_HAND', 'REVEAL_HAND_CARDS', 'REVEAL_LIFE', 'REVEAL_TOP_DECK', 'SEARCH', 'SELF_DEPLOY', 'SELF_DEPLOY_FROM_TRASH', 'SELF_TO_TRASH', 'UNREST', 'UNREST_DON', 'UNREST_DON_END_OF_TURN',
-  'BLOCK_EFFECT', 'BLOCK_LIFE_TO_HAND', 'CONDITIONAL_DEPLOY', 'DECLARE_COST', 'DEPLOY_RESTED_PASSIVE', 'DON_EQUALIZE_EOT', 'DON_RETURN_FROM_FIELD', 'DRAW_LOCK', 'EXTRA_TURN', 'FLIP_LIFE_FACE_DOWN', 'FORCE_ATTACK_TARGET', 'HAND_PLAY_LOCK', 'LOOK_ARRANGE_LIFE', 'NULL_EFFECT', 'OPPONENT_HAND_TO_DECK', 'SELECT_TARGET', 'SHUFFLE_DECK', 'WIN_GAME',
+  'REMAINDER_TO_TRASH', 'REMAINDER_TOP_OR_BOTTOM', 'REST', 'RETURN_HAND', 'REVEAL_DECK', 'REVEAL_HAND', 'REVEAL_HAND_CARDS', 'REVEAL_LIFE', 'REVEAL_TOP_DECK', 'SEARCH', 'SELF_DEPLOY', 'SELF_DEPLOY_FROM_TRASH', 'SELF_TO_TRASH', 'UNREST', 'UNREST_DON', 'UNREST_DON_END_OF_TURN', 'DON_ACTIVE',
+  'DEPLOY_REVEALED_PICK', // consumed by preceding REVEAL_HAND, no standalone execution needed
+  'BLOCK_EFFECT', 'BLOCK_LIFE_TO_HAND', 'CONDITIONAL', 'CONDITIONAL_DEPLOY', 'CONDITIONAL_EXEC', 'CONDITIONAL_KO', 'DECLARE_COST', 'DEPLOY_RESTED_PASSIVE', 'DON_EQUALIZE_EOT', 'DON_RETURN_FROM_FIELD', 'DRAW_LOCK', 'EXTRA_TURN', 'FLIP_LIFE_FACE_DOWN', 'FORCE_ATTACK_TARGET', 'HAND_PLAY_LOCK', 'LOOK_ARRANGE_LIFE', 'NULL_EFFECT', 'OPP_HAND_TO_DECK', 'OPPONENT_HAND_TO_DECK', 'SELECT_TARGET', 'SHUFFLE_DECK', 'WIN_GAME',
   'SET_BASE_POWER', // continuous eval via evaluateLeaderBasePowerOverride, not executeAction
+  'COPY_POWER_FROM_LEADER', // continuous eval via evaluateCharBasePowerOverride, not executeAction
+  'POWER_PER_DON_RESTED', // continuous eval via evaluateContinuousPower, not executeAction
+  'COPY_POWER_FROM_ATTACKER',
   'HAND_COST_MOD',
+  'COST_SET',
   'ALTERNATE_NAMES', // static rule read from card.effect by getAlternateNames(); no runtime action needed
+  'DISCARD_DRAW_COMPENSATION', // leader passive: checked inline in DISCARD / CHOOSE_DISCARD paths via leaderDiscardCompensationTrait()
+  'SWAP_BASE_POWER',
+  'SELF_DAMAGE',
+  'TRASH_RECYCLE',
+  'DRAW_PER_RETURNED',
+  'DRAW_TO_SIZE',
+  'SELF_KO', // KOs the source card itself; handled in executeAction and wired via resolveAutoKOInBattle
 ]);
 
 // CHOOSE_* types with a case in resolveEffectChoice()
@@ -34,11 +47,15 @@ const KNOWN_CHOOSE_HANDLERS = new Set([
   'CHOOSE_ADD_TO_HAND_TARGET', 'CHOOSE_ADD_TO_LIFE', 'CHOOSE_BOTTOM_DECK_TARGET', 'CHOOSE_COST_TARGET',
   'CHOOSE_DEPLOY_FROM_HAND', 'CHOOSE_DEPLOY_FROM_HAND_OR_TRASH', 'CHOOSE_DEPLOY_FROM_TRASH', 'CHOOSE_DISCARD', 'CHOOSE_DISCARD_FREE',
   'CHOOSE_DON_ATTACH_TARGET', 'CHOOSE_DON_RETURN', 'CHOOSE_DON_UNREST',
-  'CHOOSE_FIELD_FOR_LIFE', 'CHOOSE_FREE_EVENT', 'CHOOSE_GRANT_KEYWORD_TARGET', 'CHOOSE_HAND_TO_DECK',
+  'CHOOSE_FIELD_FOR_LIFE', 'CHOOSE_FREE_EVENT', 'CHOOSE_GRANT_KEYWORD_TARGET', 'CHOOSE_HAND_TO_DECK', 'CHOOSE_KEYWORD_TO_GRANT',
   'CHOOSE_HAND_TO_LIFE', 'CHOOSE_KO_OR_DISCARD_HAND', 'CHOOSE_KO_TARGET', 'CHOOSE_LIFE_OPTIONAL', 'CHOOSE_LIFE_TO_HAND_POSITION', 'CHOOSE_POWER_TARGET',
-  'CHOOSE_ATTACK_LOCK_TARGET', 'CHOOSE_PREVENT_REST_TARGET', 'CHOOSE_REDIRECT_ATTACK_TARGET', 'CHOOSE_REFRESH_LOCK_TARGET', 'CHOOSE_REST_TARGET',
-  'CHOOSE_RETURN_HAND_TARGET', 'CHOOSE_REVEAL_CARDS', 'CHOOSE_TRASH_CARD_DEST', 'CHOOSE_TRASH_FOR_LIFE_OR_FIELD', 'CHOOSE_UNREST_TARGET',
+  'CHOOSE_ATTACK_LOCK_TARGET', 'CHOOSE_CONDITIONAL_KO_TARGET', 'CHOOSE_PREVENT_REST_TARGET', 'CHOOSE_REDIRECT_ATTACK_TARGET', 'CHOOSE_REFRESH_LOCK_TARGET', 'CHOOSE_REST_TARGET',
+  'CHOOSE_RETURN_HAND_TARGET', 'CHOOSE_REVEAL_CARDS', 'CHOOSE_REVEAL_HAND', 'CHOOSE_DEPLOY_REVEALED', 'CHOOSE_TRASH_CARD_DEST', 'CHOOSE_TRASH_FOR_LIFE_OR_FIELD', 'CHOOSE_UNREST_TARGET',
   'CHOOSE_ONE_OPTION', 'SEARCH_ORDER', 'SEARCH_PICK',
+  'CHOOSE_SWAP_POWER_TARGET',
+  'CHOOSE_TRASH_RECYCLE',
+  'CHOOSE_COST_SET_TARGET',
+  'CHOOSE_AUTO_KO_IN_BATTLE',
 ]);
 
 // CHOOSE_* types with a case in EffectModal.jsx
@@ -47,33 +64,59 @@ const KNOWN_MODAL_CASES = new Set([
   'CHOOSE_DEPLOY_FROM_HAND', 'CHOOSE_DEPLOY_FROM_HAND_OR_TRASH', 'CHOOSE_DEPLOY_FROM_TRASH', 'CHOOSE_DISCARD', 'CHOOSE_DISCARD_FREE',
   'CHOOSE_DON_ATTACH_TARGET', 'CHOOSE_DON_RETURN', 'CHOOSE_DON_UNREST',
   'CHOOSE_FREE_EVENT', 'CHOOSE_HAND_TO_DECK', 'CHOOSE_HAND_TO_LIFE',
-  'CHOOSE_ATTACK_LOCK_TARGET', 'CHOOSE_FIELD_FOR_LIFE', 'CHOOSE_KO_OR_DISCARD_HAND', 'CHOOSE_KO_TARGET', 'CHOOSE_LIFE_OPTIONAL', 'CHOOSE_LIFE_TO_HAND_POSITION', 'CHOOSE_POWER_TARGET', 'CHOOSE_PREVENT_REST_TARGET', 'CHOOSE_REFRESH_LOCK_TARGET',
-  'CHOOSE_REDIRECT_ATTACK_TARGET', 'CHOOSE_REST_TARGET', 'CHOOSE_RETURN_HAND_TARGET', 'CHOOSE_REVEAL_CARDS', 'CHOOSE_TRASH_CARD_DEST', 'CHOOSE_TRASH_FOR_LIFE_OR_FIELD', 'CHOOSE_UNREST_TARGET',
-  'CHOOSE_ONE_OPTION', 'CONFIRM_OPTIONAL_ACTIVATION', 'SEARCH_ORDER', 'SEARCH_PICK',
+  'CHOOSE_ATTACK_LOCK_TARGET', 'CHOOSE_CONDITIONAL_KO_TARGET', 'CHOOSE_FIELD_FOR_LIFE', 'CHOOSE_KO_OR_DISCARD_HAND', 'CHOOSE_KO_TARGET', 'CHOOSE_LIFE_OPTIONAL', 'CHOOSE_LIFE_TO_HAND_POSITION', 'CHOOSE_POWER_TARGET', 'CHOOSE_PREVENT_REST_TARGET', 'CHOOSE_REFRESH_LOCK_TARGET',
+  'CHOOSE_REDIRECT_ATTACK_TARGET', 'CHOOSE_REST_TARGET', 'CHOOSE_RETURN_HAND_TARGET', 'CHOOSE_REVEAL_CARDS', 'CHOOSE_REVEAL_HAND', 'CHOOSE_DEPLOY_REVEALED', 'CHOOSE_TRASH_CARD_DEST', 'CHOOSE_TRASH_FOR_LIFE_OR_FIELD', 'CHOOSE_UNREST_TARGET',
+  'CHOOSE_KEYWORD_TO_GRANT', 'CHOOSE_ONE_OPTION', 'CONFIRM_OPTIONAL_ACTIVATION', 'SEARCH_ORDER', 'SEARCH_PICK',
+  'CHOOSE_SWAP_POWER_TARGET',
+  'CHOOSE_TRASH_RECYCLE',
+  'CHOOSE_COST_SET_TARGET',
+  'CHOOSE_AUTO_KO_IN_BATTLE',
 ]);
 
 const DATA_DIR = '/Users/rexchan/opc-uploader/data';
+const ZH_DATA_DIR = '/Users/rexchan/opc-uploader/data/ZH';
+const EN_DATA_DIR = '/Users/rexchan/opc-uploader/data/EN';
 
 // ── Data loading ──────────────────────────────────────────────────────────────
 
-function loadAllCards() {
-  const files = readdirSync(DATA_DIR)
+function loadEnCards() {
+  const map = new Map(); // card id → english effect string
+  const files = readdirSync(EN_DATA_DIR)
     .filter(f => f.startsWith('cards_') && f.endsWith('.json'))
     .sort();
-  const cards = [];
   for (const file of files) {
-    cards.push(...JSON.parse(readFileSync(join(DATA_DIR, file), 'utf8')));
+    for (const card of JSON.parse(readFileSync(join(EN_DATA_DIR, file), 'utf8'))) {
+      if (!card.id.includes('_p')) map.set(card.id, card.effect ?? null);
+    }
+  }
+  return map;
+}
+
+function loadAllCards() {
+  const cards = [];
+  for (const dir of [DATA_DIR, ZH_DATA_DIR]) {
+    let files;
+    try { files = readdirSync(dir).filter(f => f.startsWith('cards_') && f.endsWith('.json')).sort(); }
+    catch { continue; }
+    for (const file of files) {
+      cards.push(...JSON.parse(readFileSync(join(dir, file), 'utf8')));
+    }
   }
   return cards;
 }
 
 // ── Audit logic ───────────────────────────────────────────────────────────────
 
-function auditCard(card) {
+function auditCard(card, enEffect) {
   if (!card.effect || card.effect.trim() === '-') return { clauses: null, issues: [] };
   let clauses;
   try {
-    clauses = parseEffect(card.effect);
+    // Use EN parser when EN text is available (matches parseEffectForCard runtime behaviour)
+    if (enEffect && enEffect.trim() && enEffect.trim() !== '-') {
+      clauses = parseEffectEN(enEffect);
+    } else {
+      clauses = parseEffect(card.effect);
+    }
   } catch (e) {
     return { clauses: null, issues: [{ kind: 'PARSE_ERROR', msg: e.message }] };
   }
@@ -82,7 +125,7 @@ function auditCard(card) {
   for (const clause of clauses) {
     for (const action of clause.actions) {
       if (action.type === 'UNKNOWN') {
-        issues.push({ kind: 'UNKNOWN', raw: action.raw, clause });
+        issues.push({ kind: 'UNKNOWN', raw: action.raw, enText: clause._enText ?? null, clause });
       } else if (!KNOWN_HANDLERS.has(action.type)) {
         issues.push({ kind: 'MISSING_HANDLER', actionType: action.type, clause });
       }
@@ -133,12 +176,12 @@ function formatAction(action) {
   return params.length ? `  ${params.join('  ')}` : '';
 }
 
-// ── Single-card report ────────────────────────────────────────────────────────
+// ── Per-card detail printer (shared by singleCardReport and setReport) ────────
 
-function singleCardReport(card) {
-  const { clauses, issues } = auditCard(card);
-
+function printCardDetail(card, enEffect, { clauses, issues }) {
   console.log(`\n${card.id}  ${card.name}  [${card.category} / cost ${card.cost ?? '—'}]`);
+  console.log(`  CN: ${card.effect ?? '(no effect)'}`);
+  if (enEffect && enEffect.trim() !== '-') console.log(`  EN: ${enEffect}`);
   if (card.trigger) console.log(`  trigger: ${card.trigger}`);
 
   if (!clauses) {
@@ -157,11 +200,13 @@ function singleCardReport(card) {
       cl.donGate ? `donGate=${cl.donGate}` : null,
     ].filter(Boolean).join('  ');
     console.log(`Clause ${ci + 1}  ${meta}`);
+    if (cl._enText) console.log(`  EN: ${cl._enText}`);
     if (cl.condition) console.log(`  condition: ${cl.condition.raw}`);
 
     for (const action of cl.actions) {
       if (action.type === 'UNKNOWN') {
         console.log(`  UNKNOWN  raw: "${action.raw.slice(0, 80)}"`);
+        if (cl._enText) console.log(`        → EN: "${cl._enText.slice(0, 80)}"`);
         console.log(`           → parser ✗  handler n/a  modal n/a`);
         continue;
       }
@@ -179,9 +224,15 @@ function singleCardReport(card) {
   }
 }
 
+// ── Single-card report ────────────────────────────────────────────────────────
+
+function singleCardReport(card, enEffect) {
+  printCardDetail(card, enEffect, auditCard(card, enEffect));
+}
+
 // ── All-cards reports ─────────────────────────────────────────────────────────
 
-function allCardsReport() {
+function allCardsReport(enCards) {
   const cards = loadAllCards();
 
   // Collect stats
@@ -192,7 +243,8 @@ function allCardsReport() {
   for (const card of cards) {
     if (!card.effect || card.effect.trim() === '-') continue;
     totalWithEffect++;
-    const { issues } = auditCard(card);
+    const enEffect = enCards.get(card.id) ?? null;
+    const { issues } = auditCard(card, enEffect);
     if (issues.length) issueCards++;
 
     for (const issue of issues) {
@@ -202,7 +254,7 @@ function allCardsReport() {
         if (!unknownsByPattern.has(key)) unknownsByPattern.set(key, { count: 0, examples: [] });
         const entry = unknownsByPattern.get(key);
         entry.count++;
-        if (entry.examples.length < 3) entry.examples.push({ id: card.id, raw: issue.raw });
+        if (entry.examples.length < 3) entry.examples.push({ id: card.id, raw: issue.raw, enText: issue.enText });
       } else if (issue.kind === 'MISSING_HANDLER') {
         if (!missingByType.has(issue.actionType)) missingByType.set(issue.actionType, []);
         missingByType.get(issue.actionType).push({ id: card.id, name: card.name });
@@ -233,20 +285,21 @@ function allCardsReport() {
     if (rank <= 15) {
       for (const ex of examples.slice(0, 2)) {
         console.log(`            ↳ ${ex.id}  "${ex.raw.slice(0, 58)}"`);
+        if (ex.enText) console.log(`               EN: "${ex.enText.slice(0, 58)}"`);
       }
     }
     rank++;
   }
 }
 
-function missingHandlersReport() {
+function missingHandlersReport(enCards) {
   const cards = loadAllCards();
   const missingByType = new Map();
   let total = 0;
 
   for (const card of cards) {
     if (!card.effect || card.effect.trim() === '-') continue;
-    const { issues } = auditCard(card);
+    const { issues } = auditCard(card, enCards.get(card.id) ?? null);
     for (const issue of issues) {
       if (issue.kind === 'MISSING_HANDLER') {
         if (!missingByType.has(issue.actionType)) missingByType.set(issue.actionType, []);
@@ -342,14 +395,66 @@ function deckReport(leaderId) {
   console.log('\nRun /debug-card <ID> for full step-by-step analysis on any card above.');
 }
 
+// ── Set report ────────────────────────────────────────────────────────────────
+
+function setReport(setId, enCards) {
+  const prefix = setId.toUpperCase() + '-';
+  const allCards = loadAllCards();
+  const setCards = allCards.filter(c => c.id.toUpperCase().startsWith(prefix) && !c.id.includes('_p'));
+
+  if (!setCards.length) {
+    console.error(`No cards found for set: ${setId}`);
+    process.exit(1);
+  }
+
+  const clean = [];
+  const issues = [];
+
+  for (const card of setCards) {
+    const enEffect = enCards.get(card.id) ?? null;
+    const result = auditCard(card, enEffect);
+    if (result.issues.length === 0) {
+      clean.push({ card, enEffect });
+    } else {
+      issues.push({ card, enEffect, result });
+    }
+  }
+
+  console.log(`\nSet: ${setId}  (${setCards.length} cards)\n`);
+
+  if (clean.length) {
+    console.log(`✓ Clean: ${clean.length} card${clean.length !== 1 ? 's' : ''}`);
+    const ids = clean.map(({ card }) => card.id);
+    for (let i = 0; i < ids.length; i += 7) {
+      console.log('  ' + ids.slice(i, i + 7).join('  '));
+    }
+    console.log();
+  }
+
+  if (issues.length === 0) {
+    console.log(`✓ ${clean.length} of ${setCards.length} cards clean. 0 cards need attention.`);
+    console.log('  Timing wiring and phase-transition flags require manual check — see debug-card.md Steps 4–5.');
+    return;
+  }
+
+  console.log(`✗ Issues found in ${issues.length} card${issues.length !== 1 ? 's' : ''}:`);
+  for (const { card, enEffect, result } of issues) {
+    printCardDetail(card, enEffect, result);
+  }
+
+  console.log(`\n${clean.length} of ${setCards.length} cards clean. ${issues.length} card${issues.length !== 1 ? 's' : ''} need attention.`);
+  console.log('Run /debug-card <ID> for full step-by-step analysis on any card above.');
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 const arg = process.argv[2];
+const enCards = loadEnCards();
 
 if (!arg) {
-  allCardsReport();
+  allCardsReport(enCards);
 } else if (arg === '--missing') {
-  missingHandlersReport();
+  missingHandlersReport(enCards);
 } else if (arg === '--deck') {
   const leaderId = process.argv[3];
   if (!leaderId) {
@@ -357,13 +462,20 @@ if (!arg) {
     process.exit(1);
   }
   deckReport(leaderId.toUpperCase());
+} else if (arg === '--set') {
+  const setId = process.argv[3];
+  if (!setId) {
+    console.error('Usage: node --input-type=module scripts/audit-effects.js --set SET-ID');
+    process.exit(1);
+  }
+  setReport(setId.toUpperCase(), enCards);
 } else if (arg.startsWith('--')) {
   console.error(`Unknown flag: ${arg}`);
-  console.error('Usage: node --input-type=module scripts/audit-effects.js [CARD-ID | --missing | --deck LEADER-ID]');
+  console.error('Usage: node --input-type=module scripts/audit-effects.js [CARD-ID | --missing | --deck LEADER-ID | --set SET-ID]');
   process.exit(1);
 } else {
   const cardId = arg.toUpperCase();
   const card = loadAllCards().find(c => c.id.toUpperCase() === cardId);
   if (!card) { console.error(`Card not found: ${arg}`); process.exit(1); }
-  singleCardReport(card);
+  singleCardReport(card, enCards.get(card.id) ?? null);
 }

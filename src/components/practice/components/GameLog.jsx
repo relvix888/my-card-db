@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { getSafeImageUrl } from '../../../utils/cardHelpers';
+import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 
 const TYPE_STYLES = {
   info:   'text-slate-400',
@@ -100,7 +100,7 @@ export default function GameLog({ log = [], isOpen, onToggle }) {
             src={getSafeImageUrl({ id: hoveredId })}
             alt={hoveredId}
             className="w-48 rounded-xl shadow-2xl border-2 border-slate-600"
-            onError={e => { e.target.src = '/images/card_back.png'; }}
+            onError={e => { e.target.src = cardBackImg; }}
           />
         </div>
       )}

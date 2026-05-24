@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { getSafeImageUrl } from '../../../utils/cardHelpers';
+import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 
-export default function PreGameAbilityScreen({ state: S, dispatch: D, onClose }) {
+export default function PreGameAbilityScreen({ state: S, dispatch: D, onClose, myRole }) {
   const [selectedStageIndex, setSelectedStageIndex] = useState(null);
 
-  const stageCards = S.human.deck
+  const owner = S.preGameAbilityOwner ?? 'human';
+  const ownerPs = S[owner];
+  const stageCards = ownerPs.deck
     .map((card, i) => ({ card, deckIndex: i }))
     .filter(({ card }) => card.category === 'Stage');
 
@@ -18,13 +20,13 @@ export default function PreGameAbilityScreen({ state: S, dispatch: D, onClose })
 
       <div className="flex items-center gap-3 px-4 pb-3">
         <img
-          src={S.human.leader?.card ? getSafeImageUrl(S.human.leader.card) : '/images/card_back.png'}
+          src={ownerPs.leader?.card ? getSafeImageUrl(ownerPs.leader.card) : cardBackImg}
           alt="Leader"
           className="w-10 h-14 object-cover rounded-lg border border-slate-600"
-          onError={e => { e.target.src = '/images/card_back.png'; }}
+          onError={e => { e.target.src = cardBackImg; }}
         />
         <div>
-          <p className="text-white font-black text-sm">{S.human.leader?.card?.name}</p>
+          <p className="text-white font-black text-sm">{ownerPs.leader?.card?.name}</p>
           <p className="text-slate-400 text-xs">Before drawing your opening hand</p>
         </div>
       </div>
@@ -59,7 +61,7 @@ export default function PreGameAbilityScreen({ state: S, dispatch: D, onClose })
                         : 'border-slate-600'
                     }`}
                     style={{ height: '5.5rem' }}
-                    onError={e => { e.target.src = '/images/card_back.png'; }}
+                    onError={e => { e.target.src = cardBackImg; }}
                   />
                   <div className="absolute top-1 left-1 bg-slate-900/80 text-white text-[9px] font-black px-1 rounded">
                     {card.cost ?? '—'}

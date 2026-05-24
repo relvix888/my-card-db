@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { getSafeImageUrl } from '../../../utils/cardHelpers';
+import React, { useState, useRef, useEffect } from 'react';
+import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
+import { donImg } from '../../../utils/images';
+import CardDetailOverlay from './CardDetailOverlay';
 import CardPreview from './CardPreview';
 
-const DON_IMG = '/don.png';
+const DON_IMG = donImg;
 
 export default function FieldCardSlot({
   fieldCard,
@@ -10,6 +12,8 @@ export default function FieldCardSlot({
   isSelected,
   isTargetable,
   isAttacker,
+  isEffectHighlight = false,
+  isEligibleBlocker = false,
   isSmall,
   onClick,
   empty,
@@ -18,8 +22,25 @@ export default function FieldCardSlot({
   battleRole,
   powerModDelta = 0,
   costModDelta = 0,
+  hasDoubleAtk = false,
+  hasRush = false,
+  hasCharRush = false,
+  hasBlocker = false,
+  hasBanish = false,
+  hasUnblock = false,
+  disableStats = false,
 }) {
   const [previewPos, setPreviewPos] = useState(null);
+  const [mobileDetail, setMobileDetail] = useState(false);
+  const isTouching = useRef(false);
+  const touchTriggered = useRef(false);
+
+  useEffect(() => {
+    if (disableStats) {
+      setMobileDetail(false);
+      setPreviewPos(null);
+    }
+  }, [disableStats]);
 
   if (empty || !fieldCard) {
     return (
@@ -32,7 +53,8 @@ export default function FieldCardSlot({
     );
   }
 
-  const { card, state: cardState, attachedDon, justDeployed, attackLocked, refreshLocked, restLocked, willBottomDeckAtEndOfTurn } = fieldCard;
+  const { card, state: cardState, attachedDon, justDeployed, attackLocked, refreshLocked, restLocked, willBottomDeckAtEndOfTurn, tempKeywords, opponentTurnEndKeywords } = fieldCard;
+  const hasKoProtect = tempKeywords?.includes('MASS_EFFECT_KO_PROTECTION') || opponentTurnEndKeywords?.includes('MASS_EFFECT_KO_PROTECTION');
   const isRested = cardState === 'rest';
   const imageUrl = getSafeImageUrl(card);
   const w = isSmall ? 'w-12' : 'w-14';
@@ -45,18 +67,30 @@ export default function FieldCardSlot({
     ? (isMyTurn ? basePower + donBonus + powerModDelta : basePower + powerModDelta)
     : null;
 
-  const borderClass = isSelected   ? 'border-blue-400 shadow-blue-400/50'
-                    : isAttacker   ? 'border-yellow-400 shadow-yellow-400/50'
-                    : isTargetable ? 'border-green-400 shadow-green-400/50'
+  const borderClass = isEffectHighlight   ? 'border-orange-400 shadow-orange-400/60'
+                    : isSelected          ? 'border-blue-400 shadow-blue-400/50'
+                    : isAttacker          ? 'border-yellow-400 shadow-yellow-400/50'
+                    : isTargetable        ? 'border-green-400 shadow-green-400/50'
+                    : isEligibleBlocker   ? 'border-orange-500 shadow-orange-500/50'
                     : 'border-slate-600';
 
   return (
     <div
       className={`relative cursor-pointer select-none transition-transform active:scale-95 ${w}`}
       data-battle-role={battleRole || undefined}
-      onClick={onClick}
-      onMouseMove={e => setPreviewPos({ x: e.clientX, y: e.clientY })}
+      onClick={() => {
+        if (touchTriggered.current && !disableStats) setMobileDetail(prev => !prev);
+        else setMobileDetail(false);
+        touchTriggered.current = false;
+        onClick?.();
+      }}
+      onMouseMove={e => { if (!isTouching.current && !disableStats) setPreviewPos({ x: e.clientX, y: e.clientY }); }}
       onMouseLeave={() => setPreviewPos(null)}
+      onTouchStart={() => {
+        isTouching.current = true;
+        touchTriggered.current = true;
+      }}
+      onTouchEnd={() => { setTimeout(() => { isTouching.current = false; }, 300); }}
     >
       {/* DON!! cards fanned behind right edge — each shows 15% of its width */}
       {/* Card 0 has highest zIndex (topmost), so each successive card peeks past it */}
@@ -78,7 +112,7 @@ export default function FieldCardSlot({
 
       {/* Card image — sits on top of DON!! cards */}
       <div
-        className={`relative rounded-lg border-2 overflow-hidden shadow-lg ${borderClass} ${isSelected || isTargetable || isAttacker ? 'shadow-lg' : ''}`}
+        className={`relative rounded-lg border-2 overflow-hidden shadow-lg ${borderClass} ${isEffectHighlight || isSelected || isTargetable || isAttacker || isEligibleBlocker ? 'shadow-lg' : ''}`}
         style={{
           transform: isRested ? 'rotate(90deg)' : 'none',
           transformOrigin: 'center center',
@@ -91,7 +125,7 @@ export default function FieldCardSlot({
           src={imageUrl}
           alt={card.name}
           className={`w-full object-cover ${h}`}
-          onError={e => { e.target.src = '/images/card_back.png'; }}
+          onError={e => { e.target.src = cardBackImg; }}
         />
         {justDeployed && (
           <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center">
@@ -99,12 +133,32 @@ export default function FieldCardSlot({
           </div>
         )}
         {/* Status lock badges */}
-        {(attackLocked || refreshLocked || restLocked || willBottomDeckAtEndOfTurn) && (
+        {(attackLocked || refreshLocked || restLocked || willBottomDeckAtEndOfTurn || hasKoProtect) && (
           <div className="absolute top-0.5 left-0.5 flex flex-col gap-0.5 z-10 pointer-events-none">
             {attackLocked            && <span className="text-[7px] font-black px-0.5 py-px rounded bg-red-700/90    text-white leading-tight">NO ATK</span>}
             {refreshLocked           && <span className="text-[7px] font-black px-0.5 py-px rounded bg-violet-700/90 text-white leading-tight">NO ↺</span>}
             {restLocked              && <span className="text-[7px] font-black px-0.5 py-px rounded bg-orange-700/90 text-white leading-tight">NO REST</span>}
             {willBottomDeckAtEndOfTurn && <span className="text-[7px] font-black px-0.5 py-px rounded bg-cyan-700/90   text-white leading-tight">↩ EOT</span>}
+            {hasKoProtect            && <span className="text-[7px] font-black px-0.5 py-px rounded bg-emerald-600/90 text-white leading-tight">NO KO</span>}
+          </div>
+        )}
+        {/* Bottom-left badge: DON count */}
+        {attachedDon > 0 && (
+          <div className="absolute bottom-0.5 left-0.5 z-10 pointer-events-none">
+            <span className="text-[7px] font-black px-0.5 py-px rounded bg-teal-600/90 text-white leading-tight">
+              +{attachedDon}
+            </span>
+          </div>
+        )}
+        {/* Keyword overlay strip */}
+        {(hasDoubleAtk || hasRush || hasCharRush || hasBlocker || hasBanish || hasUnblock) && (
+          <div className="absolute bottom-0 inset-x-0 z-10 pointer-events-none flex flex-wrap justify-center gap-px p-px bg-slate-900/50">
+            {hasDoubleAtk && <span className="text-[6px] font-black px-0.5 rounded bg-yellow-400/90 text-black leading-tight">2x</span>}
+            {hasRush      && <span className="text-[6px] font-black px-0.5 rounded bg-green-500/90  text-black leading-tight">Rush</span>}
+            {hasCharRush  && <span className="text-[6px] font-black px-0.5 rounded bg-green-700/90  text-white leading-tight">R:Chr</span>}
+            {hasBlocker   && <span className="text-[6px] font-black px-0.5 rounded bg-blue-500/90   text-white leading-tight">Block</span>}
+            {hasBanish    && <span className="text-[6px] font-black px-0.5 rounded bg-red-600/90    text-white leading-tight">Banish</span>}
+            {hasUnblock   && <span className="text-[6px] font-black px-0.5 rounded bg-purple-600/90 text-white leading-tight">Unblk</span>}
           </div>
         )}
         {/* Cost modifier badge */}
@@ -128,7 +182,8 @@ export default function FieldCardSlot({
         ) : null}
       </div>
 
-      {previewPos && <CardPreview card={card} x={previewPos.x} y={previewPos.y} />}
+      {previewPos && <CardDetailOverlay card={card} x={previewPos.x} y={previewPos.y} />}
+      {mobileDetail && <CardDetailOverlay card={card} onClose={() => setMobileDetail(false)} />}
     </div>
   );
 }

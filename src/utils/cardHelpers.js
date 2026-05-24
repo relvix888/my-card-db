@@ -34,19 +34,15 @@
 // };
 
 // 17 April 2026 - New approach: All images are now hosted on Cloudinary under a consistent URL pattern. This eliminates the need for complex URL parsing and domain switching. The getSafeImageUrl function will now simply construct the Cloudinary URL based on the card ID, ensuring we always get the correct image without relying on Bandai's servers.
-// src/utils/cardHelpers.js
+import { cardBackImg, donImg, donBackImg } from './images';
+export { cardBackImg, donImg, donBackImg };
 
 const CLOUD_NAME = "dbc9yrfpw";
 const FOLDER = "opc-images";
 
-/**
- * Delivers optimized images via Cloudinary.
- * No longer relies on Bandai's inconsistent server paths.
- */
 export const getSafeImageUrl = (card) => {
   if (!card || !card.id) {
-    // Return a local placeholder if the card data is missing
-    return "/images/card_back.png";
+    return cardBackImg;
   }
 
   const cardId = card.id.toUpperCase();

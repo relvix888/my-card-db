@@ -7,7 +7,7 @@ import CardWrapper from "./CardWrapper";
 import QuickController from "./QuickController";
 import LeaderBanner from "./LeaderBanner";
 import PlayCurve from "./PlayCurve";
-import TurnAdvisor from "./TurnAdvisor";
+// import TurnAdvisor from "./TurnAdvisor";
 import { SimpleBarChart, SimplePieChart } from "./Charts";
 import { BLOCK_1_EXCEPTIONS } from "../data/rotation";
 import { BANNED_LIST } from "../data/rotation";
@@ -361,76 +361,90 @@ const DeckView = ({
       </div>
 
       {/* 1. Share Button */}
-      <div className="flex justify-end mb-4 py-4">
-        <button
-          onClick={generateShareUrl}
-          className="px-6 py-4 rounded-xl flex items-center justify-center gap-3 bg-sky-600 hover:bg-sky-500 shadow-lg shadow-sky-900/40 group active:scale-95 text-white font-bold"
-          title="生成分享連結 / Share Deck & Curve"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 640 640"
-            className="w-5 h-5 text-white transition-transform group-hover:rotate-12"
-            fill="currentColor"
-          >
-            <path d="M448 256c-10.6 0-20.9 1.9-30.4 5.4L214.7 150.2c.2-2 .3-4.1 .3-6.2c0-35.3-28.7-64-64-64s-64 28.7-64 64s28.7 64 64 64c10.6 0 20.9-1.9 30.4-5.4L385.3 313.8c-.2 2-.3 4.1-.3 6.2s.1 4.2 .3 6.2L181.3 430.6c-9.5-3.5-19.8-5.4-30.4-5.4c-35.3 0-64 28.7-64 64s28.7 64 64 64s64-28.7 64-64c0-2.1-.1-4.2-.3-6.2L417.6 383.4c9.5 3.5 19.8 5.4 30.4 5.4c35.3 0 64-28.7 64-64s-28.7-64-64-64z" />
-          </svg>
-          <span className="font-bold text-xs tracking-wide text-white whitespace-nowrap">
-            分享牌組策略
-          </span>
-        </button>
-        <button
-          onClick={copySimFormat}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg transition-all active:scale-95 group"
-          title="Copy for OPTCGSim"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4 text-emerald-400 group-hover:rotate-12 transition-transform"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
-            />
-          </svg>
-          <span className="text-xs font-bold text-slate-200 uppercase tracking-tight">
-            {t("copy_sim", "Sim 格式")}
-          </span>
-        </button>
-        <button
-          onClick={handleShareImage}
-          className="px-4 py-2 rounded-lg flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg transition-all active:scale-95"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002-2z"
-            />
-          </svg>
-          下載圖片 (PNG)
-        </button>
-        {setAppMode && selectedLeader && totalDeckCount >= 50 && (
+      <div className="w-full flex flex-col items-end gap-2 mb-4 py-2">
+        {/* Row 1: share buttons */}
+        <div className="flex gap-2">
           <button
-            onClick={() => setAppMode("PRACTICE")}
-            className="px-4 py-2 rounded-lg flex items-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs shadow-lg transition-all active:scale-95"
-            title="Practice with this deck vs AI"
+            onClick={generateShareUrl}
+            className="px-6 py-2 rounded-xl flex items-center justify-center gap-3 bg-sky-600 hover:bg-sky-500 shadow-lg shadow-sky-900/40 group active:scale-95 text-white font-bold"
+            title="生成分享連結 / Share Deck & Curve"
           >
-            <span className="text-base leading-none">⚔</span>
-            練習對戰
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 640 640"
+              className="w-5 h-5 text-white transition-transform group-hover:rotate-12"
+              fill="currentColor"
+            >
+              <path d="M448 256c-10.6 0-20.9 1.9-30.4 5.4L214.7 150.2c.2-2 .3-4.1 .3-6.2c0-35.3-28.7-64-64-64s-64 28.7-64 64s28.7 64 64 64c10.6 0 20.9-1.9 30.4-5.4L385.3 313.8c-.2 2-.3 4.1-.3 6.2s.1 4.2 .3 6.2L181.3 430.6c-9.5-3.5-19.8-5.4-30.4-5.4c-35.3 0-64 28.7-64 64s28.7 64 64 64s64-28.7 64-64c0-2.1-.1-4.2-.3-6.2L417.6 383.4c9.5 3.5 19.8 5.4 30.4 5.4c35.3 0 64-28.7 64-64s-28.7-64-64-64z" />
+            </svg>
+            <span className="font-bold text-xs tracking-wide text-white whitespace-nowrap">
+              {t("share_deck", "分享牌組")}
+            </span>
           </button>
+          <button
+            onClick={copySimFormat}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg transition-all active:scale-95 group"
+            title="Copy for OPTCGSim"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 text-emerald-400 group-hover:rotate-12 transition-transform"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+              />
+            </svg>
+            <span className="text-xs font-bold text-slate-200 uppercase tracking-tight">
+              {t("copy_sim", "Sim 格式")}
+            </span>
+          </button>
+          <button
+            onClick={handleShareImage}
+            className="px-4 py-2 rounded-lg flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg transition-all active:scale-95"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002-2z"
+              />
+            </svg>
+            {t("download_image", "下載圖片")}
+          </button>
+        </div>
+        {/* Row 2: battle buttons */}
+        {setAppMode && selectedLeader && totalDeckCount >= 50 && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setAppMode("PRACTICE")}
+              className="px-4 py-2 rounded-lg flex items-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs shadow-lg transition-all active:scale-95"
+              title="Practice with this deck vs AI"
+            >
+              <span className="text-base leading-none">⚔</span>
+              {t("vs_ai", "對戰低級電腦")} <span className="text-[10px] font-mono opacity-70">BETA</span>
+            </button>
+            <button
+              onClick={() => setAppMode("ONLINE_PVP_LOBBY")}
+              className="px-4 py-2 rounded-lg flex items-center gap-2 bg-violet-700 hover:bg-violet-600 text-white font-bold text-xs shadow-lg transition-all active:scale-95"
+              title="Play online vs another player"
+            >
+              <span className="text-base leading-none">🌐</span>
+              {t("online_battle", "網上對戰")} <span className="text-[10px] font-mono opacity-70">BETA</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -499,7 +513,7 @@ const DeckView = ({
             </div>
 
             {/* Turn Advisor */}
-            <TurnAdvisor orderedDeck={orderedDeck} />
+            {/* <TurnAdvisor orderedDeck={orderedDeck} /> */}
 
             {/* Charts & Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

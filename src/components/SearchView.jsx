@@ -45,6 +45,7 @@ const SearchView = ({
   filterType2,
   setFilterType2,
   typeOptions,
+  sortedTypesEn,
 
   // Categorization
   filterCategory,
@@ -83,6 +84,7 @@ const SearchView = ({
   const currentTotal = Object.values(activeList).reduce((a, b) => a + b, 0);
   const { t, i18n } = useTranslation();
   const langCode = i18n.language.split("-")[0];
+  const activeTypes = langCode === "en" ? (sortedTypesEn ?? []) : sortedTypes;
 
   return (
     <div className="flex flex-col lg:flex-row gap-8">
@@ -362,7 +364,7 @@ const SearchView = ({
                           className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm cursor-pointer focus:border-blue-500 outline-none transition-colors text-white"
                         >
                           <option value="all">{t("all", "所有")}</option>
-                          {sortedTypes.map((type) => (
+                          {activeTypes.map((type) => (
                             <option key={`t1-${type}`} value={type}>
                               {type}
                             </option>
@@ -376,7 +378,7 @@ const SearchView = ({
                           className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm cursor-pointer focus:border-blue-500 outline-none transition-colors text-white"
                         >
                           <option value="all">{t("all", "所有")}</option>
-                          {sortedTypes.map((type) => (
+                          {activeTypes.map((type) => (
                             <option key={`t2-${type}`} value={type}>
                               {type}
                             </option>

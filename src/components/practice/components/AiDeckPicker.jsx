@@ -1,25 +1,48 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import deckFinalData from '../../../data/deck_final.json';
-import { getSafeImageUrl } from '../../../utils/cardHelpers';
+import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 
-function countNonLeaderCards(deckStr) {
-  return deckStr.split(',').reduce((sum, part) => {
-    const m = part.match(/^(\d+)x/);
-    return sum + (m ? parseInt(m[1]) : 0);
-  }, 0) - 1; // subtract the leader copy
-}
+const COLOR_ORDER = ['red', 'green', 'blue', 'purple', 'black', 'yellow'];
+
+const SORT_MODES = [
+  { key: 'popularity', label: 'Popular' },
+  { key: 'number',     label: 'Number'  },
+  { key: 'color',      label: 'Color'   },
+];
 
 export default function AiDeckPicker({ cards, onSelect, onClose }) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language.startsWith('en');
   const [selected, setSelected] = useState(null);
+  const [sortBy, setSortBy] = useState('popularity');
 
   const deckEntries = useMemo(() =>
     Object.entries(deckFinalData).map(([key, val]) => ({
       key,
       deckStr: val.deck,
+      count: val.count ?? 0,
       leader: cards?.find(c => c.id === key) ?? null,
-      cardCount: countNonLeaderCards(val.deck),
     })),
   [cards]);
+
+  const sortedEntries = useMemo(() => {
+    const entries = [...deckEntries];
+    if (sortBy === 'popularity') {
+      entries.sort((a, b) => b.count - a.count);
+    } else if (sortBy === 'number') {
+      entries.sort((a, b) => a.key.localeCompare(b.key));
+    } else if (sortBy === 'color') {
+      entries.sort((a, b) => {
+        const ca = (a.leader?.colors?.[0] ?? '').toLowerCase();
+        const cb = (b.leader?.colors?.[0] ?? '').toLowerCase();
+        const ia = COLOR_ORDER.indexOf(ca);
+        const ib = COLOR_ORDER.indexOf(cb);
+        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+      });
+    }
+    return entries;
+  }, [deckEntries, sortBy]);
 
   const selectedEntry = selected ? deckEntries.find(d => d.key === selected) : null;
 
@@ -34,10 +57,27 @@ export default function AiDeckPicker({ cards, onSelect, onClose }) {
         <span className="text-xs text-slate-500">{deckEntries.length} decks</span>
       </div>
 
+      {/* Sort bar */}
+      <div className="flex gap-1.5 px-3 py-2 border-b border-slate-800">
+        {SORT_MODES.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setSortBy(key)}
+            className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition-all
+              ${sortBy === key
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Deck grid */}
       <div className="flex-1 overflow-y-auto px-3 py-3">
         <div className="grid grid-cols-3 gap-3">
-          {deckEntries.map(({ key, leader, cardCount }) => {
+          {sortedEntries.map(({ key, leader }) => {
             const isSelected = selected === key;
             return (
               <button
@@ -49,18 +89,20 @@ export default function AiDeckPicker({ cards, onSelect, onClose }) {
                     : 'border-slate-700 opacity-80'
                   }`}
               >
-                <img
-                  src={leader ? getSafeImageUrl(leader) : '/images/card_back.png'}
-                  alt={leader?.name ?? key}
-                  className="w-full object-contain bg-slate-800"
-                  style={{ height: '5rem' }}
-                  onError={e => { e.target.src = '/images/card_back.png'; }}
-                />
+                <div className="relative w-full overflow-hidden bg-slate-800" style={{ height: '5rem' }}>
+                  <img
+                    src={leader ? getSafeImageUrl(leader) : cardBackImg}
+                    alt={leader?.name ?? key}
+                    className="absolute"
+                    style={{ width: '160%', left: '50%', transform: 'translateX(-50%) translateY(-10%)' }}
+                    onError={e => { e.target.src = cardBackImg; }}
+                  />
+                </div>
                 <div className="w-full bg-slate-900 px-1 py-1.5">
                   <p className="text-white text-[9px] font-bold truncate text-center leading-tight">
-                    {leader?.name ?? key}
+                    {(isEn ? (leader?.enName ?? leader?.name) : leader?.name) ?? key}
                   </p>
-                  <p className="text-slate-500 text-[8px] text-center mt-0.5">{cardCount} cards</p>
+                  <p className="text-slate-500 text-[8px] text-center mt-0.5">{key}</p>
                 </div>
                 {isSelected && (
                   <div className="absolute top-1 right-1 bg-blue-600 rounded-full w-5 h-5 flex items-center justify-center shadow">
@@ -85,7 +127,7 @@ export default function AiDeckPicker({ cards, onSelect, onClose }) {
             }`}
         >
           {selectedEntry
-            ? `Challenge ${selectedEntry.leader?.name ?? selected}`
+            ? `Challenge ${(isEn ? (selectedEntry.leader?.enName ?? selectedEntry.leader?.name) : selectedEntry.leader?.name) ?? selected}`
             : 'Select an opponent deck'}
         </button>
       </div>

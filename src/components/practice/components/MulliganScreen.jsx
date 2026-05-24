@@ -1,78 +1,78 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { PLAYER } from '../engine/constants';
-import { getSafeImageUrl } from '../../../utils/cardHelpers';
+import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 
 export default function MulliganScreen({ state: S, dispatch: D, onClose }) {
-  const [hoveredCard, setHoveredCard] = useState(null);
+  const humanFirst = S.firstPlayer === PLAYER.HUMAN;
 
   return (
-    <div className="fixed inset-0 bg-slate-950 flex flex-col z-50">
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+    <div className="fixed inset-0 bg-slate-950 flex flex-col z-50" style={{ height: '100dvh' }}>
+      {/* Back button */}
+      <div className="flex items-center px-4 pt-3 pb-1 flex-shrink-0">
         <button onClick={onClose} className="text-slate-400 hover:text-white text-sm font-bold">← Back</button>
-        <div className="flex flex-col items-center">
-          <span className={`text-2xl font-black tracking-tight ${S.firstPlayer === PLAYER.HUMAN ? 'text-emerald-400' : 'text-orange-400'}`}>
-            {S.firstPlayer === PLAYER.HUMAN ? 'You Go First!' : 'Opponent Goes First'}
-          </span>
-          <span className="text-slate-500 text-xs mt-0.5">Opening Hand</span>
-        </div>
-        <span className="w-16" />
       </div>
 
-      <div className="flex items-center gap-3 px-4 pb-3">
-        <img
-          src={S.human.leader?.card ? getSafeImageUrl(S.human.leader.card) : '/images/card_back.png'}
-          alt="Leader"
-          className="w-10 h-14 object-cover rounded-lg border border-slate-600"
-          onError={e => { e.target.src = '/images/card_back.png'; }}
-        />
-        <div>
-          <p className="text-white font-black text-sm">{S.human.leader?.card?.name}</p>
-          <p className="text-slate-400 text-xs">Life: {S.human.lifeArea?.length ?? '—'} · Deck: {S.human.deck.length}</p>
-        </div>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center px-4">
-        {hoveredCard ? (
+      {/* Top 50%: Leader images */}
+      <div className="flex flex-shrink-0" style={{ height: '50%' }}>
+        {/* Human leader — left */}
+        <div className="flex-1 relative overflow-hidden bg-slate-900">
           <img
-            src={getSafeImageUrl(hoveredCard)}
-            alt={hoveredCard.name}
-            className="rounded-2xl shadow-2xl object-contain border-2 border-slate-400"
-            style={{ maxHeight: '100%', maxWidth: '55%' }}
-            onError={e => { e.target.src = '/images/card_back.png'; }}
+            src={S.human.leader?.card ? getSafeImageUrl(S.human.leader.card) : cardBackImg}
+            alt="Your Leader"
+            className="w-full h-full object-contain"
+            onError={e => { e.target.src = cardBackImg; }}
           />
-        ) : (
-          <p className="text-slate-600 text-sm select-none">Hover a card to preview</p>
-        )}
-      </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+          <div className={`absolute bottom-3 left-0 right-0 flex justify-center`}>
+            <span className={`text-xs font-black px-3 py-1 rounded-full ${humanFirst ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
+              {humanFirst ? 'Going First' : 'Going Second'}
+            </span>
+          </div>
+        </div>
 
-      <div className="px-4 pb-2">
-        <p className="text-slate-400 text-xs font-bold mb-2 text-center">Your 5-card starting hand</p>
-        <div className="flex gap-2 justify-center overflow-x-auto pb-1">
-          {S.human.hand.map((card, i) => (
-            <div
-              key={`${card.id}-${i}`}
-              className="flex-shrink-0 relative cursor-pointer"
-              onMouseEnter={() => setHoveredCard(card)}
-              onMouseLeave={() => setHoveredCard(null)}
-              onTouchStart={() => setHoveredCard(card)}
-              onTouchEnd={() => setHoveredCard(null)}
-            >
-              <img
-                src={getSafeImageUrl(card)}
-                alt={card.name}
-                className="w-16 rounded-xl object-cover border-2 border-slate-600 shadow-lg hover:border-slate-300 transition-all"
-                style={{ height: '5.5rem' }}
-                onError={e => { e.target.src = '/images/card_back.png'; }}
-              />
-              <div className="absolute top-1 left-1 bg-slate-900/80 text-white text-[9px] font-black px-1 rounded">
-                {card.cost ?? '—'}
-              </div>
-            </div>
-          ))}
+        {/* Divider */}
+        <div className="w-px bg-slate-700 flex-shrink-0" />
+
+        {/* AI leader — right */}
+        <div className="flex-1 relative overflow-hidden bg-slate-900">
+          <img
+            src={S.ai.leader?.card ? getSafeImageUrl(S.ai.leader.card) : cardBackImg}
+            alt="Opponent Leader"
+            className="w-full h-full object-contain"
+            onError={e => { e.target.src = cardBackImg; }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+          <div className={`absolute bottom-3 left-0 right-0 flex justify-center`}>
+            <span className={`text-xs font-black px-3 py-1 rounded-full ${!humanFirst ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
+              {!humanFirst ? 'Going First' : 'Going Second'}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="flex gap-3 px-4 pb-8 pt-3">
+      {/* Middle ~56%: 5 starting hand cards */}
+      <div className="flex-1 flex items-center justify-center gap-2 px-3 py-4">
+        {S.human.hand.map((card, i) => (
+          <div
+            key={`${card.id}-${i}`}
+            className="flex-1 relative rounded-xl overflow-hidden shadow-lg border border-slate-700"
+            style={{ maxWidth: '19%', aspectRatio: '2/3' }}
+          >
+            <img
+              src={getSafeImageUrl(card)}
+              alt={card.name}
+              className="w-full h-full object-cover"
+              onError={e => { e.target.src = cardBackImg; }}
+            />
+            <div className="absolute top-1 left-1 bg-slate-900/80 text-white text-[9px] font-black px-1 rounded">
+              {card.cost ?? '—'}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Buttons */}
+      <div className="flex gap-3 px-4 pb-8 pt-2 flex-shrink-0">
         <button
           onClick={() => D({ type: 'MULLIGAN_REDRAW' })}
           className="flex-1 py-4 bg-orange-700 hover:bg-orange-600 text-white font-black text-sm rounded-2xl active:scale-95 transition-all"

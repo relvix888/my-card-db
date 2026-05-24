@@ -60,8 +60,8 @@ export default function DraggablePanel({ children }) {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
-      <div ref={panelRef} className="pointer-events-auto w-full max-w-sm rounded-t-2xl overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+      <div ref={panelRef} className="pointer-events-auto w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl">
         {dragHandle}
         {children}
       </div>
