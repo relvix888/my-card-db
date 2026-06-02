@@ -202,6 +202,10 @@ function parseBlock(raw) {
   if (koWatchNameM) timings.push("KO替換時");
   // "這張角色卡即將離開場上時" — character self-leave-field replacement (KO, bounce, add-to-life, bottom-deck, etc.)
   if (s.includes("這張角色卡即將離開場上時")) timings.push("離場時");
+  // "即將遭到KO時" + replacement cost — character self-KO replacement (e.g. rest N cards instead of KO)
+  if (s.includes("即將遭到KO時") && (s.includes("替換成") || s.includes("可以替換"))) timings.push("離場時");
+  // "因對手的效果遭到KO時" — fires when this character is KO'd by opponent's effect (treat as KO時)
+  if (s.includes("因對手的效果遭到KO時") && !s.includes("登場")) timings.push("KO時");
   // Detect reactive DON!! return trigger: "N張以上...咚‼卡被放回咚‼卡組時，"
   // Handles both orderings: "N張以上自己場上的咚‼卡" and "自己場上N張以上的咚‼卡" (e.g. OP09-061)
   const donReturnTriggerM = s.match(
@@ -233,6 +237,9 @@ function parseBlock(raw) {
   }
   // "角色卡因為自己的效果離開場上時" — when own char leaves by own effect
   if (s.includes("角色卡因為自己的效果離開場上時")) timings.push("自己角色效果離場時");
+  // "自己擁有《X》特徵的角色卡離開場上時" — leader reactive trigger when own trait char leaves field (KO or bounce)
+  const ownTraitLeaveM = s.match(/自己擁有《([^》]+)》特徵的角色卡離開場上時/);
+  if (ownTraitLeaveM) timings.push("我方特徵角色離場時");
   // "自己場上的咚‼卡被放回咚‼卡組時" or "場上的咚‼卡被放回咚‼卡組時" or "因為自己的效果" variant — DON returned trigger (no count guard)
   if ((s.includes("自己場上的咚‼卡被放回咚‼卡組時") || s.includes("場上的咚‼卡被放回咚‼卡組時") || s.includes("自己場上的咚‼卡因為自己的效果被放回咚‼卡組時")) && !donReturnTriggerM) timings.push("咚‼卡被放回時");
   // "這張領航卡或自己的角色卡附加咚‼卡時" — when this leader or any friendly char is given a DON!!
@@ -332,10 +339,28 @@ function parseBlock(raw) {
 
   // Condition: 若...時[，,]
   const condM = s.match(/若(.+?)時[，,]/);
-  const condition = condM ? parseCondition(condM[1]) : null;
+  let condition = condM ? parseCondition(condM[1]) : null;
   // "手牌在N張以下" — hand-size pre-condition outside the 若...時 brackets (e.g. OP01-062 Crocodile)
   const handMaxM = s.match(/手牌在(\d+)張以下/);
   if (handMaxM && condition) condition.handMax = parseInt(handMaxM[1]);
+
+  // "自己原本力量值N以下擁有《TRAIT》特徵的角色卡因對手的效果即將離開場上時" —
+  // leader passive replacement: when opponent's effect would remove your character.
+  // e.g. OP11-001: "if your {Navy} char with 7000 base power or less would be removed by opponent's effect"
+  const oppEffectRemoveM = s.match(
+    /自己(?:原本)?力量值(\d+)以下擁有《([^》]+)》特徵的角色卡因對手的效果即將離開場上時/
+  );
+  if (oppEffectRemoveM) {
+    if (!continuous.includes('對方回合中')) continuous.push('對方回合中');
+    if (!condition) {
+      condition = {
+        subject: 'characters', owner: 'self',
+        trait: oppEffectRemoveM[2],
+        power: parseInt(oppEffectRemoveM[1]),
+        powerOp: 'lte',
+      };
+    }
+  }
 
   // Build raw action text (before stripping condition).
   // Protect 【X】 brackets that appear inside filter conditions (未持有【X】, 獲得【X】)
@@ -354,6 +379,8 @@ function parseBlock(raw) {
     .replace(/[①②③④⑤⑥⑦⑧⑨➀➁➂➃➄]\s*(?:\([^)]+\))?[：:]/, "")
     .replace(/^\//, "") // strip leading / from dual-timing syntax e.g. 【攻擊時】/【對方攻擊時】
     .replace(/可以/g, "")
+    // Strip "Subject因對手的效果即將離開場上時，替換成" so BOTTOM_DECK only sees the action
+    .replace(/^.+?因對手的效果即將離開場上時[，,]替換成/, '')
     .trim();
 
   // Strip body-text timing phrases that are already captured in timings[] before
@@ -522,7 +549,9 @@ function parseBlock(raw) {
     ? parseCardFilter(_koFilterRaw)
     : koWatchNameM
       ? parseCardFilter(`自己的「${koWatchNameM[1]}」`)
-      : null;
+      : ownTraitLeaveM
+        ? parseCardFilter(`自己擁有《${ownTraitLeaveM[1]}》特徵的角色卡`)
+        : null;
 
   // If the text before the KO trigger contains an optional discard cost ("可以廢棄N張自己的手牌："),
   // record it so we can prepend CONFIRM_OPTIONAL_ACTIVATION + DISCARD to the final actions.
@@ -700,9 +729,25 @@ function parseBlock(raw) {
   if (preCondActions.length > 0) {
     if (isOptional && condition && preCondText.endsWith("：")) {
       const costDesc = preCondText.slice(0, -1).trim();
+      // "。之後，TAIL" after the conditional body is unconditional — it fires regardless of
+      // whether the condition was met, as long as the optional cost was paid.
+      // Split actionText on the first "。之後[，,]" boundary to separate the conditional body
+      // from the unconditional tail. Without this split, the TAIL would be wrapped inside
+      // CONDITIONAL.actions and only fire when the condition is met.
+      let conditionalActions = postCondActions;
+      let unconditionalTail = [];
+      if (actionText) {
+        const tailBreak = actionText.match(/。之後[，,]/);
+        if (tailBreak) {
+          const condBodyText = actionText.slice(0, tailBreak.index + 1).trim();
+          const tailText = actionText.slice(tailBreak.index + tailBreak[0].length).trim();
+          conditionalActions = parseSentences(condBodyText);
+          unconditionalTail = parseSentences(tailText);
+        }
+      }
       const conditionalTail =
-        postCondActions.length > 0
-          ? [{ type: "CONDITIONAL", condition, actions: postCondActions }]
+        conditionalActions.length > 0
+          ? [{ type: "CONDITIONAL", condition, actions: conditionalActions }]
           : [];
       return {
         ...baseClause,
@@ -710,8 +755,11 @@ function parseBlock(raw) {
         conditionRaw: condM?.[0] ?? null,
         actions: [
           { type: "CONFIRM_OPTIONAL_ACTIVATION", costDescription: costDesc, ...(donReturn ? { donReturn } : {}) },
-          ...preCondActions,
+          // Cost actions are mandatory once the player confirms — strip isOptional so the
+          // handler does not show a redundant "do you want to pay?" prompt.
+          ...preCondActions.map(a => ({ ...a, isOptional: false })),
           ...conditionalTail,
+          ...unconditionalTail,
         ],
       };
     }
@@ -772,22 +820,40 @@ function parseBlock(raw) {
       }
     }
 
-    // Default: emit two clauses so the engine runs the unconditional part regardless
-    // of whether the condition is satisfied.
-    return [
-      {
+    // Special case: "choose 1 target +N, then if field condition, same target +N more"
+    // e.g. Counter cards: "Up to 1 card +2000, then if cost-8 character exists, +2000 more"
+    // Merging into one action lets the conditionalBonus fire on the same chosen target
+    // via CHOOSE_POWER_TARGET, avoiding the two-clause split where clause 2 never fires.
+    const prePm = preCondActions.length === 1 && preCondActions[0].type === 'POWER_MOD' && preCondActions[0].count === 1;
+    const postPmKeys = postCondActions.length === 1 && postCondActions[0].type === 'POWER_MOD' ? Object.keys(postCondActions[0].filter ?? {}) : null;
+    const postPmSelfOnly = postPmKeys && postPmKeys.length === 1 && postCondActions[0].filter?.self === true;
+    if (prePm && postPmSelfOnly && condition) {
+      return {
         ...baseClause,
         condition: null,
         conditionRaw: null,
-        actions: preCondActions,
-      },
-      {
-        ...baseClause,
-        condition,
-        conditionRaw: condM?.[0] ?? null,
-        actions: postCondActions,
-      },
-    ];
+        actions: [{
+          ...preCondActions[0],
+          conditionalBonus: { condition, delta: postCondActions[0].delta },
+        }],
+      };
+    }
+
+    // Default: single clause — unconditional preCondActions always run, then a CONDITIONAL
+    // action checks the condition before running postCondActions. Two-clause approach broke
+    // interactive effects (e.g. POWER_MOD picker sets pendingEffect → resolveEventEffect
+    // breaks out of its loop before reaching the second clause's KO).
+    return {
+      ...baseClause,
+      condition: null,
+      conditionRaw: null,
+      actions: [
+        ...preCondActions,
+        ...(condition && postCondActions.length > 0
+          ? [{ type: 'CONDITIONAL', condition, actions: postCondActions }]
+          : postCondActions),
+      ],
+    };
   }
 
   const finalActions = koWatchDiscardCost
@@ -825,6 +891,20 @@ function parseCondition(text) {
   if (revealedCardM)
     return { raw: text, subject: "lastRevealedCard", cost: parseInt(revealedCardM[1]), name: revealedCardM[2] };
 
+  // "有N張自己卡片名稱不同擁有《X》特徵的角色卡" — unique-name-count with trait requirement
+  // e.g. OP16-038: "有5張自己卡片名稱不同擁有《推進城》特徵的角色卡"
+  const uniqueNameCountM = text.match(/有(\d+)張自己卡片名稱不同擁有《([^》]+)》特徵的角色卡/);
+  if (uniqueNameCountM) {
+    return {
+      raw: text,
+      subject: "characters",
+      owner: "self",
+      uniqueNameCountByTrait: true,
+      count: parseInt(uniqueNameCountM[1]),
+      trait: uniqueNameCountM[2],
+    };
+  }
+
   if (text.includes("自己")) c.owner = "self";
   else if (text.includes("對手") || text.includes("對方")) c.owner = "opponent";
 
@@ -847,6 +927,14 @@ function parseCondition(text) {
     // Compound: "自己的領航卡有多種顏色、對手的場上有N張以上咚‼卡"
     const oppDonM = text.match(/對手的場上有(\d+)張以上咚‼/);
     if (oppDonM) c.oppDonField = { count: parseInt(oppDonM[1]), countOp: "gte" };
+    // Compound: "自己的領航卡...、自己場上的咚‼卡有N張以上"
+    const selfDonM = text.match(/自己場上的咚‼卡有(\d+)張以上/);
+    if (selfDonM) c.selfDonField = { count: parseInt(selfDonM[1]), countOp: "gte" };
+    // Compound: "自己的場上有N張咚‼卡" (exact count, e.g. OP16-012: "10張")
+    const selfDonExactM = !selfDonM && text.match(/自己的場上有(\d+)張咚‼/);
+    if (selfDonExactM) c.selfDonField = { count: parseInt(selfDonExactM[1]), countOp: "eq" };
+    // Compound: also require that this character was deployed this turn
+    if (text.includes("這張角色卡登場的回合")) c.selfJustDeployed = true;
   } else if (text.includes("這張角色卡登場的回合")) {
     c.subject = "self_justDeployed";
   } else if (text.includes("角色卡")) {
@@ -991,8 +1079,8 @@ function parseCondition(text) {
   }
 
   if (text.includes("只有")) c.predicate = "only";
-  else if (text.includes("擁有")) c.predicate = "has";
   else if (text.includes("沒有")) c.predicate = "none";
+  else if (text.includes("擁有")) c.predicate = "has";
 
   return c;
 }
@@ -1025,13 +1113,16 @@ function parseSentences(text) {
           .filter(Boolean);
         if (parts.length >= 2) return parts;
       }
-      // Split compound action chains joined by ，並 (e.g. "抽2張，並廢棄1張")
-      // but NOT search sentences where ，並加入手牌 is part of the SEARCH result description
-      if (s.includes("，並") && !s.includes("查看")) {
+      // Split compound action chains joined by ，並 or 、並 (e.g. "抽2張，並廢棄1張",
+      // "將DON!!置為休息狀態、並公開手牌中8000角色卡")
+      // but NOT search sentences where ，並加入手牌 is part of the SEARCH result description,
+      // and NOT the "KO all then deploy" compound which parseSentence handles atomically.
+      if ((s.includes("，並") || s.includes("、並")) && !s.includes("查看")
+          && !(s.includes("全數放置在廢棄區") && s.includes("使最多"))) {
         // Also split on ，再 before 將卡組洗牌 so "並X，再將卡組洗牌" emits SHUFFLE_DECK
         const sep = s.includes("，再將卡組洗牌")
-          ? /，(?:並|再(?=將卡組洗牌))/
-          : /，並/;
+          ? /[，、](?:並|再(?=將卡組洗牌))/
+          : /[，、]並/;
         return s
           .split(sep)
           .map((p) => p.trim())
@@ -1079,6 +1170,10 @@ function parseSentences(text) {
       }
       // Split "獲得【keyword】、力量值+N" compound (grant-keyword + power-mod joined by 、)
       // e.g. "這張角色卡獲得【防禦】、力量值+2000"
+      // Guard: "自己的領航卡獲得【keyword】、力量值+N" — keep whole; parseSentence handles the leader subject
+      if (s.match(/^自己的領航卡獲得【/) && s.includes("】、力量值")) {
+        return [s];
+      }
       if (s.includes("獲得【") && s.includes("】、力量值")) {
         return s
           .split(/、(?=力量值)/)
@@ -1128,6 +1223,38 @@ function parseSentences(text) {
         const parts = s.split(/，(?=使.+登場)/).map(p => p.trim()).filter(Boolean);
         if (parts.length >= 2) return parts;
       }
+      // Split "抽N張卡片，最多N張...力量值±N" into DRAW + POWER_MOD (plain ，, no 並 connector).
+      // e.g. OP16-103: "抽1張卡片，最多1張對手的領航卡或角色卡，在這個回合，力量值-3000"
+      if (/抽\d+張/.test(s) && /，最多\d+張/.test(s) && /力量值[+＋\-－]\d+/.test(s)) {
+        const parts = s.split(/，(?=最多\d+張)/).map(p => p.trim()).filter(Boolean);
+        if (parts.length >= 2) return parts;
+      }
+      // Split "抽N張卡片，最多N張...費用±N" into DRAW + COST_MOD (plain ，, no 並 connector).
+      // e.g. OP16-087: "抽1張卡片，最多1張自己的「光月桃之助」，在這個回合，費用+20"
+      if (/抽\d+張/.test(s) && /，最多\d+張/.test(s) && /費用[+＋\-－]\d+/.test(s)) {
+        const parts = s.split(/，(?=最多\d+張)/).map(p => p.trim()).filter(Boolean);
+        if (parts.length >= 2) return parts;
+      }
+      // Split "抽N張卡片，最多N張...原本的力量值變更成N" into DRAW + POWER_SET (plain ，, no 並 connector).
+      // e.g. OP16-106: "抽1張卡片，最多1張自己的領航卡或角色卡，在這個回合，原本的力量值變更成7000"
+      if (/抽\d+張/.test(s) && /，最多\d+張/.test(s) && s.includes("原本的力量值變更成")) {
+        const parts = s.split(/，(?=最多\d+張)/).map(p => p.trim()).filter(Boolean);
+        if (parts.length >= 2) return parts;
+      }
+      // Split "抽N張...，最多N張...無法進行攻擊" into DRAW + ATTACK_LOCK (plain ，, no 並 connector).
+      // e.g. OP16-056: "抽2張卡片，最多1張對手費用9以下的角色卡，在下一個對手結束階段結束前，無法進行攻擊"
+      if (/抽\d+張/.test(s) && /，最多\d+張/.test(s) && s.includes("無法進行攻擊")) {
+        const parts = s.split(/，(?=最多\d+張)/).map(p => p.trim()).filter(Boolean);
+        if (parts.length >= 2) return parts;
+      }
+      // Split "最多N張...，在這個回合，效果無效、力量值-N" into NULL_EFFECT + POWER_MOD.
+      // e.g. OP09-097: Counter effect that both negates and debuffs -4000.
+      // The POWER_MOD regex fires first on the full sentence and swallows the NULL_EFFECT part.
+      if (/最多\d+張/.test(s) && s.includes("效果無效、力量值")) {
+        const nullPart = s.replace(/、力量值[+＋\-－]\d+/, "");
+        const powerPart = s.replace(/效果無效、/, "");
+        return [nullPart, powerPart];
+      }
       return [s];
     })
     .flatMap((s) => {
@@ -1147,6 +1274,14 @@ function parseSentences(text) {
         acc.length > 0 &&
         acc[acc.length - 1].type === "SELECT_TARGET" &&
         action.type === "SWAP_BASE_POWER"
+      ) {
+        const prev = acc[acc.length - 1];
+        acc[acc.length - 1] = { ...action, filter: prev.filter, count: prev.count };
+      // Merge SELECT_TARGET + COPY_POWER_FROM_TARGET: pass filter/count so the handler knows targets.
+      } else if (
+        acc.length > 0 &&
+        acc[acc.length - 1].type === "SELECT_TARGET" &&
+        action.type === "COPY_POWER_FROM_TARGET"
       ) {
         const prev = acc[acc.length - 1];
         acc[acc.length - 1] = { ...action, filter: prev.filter, count: prev.count };
@@ -1576,6 +1711,10 @@ function parseSentence(s) {
     return { type: "LOCK_DON_UNREST_BY_CHAR" };
   }
 
+  // UNREST_AT_EOT — "這回合結束時，將這張角色卡置為活動狀態" (deferred self-unrest at end of turn)
+  if (/這回合結束時[，,]將這張角色卡置為活動狀態/.test(s))
+    return { type: 'UNREST_AT_EOT', filter: { self: true } };
+
   // UNREST field card
   const unrestM = s.match(/將(.+?)置為活動狀態/);
   if (unrestM) {
@@ -1710,6 +1849,43 @@ function parseSentence(s) {
     };
   }
 
+  // Compound per-trash power+cost mod — "廢棄區中每有N張卡片...力量值+M、費用+K"
+  // Must come before the COST_MOD check below so 費用+K doesn't cause an early return.
+  if (s.includes("廢棄區中每有") && s.includes("力量值") && s.includes("費用")) {
+    const perTrashM2 = s.match(/廢棄區中每有(\d+)張卡片/);
+    const pwrM2 = s.match(/力量值([+＋\-－]\d+)/);
+    const cstM2 = s.match(/費用([+＋\-－]\d+)/);
+    if (perTrashM2 && pwrM2 && cstM2) {
+      const perTrashCount = parseInt(perTrashM2[1]);
+      return [
+        {
+          type: "POWER_MOD",
+          delta: parseInt(pwrM2[1].replace("＋", "+").replace("－", "-")),
+          until: "continuous",
+          filter: { self: true },
+          perTrashCount,
+        },
+        {
+          type: "COST_MOD",
+          delta: parseInt(cstM2[1].replace("＋", "+").replace("－", "-")),
+          until: "continuous",
+          filter: { self: true },
+          perTrashCount,
+        },
+      ];
+    }
+  }
+
+  // HAND_COST_MOD — "手牌中這張卡片的費用±N" (self cost in hand, not a field COST_MOD)
+  // Must guard before the generic COST_MOD check below to avoid misclassifying as a field cost mod.
+  if (s.includes("手牌中") && s.includes("這張卡片的費用")) {
+    const handCostM = s.match(/費用([+＋\-－]\d+)/);
+    if (handCostM) {
+      const delta = parseInt(handCostM[1].replace("＋", "+").replace("－", "-"));
+      return { type: "HAND_COST_MOD", delta, filter: { self: true } };
+    }
+  }
+
   // COST_MOD — e.g. "最多1張自己的角色卡，在下一個對手回合結束前，費用+2"
   const costM = s.match(/費用([+＋\-－]\d+)/);
   if (costM && !s.includes("以下") && !s.includes("以上")) {
@@ -1719,7 +1895,7 @@ function parseSentence(s) {
       ? "turn"
       : s.includes("在這場對戰中")
         ? "battle"
-        : s.includes("在下一個對手回合結束前")
+        : s.includes("在下一個對手回合結束前") || s.includes("在下一個對手結束階段結束前")
           ? "opponent_turn_end"
           : "continuous";
     const tgtM = s.match(/最多(\d+)?張(.+?)(?:，在|的費用|費用)/);
@@ -1811,6 +1987,24 @@ function parseSentence(s) {
       },
     ];
 
+  // POWER_SET (named chars all, this turn) — "自己的「X」全數，在這個回合，原本的力量值變更成N"
+  // e.g. OP16-058: "自己的「推進城的囚犯」全數，在這個回合，原本的力量值變更成7000"
+  const namedAllPowerSetM = s.match(/自己的「([^」]+)」全數[，,]在這個回合[，,]原本的力量值變更成(\d+)/);
+  if (namedAllPowerSetM) return {
+    type: "POWER_SET",
+    power: parseInt(namedAllPowerSetM[2]),
+    until: "turn",
+    filter: { owner: "self", name: namedAllPowerSetM[1] },
+  };
+
+  // POWER_SET (leader + this character, this turn) — "自己的領航卡和這張角色卡，在這個回合，原本的力量值變更成N"
+  // e.g. OP16-015: sets both the leader and this character's base power to the same value.
+  const leaderAndSelfPowerSetM = s.match(/自己的領航卡和這張角色卡[，,]在這個回合[，,]原本的力量值變更成(\d+)/);
+  if (leaderAndSelfPowerSetM) return [
+    { type: "POWER_SET", power: parseInt(leaderAndSelfPowerSetM[1]), until: "turn", filter: { owner: "self", category: "Leader" } },
+    { type: "POWER_SET", power: parseInt(leaderAndSelfPowerSetM[1]), until: "turn", filter: { self: true } },
+  ];
+
   // POWER_SET_ZERO — "最多N張{filter}，在這個回合，力量值減至0"
   const powerZeroM = s.match(/力量值減至0/);
   if (powerZeroM) {
@@ -1863,6 +2057,23 @@ function parseSentence(s) {
     ];
   }
 
+  // Continuous leader buff compound — "自己的領航卡獲得【keyword】、力量值+N"
+  // e.g. OP16-003: character grants leader Double Attack + power (no time qualifier → continuous)
+  const leaderContinuousGrantPowerM = s.match(
+    /^自己的領航卡獲得【([^】]+)】、力量值([+＋\-－]\d+)/,
+  );
+  if (leaderContinuousGrantPowerM) {
+    const kwBase = leaderContinuousGrantPowerM[1].split("：")[0];
+    const delta = parseInt(
+      leaderContinuousGrantPowerM[2].replace("＋", "+").replace("－", "-"),
+    );
+    const filter = { owner: "self", category: "Leader" };
+    return [
+      { type: "GRANT_KEYWORD", keyword: kwBase, filter, until: null },
+      { type: "POWER_MOD", delta, until: "continuous", filter },
+    ];
+  }
+
   // Leader named-target: grant keyword + power mod in one sentence
   // e.g. "自己的領航卡「魯西」，在這個回合，獲得【雙重攻擊】，力量值+3000"
   const leaderNameGrantPowerM = s.match(
@@ -1897,6 +2108,21 @@ function parseSentence(s) {
     }
   }
 
+  // POWER_MOD per unique char name — "每有N張自己卡片名稱不同的角色卡，...力量值+M"
+  // e.g. OP16-034: +1000 for each differently-named character you control
+  if (s.includes("卡片名稱不同") && s.includes("力量值")) {
+    const perUniqueM = s.match(/每有(\d+)張自己卡片名稱不同的角色卡[，,][^，]*力量值([+＋\-－]\d+)/);
+    if (perUniqueM) {
+      return {
+        type: "POWER_MOD",
+        delta: parseInt(perUniqueM[2].replace("＋", "+").replace("－", "-")),
+        until: "continuous",
+        filter: { self: true },
+        perUniqueCharName: true,
+      };
+    }
+  }
+
   // POWER_MOD_PER_SELF_DON — "每附加N張咚‼卡在該張角色卡，TARGET，力量值±M"
   // e.g. OP15-008: per DON!! attached to this card, all opponent characters get -1000 this turn
   if (s.includes("每附加") && s.includes("咚‼") && s.includes("該張角色卡") && s.includes("力量值")) {
@@ -1925,6 +2151,20 @@ function parseSentence(s) {
     return { type: "POWER_MOD", delta, until: "turn", filter: { includesLeader: true, owner: "self" } };
   }
 
+  // POWER_SET (leader or character interactive target) — "最多N張自己/對手的領航卡或角色卡，在這個回合，原本的力量值變更成N"
+  // e.g. OP16-106: "最多1張自己的領航卡或角色卡，在這個回合，原本的力量值變更成7000"
+  const powerSetLeaderOrCharM = s.match(
+    /最多(\d+)?張(自己|對手)的領航卡或角色卡[，,]在這個回合[，,]原本的力量值變更成(\d+)/,
+  );
+  if (powerSetLeaderOrCharM)
+    return {
+      type: "POWER_SET",
+      power: parseInt(powerSetLeaderOrCharM[3]),
+      count: parseInt(powerSetLeaderOrCharM[1] ?? "1"),
+      until: "turn",
+      filter: { owner: powerSetLeaderOrCharM[2] === "對手" ? "opponent" : "self", includesLeader: true },
+    };
+
   // POWER_MOD — e.g. "這張角色卡的力量值+3000" or "最多1張對手的角色卡…力量值-1000"
   // Also matches full-width ＋／－ (e.g. "力量值＋3000")
   const powerM = s.match(/力量值([+\-＋－]\d+)/);
@@ -1934,7 +2174,9 @@ function parseSentence(s) {
       ? "turn"
       : s.includes("在這場對戰中")
         ? "battle"
-        : s.includes("在下一個對手回合結束前") ||
+        : s.includes("到下一個我方回合結束前")
+          ? "nextOwnTurnEnd"
+          : s.includes("在下一個對手回合結束前") ||
             s.includes("在下一個對手結束階段結束前") ||
             s.includes("到下一個我方回合開始前")
           ? "opponent_turn_end"
@@ -2062,8 +2304,28 @@ function parseSentence(s) {
     };
   }
 
+  // Conditional ADD_TO_HAND gated on own life count — "生命值卡在N張以下時，將...加入手牌"
+  // e.g. OP12-115: after +2000, if life ≤ 2 add up to 1 named card from trash to hand.
+  // Must precede LIFE_TO_TRASH: the sentence contains both 生命值卡 and 廢棄區 as unrelated tokens.
+  const lifeCondAthM = s.match(/生命值卡在(\d+)張以下時[，,](.+加入手牌)/);
+  if (lifeCondAthM) {
+    const lifeCount = parseInt(lifeCondAthM[1]);
+    const actionText = lifeCondAthM[2].trim();
+    const srcText = actionText.split("加入手牌")[0].replace(/[，,]$/, "").trim();
+    const countM = srcText.match(/最多(\d+)張/) ?? srcText.match(/[將](\d+)張/);
+    return {
+      type: "CONDITIONAL_EXEC",
+      condition: { subject: "life", count: lifeCount, countOp: "lte" },
+      actions: [{
+        type: "ADD_TO_HAND",
+        count: parseInt(countM?.[1] ?? "1"),
+        filter: parseCardFilter(srcText),
+      }],
+    };
+  }
+
   // LIFE_TO_TRASH — life card goes directly to trash
-  if ((s.includes("生命值區") || s.includes("生命值卡")) && (s.includes("廢棄") || s.includes("廢棄區"))) {
+  if ((s.includes("生命值區") || s.includes("生命值卡")) && (s.includes("廢棄") || s.includes("廢棄區")) && !s.includes("加入手牌")) {
     const cntM = s.match(/最多(\d+)?張/) ?? s.match(/(\d+)?張/);
     const targetOwner =
       s.includes("對手") || s.includes("對方") ? "opponent" : "self";
@@ -2135,13 +2397,28 @@ function parseSentence(s) {
       if (targetM) {
         const parts = targetM[1].split(/和(?=\d?張?(?:自己|對手|對方)(?:全數)?的)/);
         if (parts.length >= 2) {
-          return parts.map((t) => ({
-            type: "ATTACH_DON",
-            count,
-            eachTarget: true,
-            donState,
-            filter: parseCardFilter(t.trim()),
-          }));
+          return parts.map((t) => {
+            // "1張自己的角色卡" — leading count means "choose N targets", not "apply to all"
+            const pickM = t.trim().match(/^(\d+)張/);
+            if (pickM) {
+              const maxTargets = parseInt(pickM[1]);
+              return {
+                type: "ATTACH_DON",
+                count,
+                isUpTo: true,
+                donState,
+                maxTargets,
+                filter: parseCardFilter(t.trim().replace(/^\d+張/, '').trim()),
+              };
+            }
+            return {
+              type: "ATTACH_DON",
+              count,
+              eachTarget: true,
+              donState,
+              filter: parseCardFilter(t.trim()),
+            };
+          });
         }
         // "最多N張" before target = attach to up to N separate targets
         const maxTargetsM = targetM[1].match(/^最多(\d+)張/);
@@ -2243,6 +2520,11 @@ function parseSentence(s) {
       isOptional: s.includes("可"),
     };
   }
+
+  // FLAG_EOT_BOTTOM_DECK — deferred to end of this turn: "這回合結束時，將N張...角色卡放置在持有者的卡組下面"
+  const eotBotDeckM = s.match(/這回合結束時[，,]將(\d+)張.{0,40}角色卡放置在持有者的卡組下面/);
+  if (eotBotDeckM)
+    return { type: "FLAG_EOT_BOTTOM_DECK", count: parseInt(eotBotDeckM[1]) };
 
   // BOTTOM_DECK — e.g. "將最多1張對手力量值6000以下的角色卡放置在持有者的卡組下面"
   if ((s.includes("卡組下面") || s.includes("放到卡組")) && s.includes("下")) {
@@ -2370,6 +2652,11 @@ function parseSentence(s) {
   if (leaderAndCharM)
     return { type: "SELECT_LEADER_AND_CHAR", count: parseInt(leaderAndCharM[1]) };
 
+  // REDIRECT_ATTACK_TARGET — "將該攻擊的對象換成這張領航卡或自己擁有《trait》特徵的角色卡"
+  // e.g. OP16-080: change attack target to this leader or own Blackbeard Pirates character
+  const redirectChangeM = s.match(/將該攻擊的對象換成這張領航卡或自己擁有《([^》]+)》特徵的角色卡/);
+  if (redirectChangeM) return { type: "REDIRECT_ATTACK_TARGET", trait: redirectChangeM[1] };
+
   // REDIRECT_ATTACK_TARGET — "選擇自己的領航卡或...《trait》特徵的角色卡"
   const redirectM = s.match(/選擇自己的領航卡或.*?《([^》]+)》特徵/);
   if (redirectM) return { type: "REDIRECT_ATTACK_TARGET", trait: redirectM[1] };
@@ -2492,6 +2779,12 @@ function parseSentence(s) {
       isReturn: true,
     };
 
+  // HAND_COUNTER_MOD — "自己手牌中力量值N的角色卡全數，變更成反擊+M" (e.g. OP16-118)
+  const handCounterModM = s.match(/自己手牌中力量值(\d+)的角色卡全數，變更成反擊\+(\d+)/);
+  if (handCounterModM) {
+    return { type: 'HAND_COUNTER_MOD', power: parseInt(handCounterModM[1]), counter: parseInt(handCounterModM[2]) };
+  }
+
   // HAND_COST_MOD with trait/cost filter — "使自己手牌中費用N以上擁有《X》特徵的角色卡登場的支付費用減少N"
   const costModDeployM = s.match(
     /使自己手牌中費用(\d+)(以上|以下)擁有《([^》]+)》特徵的角色卡登場的支付費用減少(\d+)/,
@@ -2526,7 +2819,7 @@ function parseSentence(s) {
         name: handCostModNameM[3],
         ...(dir === "以上" ? { costMin: cost } : { costMax: cost }),
       },
-      until: "turn",
+      until: s.includes("接下來") ? "next_play" : "turn",
     };
   }
 
@@ -2977,12 +3270,15 @@ function parseSentence(s) {
   }
 
   // BLOCK_EFFECT — opponent cannot activate effects (during battle or this turn)
-  if (s.includes("對手") && s.includes("無法發動"))
+  if (s.includes("對手") && s.includes("無法發動")) {
+    const countM = s.match(/最多(\d+)張/);
     return {
       type: "BLOCK_EFFECT",
       targetOwner: "opponent",
       until: s.includes("這場對戰") ? "battle" : "turn",
+      count: countM ? parseInt(countM[1], 10) : 1,
     };
+  }
 
   // Mass protection of opponent's characters from self's own effects — "對手的角色卡全數，不會因自己的效果而離開場上"
   if (s.includes("不會因自己的效果而離開場上") && s.includes("對手的角色卡"))
@@ -3201,6 +3497,9 @@ function parseSentence(s) {
   // SELF_KO — "KO這張角色卡" or "KO該張角色卡" or "即KO該張角色卡"
   if ((s.includes("KO這張角色卡") || s.includes("KO該張角色卡") || s === "KO") && !s.includes("不會"))
     return { type: "SELF_KO" };
+
+  // TRASH_SELF — "廢棄這張角色卡" (Activate: Main cost; e.g. OP16-056)
+  if (s === "廢棄這張角色卡") return { type: "SELF_KO" };
 
   // KO own chars as cost — "KO自己費用N以下擁有《X》特徵任意張數的角色卡" / "KO除了這張角色卡以外N張自己的角色卡"
   const koSelfCostM = s.match(/KO自己費用(\d+)以下(.+?)任意張數的角色卡/);
@@ -3550,6 +3849,19 @@ export function parseCardFilter(text) {
     }
   }
 
+  // "擁有《TRAIT》特徵的卡片或「NAME」" → OR: (any card with trait) OR (named card) — no category restriction
+  if (!f.orFilters) {
+    const traitOrNameCardM = text.match(/擁有《([^》]+)》特徵的卡片或「([^」]+)」/);
+    if (traitOrNameCardM) {
+      f.orFilters = [
+        { trait: traitOrNameCardM[1] },
+        { name: traitOrNameCardM[2] },
+      ];
+      delete f.trait;
+      delete f.name;
+    }
+  }
+
   // "擁有《TRAIT》特徵的角色卡或「NAME」" → OR: (char with trait + cost constraint) OR (named char)
   if (!f.orFilters) {
     const traitOrNameM = text.match(
@@ -3573,6 +3885,27 @@ export function parseCardFilter(text) {
       ];
       delete f.category;
       delete f.trait;
+    }
+  }
+
+  // "擁有包含『TRAIT』特徵的角色卡或「NAME」" → OR: (char with contains-trait + power) OR (named char)
+  if (!f.orFilters) {
+    const containsTraitOrNameM = text.match(/擁有包含『([^』]+)』特徵的角色卡或「([^」]+)」/);
+    if (containsTraitOrNameM) {
+      const powerBranch = {};
+      if (f.power !== undefined) {
+        powerBranch.power = f.power;
+        powerBranch.powerOp = f.powerOp;
+        delete f.power;
+        delete f.powerOp;
+      }
+      f.orFilters = [
+        { category: "Character", traitContains: containsTraitOrNameM[1], ...powerBranch },
+        { category: "Character", name: containsTraitOrNameM[2] },
+      ];
+      delete f.category;
+      delete f.traitContains;
+      delete f.name;
     }
   }
 
@@ -3611,6 +3944,16 @@ export function parseCardFilter(text) {
       f.orFilters = [{ name: nameOrTraitM[1] }, { trait: nameOrTraitM[2] }];
       delete f.name;
       delete f.trait;
+    }
+  }
+
+  // "「NAME」或擁有包含『TRAIT』特徵" → OR: named card OR contains-trait card (e.g. OP16-118)
+  if (!f.orFilters && f.name && f.traitContains) {
+    const nameOrContainsM = text.match(/「([^」]+)」或擁有包含『([^』]+)』特徵/);
+    if (nameOrContainsM) {
+      f.orFilters = [{ name: nameOrContainsM[1] }, { traitContains: nameOrContainsM[2] }];
+      delete f.name;
+      delete f.traitContains;
     }
   }
 
@@ -3722,6 +4065,11 @@ function parseCardFilterEN(text) {
   const traits = [...text.matchAll(/\{([^}]+)\}/g)].map(m => m[1]);
   if (traits.length === 1) f.trait = traits[0];
   else if (traits.length > 1) f.traits = traits;
+  // Also detect trait from double-quoted "type including X" phrasing (EN cards)
+  if (!f.trait && !f.traits) {
+    const quotedTypeM = text.match(/type including "([^"]+)"/i);
+    if (quotedTypeM) f.trait = quotedTypeM[1];
+  }
 
   // --- Cost ---
   // Dynamic cost bound: cost ≤ number of DON!! cards on field (resolved at runtime)
@@ -3740,6 +4088,11 @@ function parseCardFilterEN(text) {
   const powerGeM = text.match(/(\d[\d,]*) power or more/i);
   if (powerLeM)      { f.power = parseInt(powerLeM[1].replace(/,/g, '')); f.powerOp = 'lte'; }
   else if (powerGeM) { f.power = parseInt(powerGeM[1].replace(/,/g, '')); f.powerOp = 'gte'; }
+  else {
+    // Exact power match: "with N power" (no "or less/more")
+    const powerEqM = text.match(/\bwith (\d[\d,]+) power\b(?!\s+or\s)/i);
+    if (powerEqM) { f.power = parseInt(powerEqM[1].replace(/,/g, '')); f.powerOp = 'eq'; }
+  }
 
   // --- Named card [CardName] — exclude keyword brackets ---
   const SKIP_BRACKETS = new Set([
@@ -3758,11 +4111,19 @@ function parseCardFilterEN(text) {
 
   // "[CardName] or {TraitName} type" → OR filter (e.g. OP15-101: reveal [Mont Blanc Noland] or {Shandian Warrior})
   if (!f.orFilters && f.name && f.trait) {
-    const nameOrTraitM = text.match(/\[([^\]]+)\] or \{([^}]+)\}/i);
-    if (nameOrTraitM && !SKIP_BRACKETS.has(nameOrTraitM[1])) {
-      f.orFilters = [{ name: nameOrTraitM[1] }, { trait: nameOrTraitM[2] }];
+    const nameOrBraceM = text.match(/\[([^\]]+)\] or \{([^}]+)\}/i);
+    if (nameOrBraceM && !SKIP_BRACKETS.has(nameOrBraceM[1])) {
+      f.orFilters = [{ name: nameOrBraceM[1] }, { trait: nameOrBraceM[2] }];
       delete f.name;
       delete f.trait;
+    } else {
+      // "[Name] ... or ... type including "Trait"" — EN double-quoted trait OR (e.g. OP16-001)
+      const nameOrQuotedTypeM = text.match(/\[([^\]]+)\].*?\bor\b.*?type including "([^"]+)"/i);
+      if (nameOrQuotedTypeM && !SKIP_BRACKETS.has(nameOrQuotedTypeM[1])) {
+        f.orFilters = [{ name: nameOrQuotedTypeM[1] }, { trait: nameOrQuotedTypeM[2] }];
+        delete f.name;
+        delete f.trait;
+      }
     }
   }
 
@@ -3888,8 +4249,12 @@ function parseSentenceEN(s) {
   if (/^Draw cards equal to the number/i.test(s)) return { type: 'NULL_EFFECT' };
   // "can (also) attack..." — attack-permission effects (not yet implemented)
   if (/can (?:also )?attack/i.test(s)) return { type: 'NULL_EFFECT' };
+  // "The counter of all of your Character cards with N power in your hand becomes +M" (e.g. OP16-118)
+  const handCounterModENM = s.match(/^The counter of all of your Character cards with (\d+) power in your hand becomes \+(\d+)/i);
+  if (handCounterModENM) return { type: 'HAND_COUNTER_MOD', power: parseInt(handCounterModENM[1]), counter: parseInt(handCounterModENM[2]) };
   // "Your opponent returns N DON!! card from their field to their DON!! deck"
-  if (/^Your opponent returns? (?:up to )?(\d+) DON(?:!!|‼) cards? from their field/i.test(s)) return { type: 'NULL_EFFECT' };
+  const oppDonRetENM = s.match(/^Your opponent returns? (?:up to )?(\d+) DON(?:!!|‼) cards? from their field/i);
+  if (oppDonRetENM) return { type: 'OPPONENT_DON_REST_DEFERRED', count: parseInt(oppDonRetENM[1]), isReturn: true };
 
   // Strip sentence-level "You may " prefix so underlying patterns can match
   // (block-level optM only catches "You may X: Y" with a colon)
@@ -4080,14 +4445,25 @@ function parseSentenceEN(s) {
   }
 
   // ── GRANT_KEYWORD on "Your X Leader/Character gains [Keyword]" or "Your [CardName] gains [Keyword]" ──
-  const yourLeaderGainsKwM = s.match(/^Your (?:.+? )?(?:Leader|Character|(?:\[[^\]]+\])) gains? \[([^\]]+)\]/i);
+  const yourLeaderGainsKwM = s.match(/^Your (?:.+? )?(Leader|Character|\[[^\]]+\]) gains? \[([^\]]+)\]/i);
   if (yourLeaderGainsKwM) {
-    const kw = yourLeaderGainsKwM[1]; const kwBase = kw.split(':')[0].trim();
+    const targetWord = yourLeaderGainsKwM[1]; const kw = yourLeaderGainsKwM[2]; const kwBase = kw.split(':')[0].trim();
+    const kwFilter = /^Leader$/i.test(targetWord) ? { owner: 'self', category: 'Leader' }
+      : /^Character$/i.test(targetWord) ? { owner: 'self', category: 'Character' }
+      : { owner: 'self', name: targetWord.replace(/^\[|\]$/g, '') };
     if (PASSIVE_KW.has(kw) || PASSIVE_KW.has(kwBase)) {
       const until = /during this (?:turn|battle)/i.test(s) ? 'turn' : null;
-      return { type: 'GRANT_KEYWORD', keyword: kwBase,
+      const grantKwAction = { type: 'GRANT_KEYWORD', keyword: kwBase,
         restriction: kw.includes(':') ? kw.split(':')[1].trim() : null,
-        filter: { owner: 'self' }, until };
+        filter: kwFilter, until };
+      // "Your Leader gains [Keyword] and +N power" — also emit POWER_MOD
+      const andPwrM = s.match(/\[[^\]]+\] and ([+−\-][\d,]+) power/i);
+      if (andPwrM) {
+        const pwrUntil = /during this (?:turn|battle)/i.test(s) ? 'turn' : 'continuous';
+        return [grantKwAction, { type: 'POWER_MOD', delta: parseENDelta(andPwrM[1]), count: 1,
+          filter: { owner: 'self', category: 'Leader' }, until: pwrUntil }];
+      }
+      return grantKwAction;
     }
     return { type: 'NULL_EFFECT' }; // unknown keyword on named card
   }
@@ -4119,10 +4495,8 @@ function parseSentenceEN(s) {
     }
   }
 
-  // "Give up to N [of your/opponent's] rested DON!! cards" — ATTACH_DON not yet implemented
-  if (/^Give (?:up to )?(?:\d+ of (?:your|their) (?:opponent'?s? )?)?\d* ?rested DON(?:!!|‼)/i.test(s)) return { type: 'NULL_EFFECT' };
-  if (/^Give (?:up to )?\d+ (?:of (?:your|their) (?:opponent'?s? )?)?rested DON(?:!!|‼)/i.test(s)) return { type: 'NULL_EFFECT' };
-  // "Give your Leader and all of your Characters up to N rested DON!! card each" — multi-target ATTACH_DON
+  // ── ATTACH_DON ──────────────────────────────────────────────────────────────
+  // "Give [A] and [B] up to N rested DON!! card each" — two-target each
   const giveEachM = s.match(/^Give (.+?) and ((?:all (?:of )?)?(?:your|their|opponent'?s?) .+?) up to (\d+) rested DON(?:!!|‼) card each/i);
   if (giveEachM) {
     const count = parseInt(giveEachM[3]);
@@ -4131,14 +4505,49 @@ function parseSentenceEN(s) {
       { type: 'ATTACH_DON', count, eachTarget: true, donState: 'rest', filter: parseCardFilterEN(giveEachM[2]) },
     ];
   }
-  // "Give your Leader and N Character up to N rested DON!!" — multi-target ATTACH_DON
+  // "Give up to N rested DON!! cards to each of your {X} type Characters"
+  const giveEachToM = s.match(/^Give up to (\d+) rested DON(?:!!|‼) cards? to each of ((?:your|their|opponent'?s?) .+)/i);
+  if (giveEachToM) {
+    const count = parseInt(giveEachToM[1]);
+    return { type: 'ATTACH_DON', count, isUpTo: true, eachTarget: true, donState: 'rest', filter: parseCardFilterEN(giveEachToM[2]) };
+  }
+  // "Give up to N rested DON!! card(s) to [target]"
+  const giveUpToM = s.match(/^Give up to (\d+) rested DON(?:!!|‼) cards? to (.+)/i);
+  if (giveUpToM) {
+    const count = parseInt(giveUpToM[1]);
+    const targetText = giveUpToM[2].replace(/\.$/, '');
+    const donFromTargetOwner = /\bits owner'?s?\b/i.test(targetText);
+    const filter = parseCardFilterEN(targetText);
+    return { type: 'ATTACH_DON', count, isUpTo: true, donState: 'rest',
+      ...(donFromTargetOwner && { donSource: 'targetOwner' }), filter };
+  }
+  // "Give N rested DON!! card(s) to [target]" (no "up to")
+  const giveNToM = s.match(/^Give (\d+) rested DON(?:!!|‼) cards? to (.+)/i);
+  if (giveNToM) {
+    const count = parseInt(giveNToM[1]);
+    return { type: 'ATTACH_DON', count, donState: 'rest', filter: parseCardFilterEN(giveNToM[2].replace(/\.$/, '')) };
+  }
+  // "Give [target] up to N rested DON!! card(s)" — target before count
+  const giveTargetUpToM = s.match(/^Give ((?:this|your|their|opponent'?s?) .+?) up to (\d+) rested DON(?:!!|‼)/i);
+  if (giveTargetUpToM) {
+    const count = parseInt(giveTargetUpToM[2]);
+    return { type: 'ATTACH_DON', count, isUpTo: true, donState: 'rest', filter: parseCardFilterEN(giveTargetUpToM[1]) };
+  }
+  // "Give up to N of your Characters with power X up to N rested DON!! cards each" — complex multi-select, not yet implemented
   if (/^Give (?:your|their) .+? (?:up to )?\d+ rested DON(?:!!|‼)/i.test(s)) return { type: 'NULL_EFFECT' };
-  // Broad catch: any remaining "Give ... rested/currently given DON!!" pattern (ATTACH_DON or DON redistribution)
+  // Broad catch: "currently given DON!!" redistribution or "of your opponent's rested DON!!"
   if (/^Give .+? (?:rested|currently given) DON(?:!!|‼)/i.test(s)) return { type: 'NULL_EFFECT' };
   if (/^Give (?:up to )?\d+ (?:total )?of your currently given DON(?:!!|‼)/i.test(s)) return { type: 'NULL_EFFECT' };
   if (/^Give up to \d+ of your currently given DON(?:!!|‼)/i.test(s)) return { type: 'NULL_EFFECT' };
 
   // ── REST ──
+  // Compound cost: "rest N of your DON!! cards and [other-action]" — split into two actions
+  const restDonAndM = s.match(/^[Rr]est (\d+) of your DON(?:!!|‼) cards? and (?!you may rest\b)(.+)/i);
+  if (restDonAndM) return [
+    { type: 'REST', count: parseInt(restDonAndM[1]), filter: { owner: 'self', cardType: 'don' } },
+    ...parseSentencesEN(restDonAndM[2]),
+  ];
+
   // "Rest DON!! card(s) and optionally this Character"
   const restDonSelfM = s.match(/^Rest (\d+) of your DON(?:!!|‼) cards? and you may rest this (?:Leader|Character|card)/i);
   if (restDonSelfM) return [
@@ -4156,7 +4565,7 @@ function parseSentenceEN(s) {
   const restAllM = s.match(/^Rest all (?:of )?(your (?:opponent'?s? )?)(.+)/i);
   if (restAllM) return { type: 'REST', count: Infinity, filter: parseCardFilterEN(restAllM[1] + restAllM[2]) };
 
-  if (/^Rest this (?:Leader|Character|card)/i.test(s)) return { type: 'REST', count: 1, filter: { self: true } };
+  if (/^Rest this (?:Leader|Character|Stage|card)/i.test(s)) return { type: 'REST', count: 1, filter: { self: true } };
 
   const restDonM = s.match(/^[Rr]est (\d+) of your DON(?:!!|‼)/i);
   if (restDonM) return { type: 'REST', count: parseInt(restDonM[1]), filter: { owner: 'self', cardType: 'don' } };
@@ -4178,13 +4587,23 @@ function parseSentenceEN(s) {
   if (/^Play this (?:(?:Character|Leader|Stage|Event) )?card/i.test(s)) return { type: 'SELF_DEPLOY' };
 
   // ── SEARCH / Look ──
-  const searchRevealM = s.match(/^Look at (?:up to )?(\d+) cards? from the top of your deck[;,]?\s*reveal up to (?:a total of )?(\d+) (.+?) and add (?:it|them) to your hand/i);
+  // "reveal up to N [filter], add it/them to hand" — allow ", add" or " and add"
+  const searchRevealM = s.match(/^Look at (?:up to )?(\d+) cards? from the top of your deck[;,]?\s*reveal up to (?:a total of )?(\d+) (.+?),?\s*(?:and\s+)?add (?:it|them) to your hand/i);
   if (searchRevealM) return { type: 'SEARCH', look: parseInt(searchRevealM[1]),
-    take: parseInt(searchRevealM[2]), filter: parseCardFilterEN(searchRevealM[3]), addToHand: true };
+    take: parseInt(searchRevealM[2]), filter: parseCardFilterEN(searchRevealM[3]), reveal: true };
 
-  const searchAddM = s.match(/^Look at (?:up to )?(\d+) cards? from the top of your deck[;,]?\s*add up to (?:a total of )?(\d+) (.+?) to your hand/i);
+  // "add up to N [filter] to your hand" — allow "; add", ", add", or "and add"
+  const searchAddM = s.match(/^Look at (?:up to )?(\d+) cards? from the top of your deck[;,]?\s*(?:and\s+)?add up to (?:a total of )?(\d+) (.+?) to your hand/i);
   if (searchAddM) return { type: 'SEARCH', look: parseInt(searchAddM[1]),
-    take: parseInt(searchAddM[2]), filter: parseCardFilterEN(searchAddM[3]), addToHand: true };
+    take: parseInt(searchAddM[2]), filter: parseCardFilterEN(searchAddM[3]) };
+
+  // "add up to N card(s) to the top of Life" — look-and-top-life pattern
+  const searchAddLifeM = s.match(/^Look at (?:up to )?(\d+) cards? from the top of (?:your|their) deck[;,]?\s*add up to (\d+) cards? to the top of (?:your|their) Life/i);
+  if (searchAddLifeM) return { type: 'SEARCH', look: parseInt(searchAddLifeM[1]), take: parseInt(searchAddLifeM[2]), filter: {}, destination: 'life', faceUp: false };
+
+  // "play up to N [filter]" — look and deploy directly to field
+  const searchPlayM = s.match(/^Look at (?:up to )?(\d+) cards? from the top of (?:your|their) deck[;,]?\s*play up to (\d+) (.+)/i);
+  if (searchPlayM) return { type: 'SEARCH', look: parseInt(searchPlayM[1]), take: parseInt(searchPlayM[2]), filter: parseCardFilterEN(searchPlayM[3]), destination: 'field' };
 
   const lookTopM = s.match(/^Look at (?:up to )?(\d+) cards? from the top of (?:your|their) deck/i);
   if (lookTopM) return { type: 'LOOK_TOP', count: parseInt(lookTopM[1]) };
@@ -4203,8 +4622,9 @@ function parseSentenceEN(s) {
   }
 
   // ── DISCARD / Trash from hand / Life ──
-  const trashHandM = s.match(/^Trash (?:up to )?(\d+) cards? from your hand/i);
-  if (trashHandM) return { type: 'DISCARD', count: parseInt(trashHandM[1]), filter: { owner: 'self', zone: 'hand' } };
+  // "Trash (up to) N [filter text] from your hand" — filter text between count and "from your hand" is optional
+  const trashHandM = s.match(/^Trash (?:up to )?(\d+) (.+?) from your hand/i);
+  if (trashHandM) return { type: 'DISCARD', count: parseInt(trashHandM[1]), filter: parseCardFilterEN(trashHandM[2] + ' from your hand') };
 
   const trashDeckM = s.match(/^Trash (?:up to )?(\d+) cards? from the top of your deck/i);
   if (trashDeckM) return { type: 'DECK_TO_TRASH', count: parseInt(trashDeckM[1]) };
@@ -4258,12 +4678,14 @@ function parseSentenceEN(s) {
   // ── DON!! RETURN FROM FIELD ──
   const donReturnFieldM = s.match(/^Return (?:up to )?(\d+) DON(?:!!|‼) cards? from your field to your DON(?:!!|‼) deck/i);
   if (donReturnFieldM) return { type: 'DON_RETURN_FROM_FIELD', count: parseInt(donReturnFieldM[1]) };
+  const donReturnActiveM = s.match(/^Return (?:up to )?(\d+) of your (active )?DON(?:!!|‼) cards? to your DON(?:!!|‼) deck/i);
+  if (donReturnActiveM) return { type: 'DON_RETURN_FROM_FIELD', count: parseInt(donReturnActiveM[1]), ...(donReturnActiveM[2] && { stateFilter: 'active' }) };
 
   // ── OPPONENT HAND TO DECK (opponent places hand card at bottom/top of deck) ──
   // "Your opponent returns all cards in their hand to their deck"
   if (/^Your opponent returns? all cards? in their hand to (?:the (?:top|bottom) of )?their deck/i.test(s))
     return { type: 'OPP_HAND_TO_DECK', count: Infinity };
-  const oppHandToDeckM = s.match(/^Your opponent places? (?:up to )?(\d+) cards? from (?:the top of )?their hand/i);
+  const oppHandToDeckM = s.match(/^(?:Your opponent|They) places? (?:up to )?(\d+) cards? from (?:the top of )?their hand/i);
   if (oppHandToDeckM) return { type: 'OPP_HAND_TO_DECK', count: parseInt(oppHandToDeckM[1]) };
   // "Your opponent places N of their Characters at the bottom of their/owner's deck" — BOTTOM_DECK for opponent
   const oppPlaceCharDeckM = s.match(/^Your opponent places? (?:up to )?(\d+) (?:of )?(?:their|the opponent'?s?) (.+?) at the bottom of (?:their|the owner'?s?) deck/i);
@@ -4338,7 +4760,8 @@ function parseSentenceEN(s) {
   const leaderGainsPwrM = s.match(/^Your (?:.+? )?Leader gains? ([+−\-?][\d,]+) power/i);
   if (leaderGainsPwrM) return {
     type: 'POWER_MOD', delta: parseENDelta(leaderGainsPwrM[1]), count: 1,
-    filter: { owner: 'self', cardType: 'leader' },
+    filter: { owner: 'self', category: 'Leader' },
+    until: /during this (?:turn|battle)/i.test(s) ? 'turn' : 'continuous',
   };
 
   // ── REVEAL (top of deck or Life) ──
@@ -4346,6 +4769,14 @@ function parseSentenceEN(s) {
   if (revealTopM) return { type: 'REVEAL_TOP_DECK', count: parseInt(revealTopM[1]) };
   const revealLifeM = s.match(/^Reveal (?:up to )?(\d+) cards? from the top of (?:your|their) Life cards?/i);
   if (revealLifeM) return { type: 'REVEAL_LIFE', count: parseInt(revealLifeM[1]) };
+
+  // REVEAL_HAND_CARDS — "reveal N [filter] from your hand" (cost: prove you hold a qualifying card)
+  const revealHandM = s.match(/^[Rr]eveal (\d+) (.+?) from your hand/i);
+  if (revealHandM) return {
+    type: 'REVEAL_HAND_CARDS',
+    count: parseInt(revealHandM[1]),
+    filter: parseCardFilterEN(revealHandM[2] + ' from your hand'),
+  };
 
   // ── OPPONENT DISCARD ──
   const oppTrashHandM = s.match(/^[Yy]our opponent trashes? (\d+) cards? from (?:the top of )?their hand/i);
@@ -4392,6 +4823,25 @@ function parseSentenceEN(s) {
   if (leaderPowerBecomesM) return { type: 'POWER_SET', count: 1,
     target: parseInt(leaderPowerBecomesM[1].replace(/,/g, '')),
     filter: { owner: 'self', category: 'Leader' } };
+  // "Your Leader and this Character's base power becomes N during this turn"
+  const leaderAndSelfPowerM = s.match(/^Your Leader and this Character'?s? base power becomes (\d[\d,]*)/i);
+  if (leaderAndSelfPowerM) {
+    const pwr = parseInt(leaderAndSelfPowerM[1].replace(/,/g, ''));
+    return [
+      { type: 'POWER_SET', power: pwr, until: 'turn', filter: { owner: 'self', category: 'Leader' } },
+      { type: 'POWER_SET', power: pwr, until: 'turn', filter: { self: true } },
+    ];
+  }
+  // "This Character's base power becomes the same as your opponent's Leader's power during this turn"
+  if (/base power becomes the same as your opponent'?s? leader'?s? power/i.test(s))
+    return { type: 'COPY_POWER_FROM_LEADER', source: 'opponentLeader', filter: { self: true } };
+  // "This Character's base power becomes the same as your Leader's power"
+  if (/base power becomes the same as your leader'?s? (?:original )?power/i.test(s))
+    return { type: 'COPY_POWER_FROM_LEADER', source: 'ownLeader', filter: { self: true } };
+
+  // "All of your [X] cards' base power becomes N during this turn"
+  const allNamedBasePowerM = s.match(/^All of your (.+?) base power becomes (\d[\d,]*) during this turn/i);
+  if (allNamedBasePowerM) return { type: 'POWER_SET', power: parseInt(allNamedBasePowerM[2].replace(/,/g, '')), until: 'turn', filter: { owner: 'self', ...parseCardFilterEN('your ' + allNamedBasePowerM[1]) } };
 
   // ── ALTERNATE NAMES ──
   const altNamesM = s.match(/treat this card'?s? name as \[([^\]]+)\](?:\s+and \[([^\]]+)\])?/i);
@@ -4409,7 +4859,7 @@ function parseSentenceEN(s) {
   if (/^This effect can be activated when/i.test(s)) return { type: 'NULL_EFFECT' };
   if (/^You cannot play (?:Character|Event|Stage) cards/i.test(s)) return { type: 'NULL_EFFECT' };
   if (/^Trash cards from the top of your Life/i.test(s)) return { type: 'NULL_EFFECT' };
-  if (/cannot activate(?: up to \d+| the)?(?: a)? \[Blocker\]/i.test(s)) return { type: 'NULL_EFFECT' };
+  if (/cannot activate(?: up to \d+| the)?(?: a)? \[Blocker\]/i.test(s)) return { type: 'BLOCK_EFFECT', targetOwner: 'opponent', until: /battle/i.test(s) ? 'battle' : 'turn' };
   if (/^Negate the effect/i.test(s)) return { type: 'NULL_EFFECT' };
   if (/^None of your .+ can be K\.O\.'?d/i.test(s)) return { type: 'NULL_EFFECT' };
   if (/cannot be K\.O\.'?d by effects/i.test(s)) return { type: 'NULL_EFFECT' };
@@ -4480,7 +4930,9 @@ function parseSentenceEN(s) {
   if (/^Select (?:up to )?\d+ of (?:your|their) .+?, and give/i.test(s)) return { type: 'NULL_EFFECT' };
   // "Select N of your Characters. Change the attack target..."
   if (/change the attack target/i.test(s)) return { type: 'NULL_EFFECT' };
-  // "Trash this Stage" / "Trash this Character at the end of this turn"
+  // "Trash this Stage/Character" as an activation cost → SELF_TO_TRASH
+  // "Trash this X at the end of this turn" is a delayed effect — keep as NULL_EFFECT
+  if (/^Trash this (?:Stage|Character|Leader|card)(?!\s+at the end)/i.test(s)) return { type: 'SELF_TO_TRASH' };
   if (/^Trash this (?:Stage|Character|Leader|card)/i.test(s)) return { type: 'NULL_EFFECT' };
   // "Trash all your face-up Life cards"
   if (/^Trash all (?:your|of your|their) (?:face-up )?Life cards?/i.test(s)) return { type: 'NULL_EFFECT' };
@@ -4575,9 +5027,16 @@ function parseSentenceEN(s) {
   // "Return any number of Characters on your field to the owner's hand"
   if (/^Return any number of (?:Characters?|cards?) (?:on your field|from your field)/i.test(s))
     return { type: 'RETURN_HAND', count: Infinity, filter: { owner: 'self', category: 'Character' } };
-  // "Set all of your {X} type Characters as active"
-  const setAllTypeActiveM = s.match(/^Set all of your (.+?) (?:Characters?|Leaders?) as active/i);
-  if (setAllTypeActiveM) return { type: 'UNREST', count: Infinity, filter: parseCardFilterEN('your ' + setAllTypeActiveM[1]) };
+  // "Set your Leader [Name] as active" — single named or unnamed leader unrest
+  const setLeaderActiveM = s.match(/^Set your Leader(?:\s+\[([^\]]+)\])? as active/i);
+  if (setLeaderActiveM) return { type: 'UNREST', count: 1, filter: { owner: 'self', category: 'Leader', ...(setLeaderActiveM[1] && { name: setLeaderActiveM[1] }) } };
+  // "Set your Leader and all of your Characters as active"
+  if (/^Set your Leader and all of your Characters as active/i.test(s))
+    return { type: 'UNREST', count: Infinity, filter: { owner: 'self', category: 'Character', includesLeader: true } };
+  // "Set all of your [filter] as active" — flexible unrest-all, handles filter text before "as active"
+  const setAllActiveM = s.match(/^Set all of your (.+?) as active/i);
+  if (setAllActiveM && !/DON(?:!!|‼)/i.test(setAllActiveM[1]))
+    return { type: 'UNREST', count: Infinity, filter: parseCardFilterEN('your ' + setAllActiveM[1]) };
   // Scaled effects and complex multi-branch effects → NULL_EFFECT
   if (/^(?:This )?Character(?:'?s)? (?:gains?|becomes?)/i.test(s) && /\d+.*power/i.test(s)) return { type: 'NULL_EFFECT' };
   if (/^Trash any number of/i.test(s)) return { type: 'NULL_EFFECT' };
@@ -4637,6 +5096,17 @@ function parseSentenceEN(s) {
   // Activate main effect of event
   if (/^Activate the \[/i.test(s)) return { type: 'NULL_EFFECT' };
 
+  // OP16-079 (Yamato leader): "When a {X} type Character card is played from your trash, that Character gains [Rush]"
+  const grantRushOnTrashDeployM = s.match(/^When (?:a|an) (\{[^}]+\}) type Character card is played from your trash.*gains? \[Rush\]/i);
+  if (grantRushOnTrashDeployM) return { type: 'GRANT_KEYWORD', keyword: 'RUSH_CHARS_ONLY', filter: { category: 'Character', trait: grantRushOnTrashDeployM[1].slice(1, -1) } };
+
+  // OP16-080 (Blackbeard leader): "Change the target of that attack to this Leader or to one of your {X} type Character cards"
+  const changeAttackTargetM = s.match(/^Change the target of that attack to this Leader or to one of your (\{[^}]+\}) type Character cards?/i);
+  if (changeAttackTargetM) return { type: 'REDIRECT_ATTACK_TARGET', trait: changeAttackTargetM[1].slice(1, -1) };
+
+  // OP16-118 (Ace): "The counter of all of your Character cards with N power in your hand becomes +N" — hand counter modification not implemented
+  if (/^The counter of all of your Character cards.+in your hand becomes/i.test(s)) return { type: 'NULL_EFFECT' };
+
   return { type: 'UNKNOWN', raw: s };
 }
 
@@ -4672,13 +5142,17 @@ function parseBlockEN(raw) {
   const grantedKws = new Set(
     [...s.matchAll(/gains? \[([^\]]+)\]/gi)].map(m => m[1])
   );
+  // Keywords the opponent cannot activate ("cannot activate [X]") are not intrinsic passives
+  const cannotActivateKws = new Set(
+    [...s.matchAll(/cannot activate(?:[^[]*)\[([^\]]+)\]/gi)].map(m => m[1])
+  );
 
   const timings  = keywords.filter(k => TIMING_KW.has(k)    && !grantedKws.has(k) && !filterKws.has(k));
   const activated= keywords.filter(k => ACTIVATED_KW.has(k) && !grantedKws.has(k));
   const continuous=keywords.filter(k => CONTINUOUS_KW.has(k));
   const passive  = keywords.filter(k => {
     const base = k.split(':')[0].trim();
-    return (PASSIVE_KW.has(k) || PASSIVE_KW.has(base)) && !grantedKws.has(k) && !filterKws.has(k);
+    return (PASSIVE_KW.has(k) || PASSIVE_KW.has(base)) && !grantedKws.has(k) && !filterKws.has(k) && !cannotActivateKws.has(k);
   });
 
   const oncePerTurn = keywords.some(k => /^Once Per Turn$/i.test(k));

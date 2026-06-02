@@ -39,9 +39,10 @@ python pipeline/transform/deck_gg_autobuilder.py  # → src/data/deck_gg_final.j
 python pipeline/collect/price_scraper.py       # → pipeline/data/price_raw.json
 python pipeline/transform/price_transformer.py # → src/data/price_final.json
 
-# Q&A
-node pipeline/collect/qanda_scraper.js         # zh; move output → src/data/master_qa.json
-node pipeline/collect/qanda_scraper_en.js      # en; move output → src/data/master_qa_en.json
+# Q&A  (optional arg: pack ID e.g. 554116, or set code e.g. OP-16; omit for all sets)
+node pipeline/collect/qanda_scraper.js [id]    # zh → pipeline/data/temp_qa_data.json
+node pipeline/collect/qanda_scraper_en.js [id] # en → pipeline/data/temp_qa_data_en.json
+# paste output into src/data/master_qa.json / master_qa_en.json
 ```
 
 ### Dev Scripts (`scripts/`)
@@ -69,15 +70,15 @@ node pipeline/collect/images_to_cloudinary.js  # upload card images to Cloudinar
 
 `App.js` is the central god component — owns all global state and routes to view components:
 
-| Component | Purpose |
-|-----------|---------|
-| `DeckView` | Meta deck browser; `LeaderBanner`, `CardWrapper`, `QuickController`, `PlayCurve`, `Charts` |
-| `MarketplaceView` | Card art grid with price ribbons; PNG export via `html2canvas` |
-| `SearchView` | Keyword/attribute search across full card DB |
-| `ImportView` | Paste-in decklist parser |
-| `PracticeView` | Single-player simulator (human vs greedy AI) |
-| `OnlinePvpLobby` | Room creation/join via game code |
-| `PvpGameContainer` | Real-time 1v1 via Firestore + `usePvpGame` hook |
+| Component          | Purpose                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| `DeckView`         | Meta deck browser; `LeaderBanner`, `CardWrapper`, `QuickController`, `PlayCurve`, `Charts` |
+| `MarketplaceView`  | Card art grid with price ribbons; PNG export via `html2canvas`                             |
+| `SearchView`       | Keyword/attribute search across full card DB                                               |
+| `ImportView`       | Paste-in decklist parser                                                                   |
+| `PracticeView`     | Single-player simulator (human vs greedy AI)                                               |
+| `OnlinePvpLobby`   | Room creation/join via game code                                                           |
+| `PvpGameContainer` | Real-time 1v1 via Firestore + `usePvpGame` hook                                            |
 
 Card data is fetched at runtime from **Firestore** (anonymous auth). Card images are served from **Cloudinary** (`getSafeImageUrl` in `src/utils/cardHelpers.js`).
 
@@ -93,6 +94,8 @@ Card data is fetched at runtime from **Firestore** (anonymous auth). Card images
 - Parallel art: `OP01-001_p1` · Reprint: `OP01-001_r`
 - Pack IDs by region: `zh = 554xxx`, `en = 556xxx`, `ja = 550xxx`
 
+**Pack registry** (`src/constants/packs.js`): canonical map of set codes → pack IDs + titles for all regions. Consumed by `App.js` and the Q&A pipeline scrapers. Add new sets here only — scrapers pick them up automatically.
+
 ---
 
 # Battle Mode (Practice Simulator)
@@ -104,49 +107,49 @@ Single-player practice: human vs greedy AI (mirrors human's deck, independently 
 
 ## Engine Files (`src/components/practice/engine/`)
 
-| File | Role |
-|------|------|
-| `constants.js` | PHASE, BATTLE_STEP, PLAYER enums; DON_PER_TURN, MAX_CHARACTERS |
-| `effectParser.js` | Parses Traditional Chinese card effect text into clause objects |
-| `effectActions.js` | Pure state mutations for all action types; interactive choices set `pendingEffect` |
-| `effects.js` | Timing resolvers (on-play, on-attack, on-block, trigger, event, end-of-turn); continuous power |
-| `gameState.js` | Phase/battle state transitions; central `gameReducer` |
-| `aiPlayer.js` | Greedy AI: plays highest-cost affordable characters, attaches DON!!, attacks, ends turn |
+| File               | Role                                                                                           |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
+| `constants.js`     | PHASE, BATTLE_STEP, PLAYER enums; DON_PER_TURN, MAX_CHARACTERS                                 |
+| `effectParser.js`  | Parses Traditional Chinese card effect text into clause objects                                |
+| `effectActions.js` | Pure state mutations for all action types; interactive choices set `pendingEffect`             |
+| `effects.js`       | Timing resolvers (on-play, on-attack, on-block, trigger, event, end-of-turn); continuous power |
+| `gameState.js`     | Phase/battle state transitions; central `gameReducer`                                          |
+| `aiPlayer.js`      | Greedy AI: plays highest-cost affordable characters, attaches DON!!, attacks, ends turn        |
 
 ## Practice UI Components (`src/components/practice/components/`)
 
-| Component | Role |
-|-----------|------|
-| `PracticeView.jsx` | Root; owns `useReducer`; drives AI via `useEffect` |
-| `PlayerField.jsx` | Leader + character area + stage + trash for one player |
-| `HandArea.jsx` | Scrollable hand strip |
-| `DonArea.jsx` | DON!! cost area visualization |
-| `DonReturnBar.jsx` | UI for paying DON!! return costs |
-| `PhaseBar.jsx` | Phase indicator + Skip Block / Skip Counter / End Turn |
-| `BattleOverlay.jsx` | atkPower vs defPower during battle |
-| `AttackArrow.jsx` | Animated arrow from attacker to target |
-| `TriggerModal.jsx` | Activate / Add to Hand when Trigger life card revealed |
-| `EffectModal.jsx` | Card picker for KO / REST / DEPLOY / DISCARD / SEARCH |
-| `ActionMenu.jsx` | Context menu for hand cards (Deploy, Event, Counter) |
-| `MulliganScreen.jsx` | Opening hand mulligan UI |
-| `PreGameAbilityScreen.jsx` | Pre-game ability selection (stage placement, etc.) |
-| `AiDeckPicker.jsx` | Pick AI opponent deck before game starts |
-| `CardDetailOverlay.jsx` | Tap/click to view full card detail |
-| `CardFlashOverlay.jsx` | Flash animation when card is played/triggered |
-| `CardPreview.jsx` | Hover preview for hand/field cards |
-| `DraggablePanel.jsx` | Draggable floating panel wrapper |
-| `NewWindowPortal.jsx` | Renders a React subtree into a new browser window |
-| `StateSimulator.jsx` | Dev-only panel for injecting game state mid-session |
-| `TrashModal.jsx` | View trash pile |
-| `GameLog.jsx` | Collapsible action log |
+| Component                  | Role                                                   |
+| -------------------------- | ------------------------------------------------------ |
+| `PracticeView.jsx`         | Root; owns `useReducer`; drives AI via `useEffect`     |
+| `PlayerField.jsx`          | Leader + character area + stage + trash for one player |
+| `HandArea.jsx`             | Scrollable hand strip                                  |
+| `DonArea.jsx`              | DON!! cost area visualization                          |
+| `DonReturnBar.jsx`         | UI for paying DON!! return costs                       |
+| `PhaseBar.jsx`             | Phase indicator + Skip Block / Skip Counter / End Turn |
+| `BattleOverlay.jsx`        | atkPower vs defPower during battle                     |
+| `AttackArrow.jsx`          | Animated arrow from attacker to target                 |
+| `TriggerModal.jsx`         | Activate / Add to Hand when Trigger life card revealed |
+| `EffectModal.jsx`          | Card picker for KO / REST / DEPLOY / DISCARD / SEARCH  |
+| `ActionMenu.jsx`           | Context menu for hand cards (Deploy, Event, Counter)   |
+| `MulliganScreen.jsx`       | Opening hand mulligan UI                               |
+| `PreGameAbilityScreen.jsx` | Pre-game ability selection (stage placement, etc.)     |
+| `AiDeckPicker.jsx`         | Pick AI opponent deck before game starts               |
+| `CardDetailOverlay.jsx`    | Tap/click to view full card detail                     |
+| `CardFlashOverlay.jsx`     | Flash animation when card is played/triggered          |
+| `CardPreview.jsx`          | Hover preview for hand/field cards                     |
+| `DraggablePanel.jsx`       | Draggable floating panel wrapper                       |
+| `NewWindowPortal.jsx`      | Renders a React subtree into a new browser window      |
+| `StateSimulator.jsx`       | Dev-only panel for injecting game state mid-session    |
+| `TrashModal.jsx`           | View trash pile                                        |
+| `GameLog.jsx`              | Collapsible action log                                 |
 
 ## Practice Hooks (`src/components/practice/hooks/`)
 
-| Hook | Role |
-|------|------|
-| `useFlashQueue.js` | Queues card flash animations |
-| `useDevToolsReducer.js` | Wraps `useReducer` with dev logging |
-| `usePvpGame.js` | Shared game logic for PvP (used by `PvpGameContainer`) |
+| Hook                    | Role                                                   |
+| ----------------------- | ------------------------------------------------------ |
+| `useFlashQueue.js`      | Queues card flash animations                           |
+| `useDevToolsReducer.js` | Wraps `useReducer` with dev logging                    |
+| `usePvpGame.js`         | Shared game logic for PvP (used by `PvpGameContainer`) |
 
 ## Turn Structure
 
@@ -176,23 +179,15 @@ Continuous power bonuses (e.g. +3000 during opponent's turn) are computed dynami
 
 # Online PvP (`src/components/pvp/`)
 
-| File | Role |
-|------|------|
-| `OnlinePvpLobby.jsx` | Create/join room by game code; deck submission |
-| `PvpGameContainer.jsx` | Renders shared game UI for real-time 1v1 |
-| `WaitingBanner.jsx` | "Waiting for opponent" splash |
-| `pvpHelpers.js` | Firestore room helpers: `createRoomDoc`, `joinRoomDoc`, `submitDeck`, `getRoomRef` |
+| File                   | Role                                                                               |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| `OnlinePvpLobby.jsx`   | Create/join room by game code; deck submission                                     |
+| `PvpGameContainer.jsx` | Renders shared game UI for real-time 1v1                                           |
+| `WaitingBanner.jsx`    | "Waiting for opponent" splash                                                      |
+| `pvpHelpers.js`        | Firestore room helpers: `createRoomDoc`, `joinRoomDoc`, `submitDeck`, `getRoomRef` |
 
 State is persisted in `sessionStorage` (`pvpGameId`, `pvpMyRole`) so page refresh rejoins the same game.
 
 ---
-
-# Not Yet Implemented
-
-- **Replacement effects** (`替換成` / `即將`): intercept "about to leave" events
-- **ATTACH_DON effects**: activated effects moving DON!! between cards
-- **ADD_TO_LIFE**: place cards into life area
-- **Multi-branch effects** (`下列其中一項`): choose one of N sub-effects
-- **Opponent-turn activated effects**: 【啟動主要】 on opponent's turn
 
 Before implementing any of the above, query the rules wiki at `/Users/rexchan/opc-rules-vault/opc rules vault/wiki/concepts/`.

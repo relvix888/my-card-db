@@ -12,11 +12,16 @@ import { useTranslation } from "react-i18next";
 
 import CardQA from "./components/CardQA";
 import cardPrices from "./data/price_final.json";
-import { BLOCK_1_EXCEPTIONS } from "./data/rotation";
-import { BANNED_LIST } from "./data/rotation";
-import { RESTRICTED_PAIRS } from "./data/rotation";
+import {
+  BLOCK_1_EXCEPTIONS,
+  BANNED_LIST,
+  RESTRICTED_PAIRS,
+  UNLIMITED_COPIES,
+} from "./data/rotation";
 import topDecksData from "./data/deck_final.json";
+import prevMetaData from "./data/deck_prev_meta.json";
 import ggDecksData from "./data/deck_gg_raw_final.json";
+import officialDecksData from "./data/official_decks.json";
 import enCardsData from "./data/en_cards.json";
 import sortedTypesEn from "./data/sorted_types_en.json";
 import { getSafeImageUrl } from "./utils/cardHelpers";
@@ -86,7 +91,7 @@ const defaultFilters = {
   filterType1: "all",
   filterType2: "all",
   typeLogic: "AND",
-  filterPackId: "554115",
+  filterPackId: "554116",
   hideReprint: true,
   hidePromo: true,
   showCurve: false,
@@ -116,7 +121,7 @@ const App = () => {
   const [filterType2, setFilterType2] = useState("all");
   const [typeLogic, setTypeLogic] = useState("AND"); // 'AND' 或 'OR'
   const [filterPackId, setFilterPackId] = useState(
-    langCode === "en" ? "556115" : defaultFilters.filterPackId,
+    langCode === "en" ? "556116" : defaultFilters.filterPackId,
   );
   const [hideReprint, setHideReprint] = useState(true); // 新增：隱藏再錄卡狀態
   const [hidePromo, setHidePromo] = useState(true); // 新增：隱藏促銷卡狀態
@@ -228,7 +233,9 @@ const App = () => {
           <ImportView
             cards={overlaidCards}
             topDecksData={topDecksData}
+            prevMetaData={prevMetaData}
             ggDecksData={ggDecksData}
+            officialDecksData={officialDecksData}
             getSafeImageUrl={getSafeImageUrl}
             generateMetaDeck={generateMetaDeck}
             deckInput={deckInput}
@@ -332,6 +339,9 @@ const App = () => {
             }
             cards={practiceCards}
             onClose={() => setAppMode("DECK")}
+            ggDecksData={ggDecksData}
+            officialDecksData={officialDecksData}
+            prevMetaData={prevMetaData}
           />
         );
       }
@@ -605,6 +615,7 @@ const App = () => {
 
   const quickKeywords = [
     KEYWORD_MAP.on_play[langCode],
+    KEYWORD_MAP.main[langCode],
     KEYWORD_MAP.activate_main[langCode],
     KEYWORD_MAP.once_per_turn[langCode],
     KEYWORD_MAP.when_attacking[langCode],
@@ -734,7 +745,7 @@ const App = () => {
     setFilterType1(defaultFilters.filterType1);
     setFilterType2(defaultFilters.filterType2);
     setTypeLogic(defaultFilters.typeLogic);
-    setFilterPackId(langCode === "en" ? "556115" : defaultFilters.filterPackId);
+    setFilterPackId(langCode === "en" ? "556116" : defaultFilters.filterPackId);
     setHideReprint(defaultFilters.hideReprint);
     setHidePromo(defaultFilters.hidePromo);
     setShowCurve(defaultFilters.showCurve);
@@ -1142,7 +1153,11 @@ const App = () => {
         }
 
         // Check count using our new mode-aware helper
-        if (getBaseIdCount(card.id) >= 4) return prev;
+        if (
+          !UNLIMITED_COPIES.includes(getBaseId(card.id)) &&
+          getBaseIdCount(card.id) >= 4
+        )
+          return prev;
 
         return { ...prev, [card.id]: newCount };
       });
@@ -1165,6 +1180,7 @@ const App = () => {
     if (totalNonLeader === 0) return null;
 
     const costs = Array(11).fill(0);
+    const costs_cards = Array.from({ length: 11 }, () => []);
 
     deckEntries.forEach((item) => {
       // 1. If item.card.cost is null, treat it as "0"
@@ -1177,6 +1193,7 @@ const App = () => {
         // Math.max/min ensures we stay within the 0-10 index range
         const index = Math.min(Math.max(c, 0), 10);
         costs[index] += item.count;
+        costs_cards[index].push({ id: item.card.id, name: item.card.name, count: item.count });
       }
     });
 
@@ -1187,12 +1204,32 @@ const App = () => {
       }
     });
 
-    const counters = { 0: 0, 1000: 0, 2000: 0 };
+    const counters = {
+      0: 0,
+      1000: 0,
+      2000: 0,
+      "0_cards": [],
+      "1000_cards": [],
+      "2000_cards": [],
+    };
     deckEntries.forEach((item) => {
       const cntVal = parseInt(item.card.counter);
       const key = isNaN(cntVal) || cntVal === 0 ? "0" : String(cntVal);
-      if (counters[key] !== undefined) counters[key] += item.count;
-      else counters["0"] += item.count;
+      if (counters[key] !== undefined) {
+        counters[key] += item.count;
+        counters[`${key}_cards`].push({
+          id: item.card.id,
+          name: item.card.name,
+          count: item.count,
+        });
+      } else {
+        counters["0"] += item.count;
+        counters["0_cards"].push({
+          id: item.card.id,
+          name: item.card.name,
+          count: item.count,
+        });
+      }
     });
 
     // NEW: Calculate Weighted Average
@@ -1250,6 +1287,7 @@ const App = () => {
 
     return {
       costs,
+      costs_cards,
       categories,
       counters,
       avgCounter,
@@ -1458,12 +1496,17 @@ const App = () => {
       }
 
       // --- 5. Rarity & Category ---
+      const RARITY_KEY_TO_DB = {
+        special: "sp卡",
+        super_rare: "super rare",
+        secret_rare: "secret rare",
+      };
       const matchesRarity =
         selectedRarity.length === 0 ||
-        selectedRarity.some(
-          (r) =>
-            card.rarity?.toLowerCase() === r.replace(/_/g, "").toLowerCase(),
-        );
+        selectedRarity.some((r) => {
+          const dbVal = RARITY_KEY_TO_DB[r] ?? r.toLowerCase();
+          return card.rarity?.toLowerCase() === dbVal;
+        });
 
       // Convert card.category (e.g., "角色卡") to "character" using DB_MAP
       // --- 5. Category Filtering ---
@@ -2190,11 +2233,11 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-4 md:p-8 font-sans flex flex-col">
+    <div className="min-h-screen bg-slate-900 text-slate-100 px-2 py-4 md:p-8 font-sans flex flex-col">
       <header
         className="
-        max-w-7xl mx-auto w-full mb-8 
-        border-b border-slate-800 pb-4
+        max-w-7xl mx-auto w-full mb-0 lg:mb-8
+        border-b border-slate-800 pb-1 lg:pb-4
       "
       >
         <div
@@ -2209,7 +2252,7 @@ const App = () => {
             <img
               src="/logo512.png"
               alt="齊齊砌"
-              className="h-24 w-auto object-contain"
+              className="h-14 lg:h-24 w-auto object-contain"
             />
           </h1>
           <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 flex-shrink-0 ml-auto">
@@ -2342,7 +2385,7 @@ const App = () => {
         </div>
 
         {/* NEW SECOND ROW: Deck vs Market Toggle + Help */}
-        <div className="flex items-center justify-end gap-2 mt-2">
+        <div className="flex items-center justify-end gap-2 mt-1">
           <div className="flex items-center gap-1 p-1 bg-slate-900/80 rounded-xl border border-slate-800 shadow-inner">
             {/* Deck Mode (1+50) - Multiple Cards Icon */}
             <button
@@ -2683,6 +2726,9 @@ const App = () => {
                         ((selectedCard.category === "Leader" &&
                           deckList[selectedCard.id] === 1) ||
                           (selectedCard.category !== "Leader" &&
+                            !UNLIMITED_COPIES.includes(
+                              getBaseId(selectedCard.id),
+                            ) &&
                             getBaseIdCount(selectedCard.id) >= 4))
                       }
                       className={`w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center font-bold text-xl text-white transition-all active:scale-90 ${

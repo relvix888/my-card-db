@@ -130,11 +130,16 @@ function buildChoiceConfig(choices, pendingEffect, state, getName) {
       subtitle: `Choose up to ${choices.max} character(s) to gain 【${choices.keyword}】`,
       maxSelect: choices.max,
       canSkip: true,
-      items: choices.indices.map(i => ({
-        key: i,
-        card: tps.characterArea[i].card,
-        label: `${getName(tps.characterArea[i].card)} (Cost ${tps.characterArea[i].card.cost ?? 0})`,
-      })),
+      items: choices.indices.map(i => {
+        if (i === 'leader') {
+          return { key: 'leader', card: tps.leader.card, label: `${getName(tps.leader.card)} [Leader]` };
+        }
+        return {
+          key: i,
+          card: tps.characterArea[i].card,
+          label: `${getName(tps.characterArea[i].card)} (Cost ${tps.characterArea[i].card.cost ?? 0})`,
+        };
+      }),
     };
   }
 
@@ -187,12 +192,40 @@ function buildChoiceConfig(choices, pendingEffect, state, getName) {
     })),
   };
 
+  if (type === 'CHOOSE_BLOCK_DISABLE_TARGET') return {
+    title: 'Disable Blocker',
+    subtitle: `Choose up to ${choices.max} opponent character(s) with [Blocker] — cannot activate it this turn`,
+    maxSelect: choices.max,
+    canSkip: true,
+    items: choices.indices.map(i => ({
+      key: i,
+      card: state[choices.targetOwner].characterArea[i].card,
+      label: `${getName(state[choices.targetOwner].characterArea[i].card)} (Cost ${state[choices.targetOwner].characterArea[i].card.cost ?? 0})`,
+    })),
+  };
+
+  if (type === 'CHOOSE_NULL_EFFECT_TARGET') return {
+    title: 'Negate Effect',
+    subtitle: `Choose up to ${choices.max} card(s) — their effects are negated until end of turn`,
+    maxSelect: choices.max,
+    canSkip: true,
+    items: choices.indices.map(i => {
+      const card = i === -1
+        ? state[choices.targetOwner].leader.card
+        : state[choices.targetOwner].characterArea[i].card;
+      return { key: i, card, label: `${getName(card)} (Cost ${card.cost ?? 0})` };
+    }),
+  };
+
   if (type === 'CHOOSE_POWER_TARGET') {
     const pmPs = state[choices.targetOwner];
-    const pmDelta = pendingEffect.action.totalDelta ?? pendingEffect.action.delta;
+    const pmAction = pendingEffect.action;
+    const pmSubtitle = pmAction.power !== undefined
+      ? `Set base power to ${pmAction.power}`
+      : (() => { const d = pmAction.totalDelta ?? pmAction.delta ?? 0; return `Apply ${d > 0 ? '+' : ''}${d} power`; })();
     return {
       title: 'Choose Power Target',
-      subtitle: `Apply ${pmDelta > 0 ? '+' : ''}${pmDelta} power`,
+      subtitle: pmSubtitle,
       maxSelect: 1,
       canSkip: true,
       items: choices.targets.map((t, i) => {
@@ -224,6 +257,20 @@ function buildChoiceConfig(choices, pendingEffect, state, getName) {
       canSkip: false,
       items: choices.targets.map((t, i) => {
         const card = state[swapOwner].characterArea[t.index].card;
+        return { key: i, card, label: `${getName(card)} (${card.power ?? '?'})` };
+      }),
+    };
+  }
+
+  if (type === 'CHOOSE_COPY_POWER_TARGET') {
+    const ccptPs = state[choices.targetOwner];
+    return {
+      title: 'Copy Power',
+      subtitle: `Select an opponent's character — this card's base power becomes theirs for this turn`,
+      maxSelect: 1,
+      canSkip: true,
+      items: choices.targets.map((t, i) => {
+        const card = ccptPs.characterArea[t.index].card;
         return { key: i, card, label: `${getName(card)} (${card.power ?? '?'})` };
       }),
     };
@@ -261,9 +308,28 @@ function buildChoiceConfig(choices, pendingEffect, state, getName) {
     items: [{ key: 0, card: choices.lifeCard, label: `${getName(choices.lifeCard)} (Cost ${choices.lifeCard?.cost ?? '?'})` }],
   };
 
+  if (type === 'CHOOSE_DEPLOY_FROM_DECK') {
+    return {
+      title: 'Deploy from Deck (Revealed)',
+      subtitle: choices.eligibleIndices.length
+        ? `Choose up to ${choices.max} card(s) from the revealed card(s) to deploy`
+        : 'No eligible card revealed — all go to bottom of deck',
+      maxSelect: choices.max,
+      canSkip: true,
+      items: choices.revealed.map((c, i) => ({
+        key: i,
+        card: c,
+        label: `${getName(c)} (Cost ${c.cost ?? 0})`,
+        eligible: choices.eligibleIndices.includes(i),
+      })),
+    };
+  }
+
   if (type === 'CHOOSE_DEPLOY_FROM_HAND') return {
     title: 'Deploy from Hand',
-    subtitle: `Choose up to ${choices.max} card(s) to deploy for free`,
+    subtitle: choices.uniqueName
+      ? `Choose up to ${choices.max} card(s) to deploy (each must have a different name)`
+      : `Choose up to ${choices.max} card(s) to deploy for free`,
     maxSelect: choices.max,
     canSkip: true,
     items: choices.indices.map(i => ({
@@ -599,6 +665,18 @@ function buildChoiceConfig(choices, pendingEffect, state, getName) {
     })),
   };
 
+  if (type === 'CHOOSE_ON_PLAY_ORDER') return {
+    title: '【登場時】效果順序',
+    subtitle: '選擇哪張卡的效果先發動',
+    maxSelect: 1,
+    canSkip: false,
+    items: choices.sources.map((src, i) => ({
+      key: i,
+      card: src.card,
+      label: getName(src.card),
+    })),
+  };
+
   return null;
 }
 
@@ -621,7 +699,7 @@ const TIMING_TITLES = {
 
 export default function EffectModal({ pendingEffect, pendingReplace, state, onResolve, onReplace, onHoverTarget }) {
   const [selected, setSelected] = useState([]);
-  const [placeOnTop, setPlaceOnTop] = useState(false);
+  const [placeOnTop, setPlaceOnTop] = useState(true);
   const [koDiscardMode, setKoDiscardMode] = useState(null); // null | 'ko' | 'discard'
   const [deployZone, setDeployZone] = useState(null); // null | 'hand' | 'trash'
   const [hoveredCard, setHoveredCard] = useState(null);
@@ -636,7 +714,7 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
   const timingTitle = TIMING_TITLES[pendingEffect?.timing] ?? 'Effect';
 
   const modalType = pendingReplace ? 'replace' : pendingEffect ? 'effect' : null;
-  useEffect(() => { setSelected([]); setPlaceOnTop(false); setKoDiscardMode(null); setDeployZone(null); setHoveredCard(null); }, [modalType]);
+  useEffect(() => { setSelected([]); setPlaceOnTop(true); setKoDiscardMode(null); setDeployZone(null); setHoveredCard(null); }, [modalType]);
   useEffect(() => {
     if (pendingEffect?.choices?.orderMode) {
       const { indices, max } = pendingEffect.choices;
@@ -683,6 +761,8 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
                   <button
                     key={i}
                     onClick={() => setSelected([i])}
+                    onMouseEnter={() => onHoverTarget?.(i)}
+                    onMouseLeave={() => onHoverTarget?.(null)}
                     className={`relative flex-shrink-0 rounded-xl border-2 transition-all active:scale-95
                       ${isSelected
                         ? 'border-orange-400 shadow-lg shadow-orange-500/40 scale-105'
@@ -1316,7 +1396,7 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
     }
     onResolve(result);
     setSelected([]);
-    setPlaceOnTop(false);
+    setPlaceOnTop(true);
   }
 
   function skip() {
@@ -1364,18 +1444,18 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
         {choices.type === 'SEARCH_ORDER' && choices.canPlaceOnTop && (
           <div className="flex gap-2 px-4 pb-2">
             <button
-              onClick={() => setPlaceOnTop(false)}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all
-                ${!placeOnTop ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}
-            >
-              Deck Bottom
-            </button>
-            <button
               onClick={() => setPlaceOnTop(true)}
               className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all
                 ${placeOnTop ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}
             >
               Deck Top
+            </button>
+            <button
+              onClick={() => setPlaceOnTop(false)}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all
+                ${!placeOnTop ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}
+            >
+              Deck Bottom
             </button>
           </div>
         )}

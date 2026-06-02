@@ -9,15 +9,35 @@ Example: /debug-set ST30
 
 The user wants to debug all cards in set **$ARGUMENTS**.
 
-### Step 0 — Run the set audit (bulk triage)
+### Step 0 — Two-layer triage
+
+Run **both** scripts. The first catches parser/handler registration gaps; the second actually deploys each card in a headless game engine and checks state mutations.
 
 ```bash
+# Layer 1 — static audit (parser output + handler registration)
 node /Users/rexchan/my-card-db/scripts/audit-effects.js --set $ARGUMENTS
+
+# Layer 2 — runtime simulation (deploy card, auto-resolve, verify state delta)
+node --loader /Users/rexchan/my-card-db/scripts/esm-loader.js \
+  /Users/rexchan/my-card-db/scripts/simulate-cards.js --set $ARGUMENTS
 ```
 
-**Read the output carefully:**
-- Footer says `0 cards need attention` → all clean. Report the clean card list and stop.
-- Footer says `N cards need attention` → collect the card IDs listed under "✗ Issues found in N cards". Continue to Steps 1–5 for those cards **only**.
+**What each layer catches:**
+
+| Layer | Catches | Misses |
+|-------|---------|--------|
+| Static audit | UNKNOWN action types, missing handlers | Wrong counts, bad timing wiring, broken modal cases, orphaned flags |
+| Runtime simulation | Engine crashes, wrong state delta (DRAW count, KO target), stuck interactive effects | Battle-step effects (counter/block), named-filter mods with no test targets |
+
+**Reading the output:**
+- Both layers report `0 cards need attention` → all clean. Report the combined clean card list and stop.
+- Any card flagged by **either** layer → collect those IDs. Continue to Steps 1–5 for those cards **only**.
+
+Simulation failure types:
+- `EXCEPTION` — engine crashed while executing the card effect
+- `NO_STATE_CHANGE` — effect resolver returned identical state (timing not wired, or effect silently no-ops)
+- `WRONG_COUNT` — DRAW/KO/REST produced wrong number of changes
+- `INTERACTIVE_STUCK` — `pendingEffect` set but auto-resolver could not clear it (missing modal/resolver case)
 
 ---
 

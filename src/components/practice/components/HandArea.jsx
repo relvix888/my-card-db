@@ -3,7 +3,7 @@ import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 import CardDetailOverlay from './CardDetailOverlay';
 import CardPreview from './CardPreview';
 
-export default function HandArea({ hand = [], costDeltas = [], selectedIndex, onCardClick, highlightIndices, isCompact = false, disableStats = false, onReorder, scrollRef }) {
+export default function HandArea({ hand = [], costDeltas = [], effectiveCounters = [], selectedIndex, onCardClick, highlightIndices, isCompact = false, disableStats = false, onReorder, scrollRef }) {
   const [preview, setPreview] = useState(null);
   const [mobileDetail, setMobileDetail] = useState(null);
   const [dragIndex, setDragIndex] = useState(null);
@@ -156,9 +156,9 @@ export default function HandArea({ hand = [], costDeltas = [], selectedIndex, on
                 {costDelta > 0 ? `+${costDelta}` : `${costDelta}`}
               </div>
             )}
-            {card.counter > 0 && (
+            {(effectiveCounters[i] ?? card.counter ?? 0) > 0 && (
               <div className="absolute bottom-0.5 right-0.5 bg-emerald-700/90 text-white text-[8px] font-bold px-1 rounded">
-                +{(card.counter / 1000).toFixed(0)}k
+                +{((effectiveCounters[i] ?? card.counter) / 1000).toFixed(0)}k
               </div>
             )}
           </div>

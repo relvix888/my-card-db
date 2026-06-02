@@ -1,5 +1,5 @@
 // src/components/SearchView.jsx
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "../i18n/config";
 
@@ -80,6 +80,7 @@ const SearchView = ({
   selectedCosts,
   setSelectedCosts,
 }) => {
+  const [colCount, setColCount] = useState(3);
   const activeList = isMarketMode ? marketList : deckList;
   const currentTotal = Object.values(activeList).reduce((a, b) => a + b, 0);
   const { t, i18n } = useTranslation();
@@ -87,7 +88,7 @@ const SearchView = ({
   const activeTypes = langCode === "en" ? (sortedTypesEn ?? []) : sortedTypes;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8">
+    <div className="flex flex-col lg:flex-row gap-0 lg:gap-8">
       {/* LEFT COLUMN: Sidebar (Search & Filters) */}
       <aside className="w-full lg:w-80 flex-shrink-0">
         {/* 1. max-h-[calc(100vh-2rem)]: Limits height to the screen minus some padding
@@ -96,20 +97,30 @@ const SearchView = ({
         */}
         <div className="sticky top-6 flex flex-col gap-2 max-h-[calc(100vh-3rem)] overflow-y-auto pr-2 scrollbar-hide custom-sidebar-scroll">
           <section className="bg-slate-900/50 border border-slate-800 pt-3 px-5 pb-5 rounded-2xl backdrop-blur-md">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-blue-400 text-sm font-black uppercase tracking-widest">
-                {t("basic_search", "基本搜尋")}
-              </h3>
+            <p className="text-[10px] text-slate-500 uppercase font-bold mb-2 tracking-widest">
+              {t("keywords", "關鍵字")}
+            </p>
+            <div className="flex items-center gap-2 mb-4">
+              <input
+                type="text"
+                placeholder={t(
+                  "search_placeholder",
+                  "魯夫, >=5, >6000, +1000, 防禦",
+                )}
+                className="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm focus:border-blue-500 outline-none transition-colors"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
               <button
                 onClick={resetFilters}
                 title={t("reset_filters", "重置搜尋 Reset Filters")}
                 className="
-                  p-1.5
-                  bg-red-950/30 hover:bg-red-600 
+                  flex-shrink-0 p-1.5
+                  bg-red-950/30 hover:bg-red-600
                   text-red-500 hover:text-white
                   rounded-lg border border-red-900/50 hover:border-red-500
                   transition-all duration-200
-                  group active:scale-90
+                  active:scale-90
                 "
               >
                 <svg
@@ -122,19 +133,6 @@ const SearchView = ({
                 </svg>
               </button>
             </div>
-            <p className="text-[10px] text-slate-500 uppercase font-bold mb-2 tracking-widest">
-              {t("keywords", "關鍵字")}
-            </p>
-            <input
-              type="text"
-              placeholder={t(
-                "search_placeholder",
-                "魯夫, >=5, >6000, +1000, 防禦",
-              )}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm mb-4 focus:border-blue-500 outline-none transition-colors"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
             {/* COLORS FILTER */}
             <p className="text-[10px] text-slate-500 uppercase font-bold mb-2 tracking-widest">
               {t("colors_label", "顏色")}
@@ -294,9 +292,6 @@ const SearchView = ({
           </section>
 
           <section className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl backdrop-blur-md">
-            <h3 className="text-purple-400 text-sm font-black uppercase tracking-widest mb-4">
-              {t("advanced_search", "進階搜尋")}
-            </h3>
             <div className="space-y-4">
               {/* Advanced Search Toggle Button */}
               <button
@@ -638,8 +633,8 @@ const SearchView = ({
               )}
             </div>
           </section>
-          {/* Extra bottom padding to ensure the last filter isn't cut off */}
-          <div className="h-6 shrink-0" />
+          {/* Extra bottom padding to ensure the last filter isn't cut off on desktop */}
+          <div className="h-0 lg:h-6 shrink-0" />
         </div>
       </aside>
 
@@ -657,6 +652,23 @@ const SearchView = ({
           </div>
 
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] lg:text-xs font-bold text-slate-500 hidden sm:inline">
+                {colCount}{t("cols", "列")}
+              </span>
+              <input
+                type="range"
+                min={2}
+                max={6}
+                value={colCount}
+                onChange={(e) => setColCount(Number(e.target.value))}
+                className="w-16 lg:w-20 accent-blue-500 cursor-pointer"
+                title={t("cols_per_row", "每行顯示數量")}
+              />
+              <span className="text-[10px] lg:text-xs font-bold text-slate-500 sm:hidden">
+                {colCount}
+              </span>
+            </div>
             <p className="text-[10px] lg:text-xs font-bold text-slate-500">
               {t("search_results", "搜尋結果 / Results")}:{" "}
               <span className="text-white">{filteredCards.length}</span>
@@ -682,7 +694,10 @@ const SearchView = ({
         </div>
 
         {/* The Grid - Optimized for MacBook & Mobile */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
+        <div
+          className="grid gap-2 md:gap-3"
+          style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))` }}
+        >
           {filteredCards.map((card) => {
             const activeCount = isMarketMode
               ? marketList[card.id] || 0

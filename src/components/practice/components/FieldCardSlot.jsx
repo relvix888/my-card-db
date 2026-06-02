@@ -53,8 +53,9 @@ export default function FieldCardSlot({
     );
   }
 
-  const { card, state: cardState, attachedDon, justDeployed, attackLocked, refreshLocked, restLocked, willBottomDeckAtEndOfTurn, tempKeywords, opponentTurnEndKeywords } = fieldCard;
-  const hasKoProtect = tempKeywords?.includes('MASS_EFFECT_KO_PROTECTION') || opponentTurnEndKeywords?.includes('MASS_EFFECT_KO_PROTECTION');
+  const { card, state: cardState, attachedDon, justDeployed, attackLocked, refreshLocked, restLocked, willBottomDeckAtEndOfTurn, effectNegated, tempKeywords, opponentTurnEndKeywords } = fieldCard;
+  const hasKoProtect       = tempKeywords?.includes('MASS_EFFECT_KO_PROTECTION') || opponentTurnEndKeywords?.includes('MASS_EFFECT_KO_PROTECTION');
+  const hasRushActiveChars = tempKeywords?.includes('RUSH_ACTIVE_CHARS') || opponentTurnEndKeywords?.includes('RUSH_ACTIVE_CHARS');
   const isRested = cardState === 'rest';
   const imageUrl = getSafeImageUrl(card);
   const w = isSmall ? 'w-12' : 'w-14';
@@ -63,9 +64,10 @@ export default function FieldCardSlot({
   const basePower   = card.power ?? null;
   const donBonus    = attachedDon * 1000;
   const isMyTurn    = activePlayer && owner && activePlayer === owner;
+  const rawBonus    = isMyTurn ? donBonus + powerModDelta : powerModDelta;
   const displayPower = basePower !== null
     ? (isMyTurn ? basePower + donBonus + powerModDelta : basePower + powerModDelta)
-    : null;
+    : rawBonus !== 0 ? rawBonus : null;
 
   const borderClass = isEffectHighlight   ? 'border-orange-400 shadow-orange-400/60'
                     : isSelected          ? 'border-blue-400 shadow-blue-400/50'
@@ -133,13 +135,14 @@ export default function FieldCardSlot({
           </div>
         )}
         {/* Status lock badges */}
-        {(attackLocked || refreshLocked || restLocked || willBottomDeckAtEndOfTurn || hasKoProtect) && (
+        {(attackLocked || refreshLocked || restLocked || willBottomDeckAtEndOfTurn || hasKoProtect || effectNegated) && (
           <div className="absolute top-0.5 left-0.5 flex flex-col gap-0.5 z-10 pointer-events-none">
             {attackLocked            && <span className="text-[7px] font-black px-0.5 py-px rounded bg-red-700/90    text-white leading-tight">NO ATK</span>}
             {refreshLocked           && <span className="text-[7px] font-black px-0.5 py-px rounded bg-violet-700/90 text-white leading-tight">NO ↺</span>}
             {restLocked              && <span className="text-[7px] font-black px-0.5 py-px rounded bg-orange-700/90 text-white leading-tight">NO REST</span>}
-            {willBottomDeckAtEndOfTurn && <span className="text-[7px] font-black px-0.5 py-px rounded bg-cyan-700/90   text-white leading-tight">↩ EOT</span>}
+            {willBottomDeckAtEndOfTurn && <span className="text-[7px] font-black px-0.5 py-px rounded bg-cyan-700/90   text-white leading-tight">Ephemeral</span>}
             {hasKoProtect            && <span className="text-[7px] font-black px-0.5 py-px rounded bg-emerald-600/90 text-white leading-tight">NO KO</span>}
+            {effectNegated           && <span className="text-[7px] font-black px-0.5 py-px rounded bg-gray-700/90   text-white leading-tight">NULL</span>}
           </div>
         )}
         {/* Bottom-left badge: DON count */}
@@ -151,14 +154,15 @@ export default function FieldCardSlot({
           </div>
         )}
         {/* Keyword overlay strip */}
-        {(hasDoubleAtk || hasRush || hasCharRush || hasBlocker || hasBanish || hasUnblock) && (
+        {(hasDoubleAtk || hasRush || hasCharRush || hasBlocker || hasBanish || hasUnblock || hasRushActiveChars) && (
           <div className="absolute bottom-0 inset-x-0 z-10 pointer-events-none flex flex-wrap justify-center gap-px p-px bg-slate-900/50">
-            {hasDoubleAtk && <span className="text-[6px] font-black px-0.5 rounded bg-yellow-400/90 text-black leading-tight">2x</span>}
-            {hasRush      && <span className="text-[6px] font-black px-0.5 rounded bg-green-500/90  text-black leading-tight">Rush</span>}
-            {hasCharRush  && <span className="text-[6px] font-black px-0.5 rounded bg-green-700/90  text-white leading-tight">R:Chr</span>}
-            {hasBlocker   && <span className="text-[6px] font-black px-0.5 rounded bg-blue-500/90   text-white leading-tight">Block</span>}
-            {hasBanish    && <span className="text-[6px] font-black px-0.5 rounded bg-red-600/90    text-white leading-tight">Banish</span>}
-            {hasUnblock   && <span className="text-[6px] font-black px-0.5 rounded bg-purple-600/90 text-white leading-tight">Unblk</span>}
+            {hasDoubleAtk      && <span className="text-[6px] font-black px-0.5 rounded bg-yellow-400/90  text-black leading-tight">2x</span>}
+            {hasRush           && <span className="text-[6px] font-black px-0.5 rounded bg-green-500/90   text-black leading-tight">Rush</span>}
+            {hasCharRush       && <span className="text-[6px] font-black px-0.5 rounded bg-green-700/90   text-white leading-tight">R:Chr</span>}
+            {hasRushActiveChars && <span className="text-[6px] font-black px-0.5 rounded bg-lime-400/90   text-black leading-tight">R:Act</span>}
+            {hasBlocker        && <span className="text-[6px] font-black px-0.5 rounded bg-blue-500/90    text-white leading-tight">Block</span>}
+            {hasBanish         && <span className="text-[6px] font-black px-0.5 rounded bg-red-600/90     text-white leading-tight">Banish</span>}
+            {hasUnblock        && <span className="text-[6px] font-black px-0.5 rounded bg-purple-600/90  text-white leading-tight">Unblk</span>}
           </div>
         )}
         {/* Cost modifier badge */}

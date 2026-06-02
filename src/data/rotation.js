@@ -12,6 +12,13 @@ export const RESTRICTED_PAIRS = [
   ["OP07-115", "EB04-058"],
 ];
 
+// Cards whose effect text reads "Under the rules of this game, you may have any number of this card in your deck."
+export const UNLIMITED_COPIES = [
+  "OP01-075", // Pacifista
+  "OP08-072", // Biscuit Warrior
+  "OP16-042",
+];
+
 export const BLOCK_1_EXCEPTIONS = [
   "EB01-006",
   "EB02-061",

@@ -7,7 +7,7 @@ import { formatEffectText } from '../../../utils/formatEffect';
 const ATTR_ZH = { slash: '斬', strike: '打', ranged: '射', special: '特', wisdom: '知' };
 const ATTR_EN = { slash: 'Slash', strike: 'Strike', ranged: 'Ranged', special: 'Special', wisdom: 'Wisdom' };
 
-function DetailPanel({ card }) {
+export function DetailPanel({ card, flashTrigger = false }) {
   const { i18n } = useTranslation();
   const isEn = i18n.language.startsWith('en');
   const ATTR_MAP = isEn ? ATTR_EN : ATTR_ZH;
@@ -56,7 +56,11 @@ function DetailPanel({ card }) {
         )}
         {triggerHtml && (
           <div
-            className="mt-1 bg-yellow-900/30 border border-yellow-700/40 rounded p-1.5 text-xs text-yellow-200 leading-snug overflow-y-auto"
+            className={`mt-1 rounded p-1.5 text-xs text-yellow-200 leading-snug overflow-y-auto ${
+              flashTrigger
+                ? 'bg-yellow-900/60 border-2 border-yellow-400 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.6)]'
+                : 'bg-yellow-900/30 border border-yellow-700/40'
+            }`}
             style={{ maxHeight: 80 }}
             dangerouslySetInnerHTML={{ __html: triggerHtml }}
           />

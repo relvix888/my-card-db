@@ -5,10 +5,13 @@ Usage:
   python run_pipeline.py update      — prices + meta decks (no new set)
   python run_pipeline.py prices      — scrape prices & transform only
   python run_pipeline.py decks       — scrape meta decks (topdecks + gumgum.gg) & build
-  python run_pipeline.py new-set     — full new-set workflow:
-                                         scrape ZH/EN cards → upload to Firestore
-                                         → Q&A → download images → upload to Cloudinary
-                                         → update prices & decks
+  python run_pipeline.py new-set [zh_pack_id]
+                              — full new-set workflow:
+                                scrape ZH/EN cards → upload to Firestore
+                                → Q&A → download images → upload to Cloudinary
+                                → update prices & decks
+                                Pass a ZH pack ID (e.g. 554116) to target one set;
+                                omit to process all packs.
 """
 
 import subprocess
@@ -37,7 +40,7 @@ def run_py(script_path, description, *, abort_on_fail=True):
     return True
 
 
-def run_node(script_path, description, *, cwd=None, abort_on_fail=True):
+def run_node(script_path, description, *, cwd=None, abort_on_fail=True, extra_args=()):
     print(f"\n{'='*55}")
     print(f"  🟩  {description}")
     print(f"{'='*55}")
@@ -47,7 +50,7 @@ def run_node(script_path, description, *, cwd=None, abort_on_fail=True):
         if abort_on_fail:
             sys.exit(1)
         return False
-    result = subprocess.run([node, script_path], cwd=cwd or os.path.dirname(script_path))
+    result = subprocess.run([node, script_path] + list(extra_args), cwd=cwd or os.path.dirname(script_path))
     if result.returncode != 0:
         print(f"❌  Failed: {description}")
         if abort_on_fail:
@@ -122,25 +125,39 @@ def pipeline_update():
 # Workflow: new-set
 # ---------------------------------------------------------------------------
 
-def pipeline_new_set():
+def pipeline_new_set(pack_id=None):
+    """pack_id: ZH pack ID like '554116', or omit to process all packs."""
     print("\n🆕  NEW SET PIPELINE")
-    print(
-        "\n  ⚠️   Manual step required before continuing:\n"
-        "    • Open src/App.js and add the new pack to packData (line ~47)\n"
-        "      and packOrder (line ~482) with its pack ID, name, and series.\n"
-    )
-    input("  Press Enter once packData / packOrder are updated, or Ctrl-C to abort...\n")
+
+    # Derive regional IDs from the ZH pack ID (554xxx → 556xxx for EN)
+    zh_id = pack_id if pack_id else None
+    en_id = zh_id.replace("554", "556", 1) if zh_id and zh_id.startswith("554") else zh_id
+    zh_args = (zh_id,) if zh_id else ()
+    en_args = (en_id,) if en_id else ()
+    img_args = (zh_id,) if zh_id else ()
+
+    if zh_id:
+        print(f"\n  🎯  Targeting pack: ZH={zh_id}  EN={en_id}")
+    else:
+        print(
+            "\n  ⚠️   Manual step required before continuing:\n"
+            "    • Open src/constants/packs.js and add the new pack to packData\n"
+            "      and packOrder with its pack ID, zh/en/ja titles.\n"
+        )
+        input("  Press Enter once packData / packOrder are updated, or Ctrl-C to abort...\n")
 
     # Step 1 — Scrape card data from official site
     run_node(
         os.path.join(OPC_UPLOADER, "scrape-cards-zh.js"),
-        "Scrape ZH cards → opc-uploader/data/ZH/",
+        f"Scrape ZH cards → opc-uploader/data/ZH/{zh_id or 'all'}",
         cwd=OPC_UPLOADER,
+        extra_args=zh_args,
     )
     run_node(
         os.path.join(OPC_UPLOADER, "scrape-cards.js"),
-        "Scrape EN cards → opc-uploader/data/EN/",
+        f"Scrape EN cards → opc-uploader/data/EN/{en_id or 'all'}",
         cwd=OPC_UPLOADER,
+        extra_args=en_args,
     )
 
     # Step 2 — Upload card data to Firestore + export en_cards.json
@@ -153,7 +170,8 @@ def pipeline_new_set():
     # Step 3 — Q&A (Traditional Chinese)
     run_node(
         os.path.join(COLLECT, "qanda_scraper.js"),
-        "Scrape Q&A (zh) → pipeline/data/temp_qa_data.json",
+        f"Scrape Q&A (zh) → pipeline/data/temp_qa_data.json",
+        extra_args=zh_args,
     )
     _copy_qa(
         src=os.path.join(PIPELINE_DATA, "temp_qa_data.json"),
@@ -164,7 +182,8 @@ def pipeline_new_set():
     # Step 4 — Q&A (English)
     run_node(
         os.path.join(COLLECT, "qanda_scraper_en.js"),
-        "Scrape Q&A (en) → pipeline/data/temp_qa_data_en.json",
+        f"Scrape Q&A (en) → pipeline/data/temp_qa_data_en.json",
+        extra_args=en_args,
     )
     _copy_qa(
         src=os.path.join(PIPELINE_DATA, "temp_qa_data_en.json"),
@@ -175,13 +194,15 @@ def pipeline_new_set():
     # Step 5 — Download card images
     run_node(
         os.path.join(COLLECT, "download_images.js"),
-        "Download card images → opc-uploader-images/images/",
+        f"Download card images → opc-uploader-images/images/{zh_id or 'all'}",
+        extra_args=img_args,
     )
 
     # Step 6 — Upload images to Cloudinary
     run_node(
         os.path.join(TRANSFORM, "images_to_cloudinary.js"),
-        "Upload images to Cloudinary (opc-images/)",
+        f"Upload images to Cloudinary (opc-images/{zh_id or 'all'})",
+        extra_args=img_args,
     )
 
     # Step 7 — Rebuild card type indexes (picks up any new types in the new set)
@@ -201,12 +222,25 @@ def pipeline_new_set():
 
 
 def _copy_qa(src, dst, label):
+    import json
     if not os.path.exists(src):
         print(f"⚠️   Q&A output not found at {src} — skipping copy.")
         return
     os.makedirs(os.path.dirname(dst), exist_ok=True)
-    shutil.copy2(src, dst)
-    print(f"📋  Copied Q&A ({label}): {src} → {dst}")
+    with open(src, encoding="utf-8") as f:
+        new_entries = json.load(f)
+    if os.path.exists(dst):
+        with open(dst, encoding="utf-8") as f:
+            existing = json.load(f)
+        existing_ids = {e["qaNum"] for e in existing}
+        added = [e for e in new_entries if e["qaNum"] not in existing_ids]
+        merged = existing + added
+        with open(dst, "w", encoding="utf-8") as f:
+            json.dump(merged, f, ensure_ascii=False, indent=2)
+        print(f"📋  Merged Q&A ({label}): +{len(added)} new entries → {dst} (total {len(merged)})")
+    else:
+        shutil.copy2(src, dst)
+        print(f"📋  Copied Q&A ({label}): {src} → {dst}")
 
 
 # ---------------------------------------------------------------------------
@@ -226,4 +260,7 @@ if __name__ == "__main__":
         print(f"Available workflows: {', '.join(WORKFLOWS)}")
         sys.exit(1)
 
-    WORKFLOWS[sys.argv[1]]()
+    if sys.argv[1] == "new-set":
+        pipeline_new_set(sys.argv[2] if len(sys.argv) > 2 else None)
+    else:
+        WORKFLOWS[sys.argv[1]]()

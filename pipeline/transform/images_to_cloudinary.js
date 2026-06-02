@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 // 1. CONFIGURATION
-require("dotenv").config();
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
 cloudinary.config({
   cloud_name: process.env.REACT_APP_CLOUDINARY_CLOUD_NAME,

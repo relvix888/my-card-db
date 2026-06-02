@@ -6,14 +6,14 @@ from datetime import datetime
 # --- PATHS ---
 # Update this to the absolute or relative path of your uploader project
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOADER_DATA_PATH = os.path.join(BASE_DIR, "..", "..", "..", "opc-uploader", "data")
+UPLOADER_DATA_PATH = os.path.join(BASE_DIR, "..", "..", "..", "opc-uploader", "data", "ZH")
 RAW_PRICES_PATH = os.path.join(BASE_DIR, "..", "..", "pipeline", "data", "price_raw.json")
 OUTPUT_PATH = os.path.join(BASE_DIR, "..", "..", "src", "data", "price_final.json")
 
 PACK_DATA = {
     "554302": "PRB-02", "554301": "PRB-01",
     "554204": "EB-04",  "554203": "EB-03",  "554202": "EB-02", "554201": "EB-01",
-    "554115": "OP-15",  "554114": "OP-14",  "554113": "OP-13", "554112": "OP-12",
+    "554116": "OP-16", "554115": "OP-15",  "554114": "OP-14",  "554113": "OP-13", "554112": "OP-12",
     "554111": "OP-11",  "554110": "OP-10",  "554109": "OP-09", "554108": "OP-08",
     "554107": "OP-07",  "554106": "OP-06",  "554105": "OP-05", "554104": "OP-04",
     "554103": "OP-03",  "554102": "OP-02",  "554101": "OP-01",
@@ -96,6 +96,7 @@ RANK_OVERRIDES = {
     ("OP13-091", 7): 2,
     ("EB01-015", 1): 2,
     ("OP06-047", 2): 3,
+    ("ST15-005", 2): 1,
    
 }
 

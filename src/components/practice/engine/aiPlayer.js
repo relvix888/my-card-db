@@ -2,7 +2,7 @@ import { PLAYER, MAX_CHARACTERS } from './constants';
 import { getLeaderProfile } from './leaderProfiles';
 import {
   applyPlayCharacter, applyPlayStage, applyAttachDon, applyActivateMain,
-  applyDeclareAttack, applyPlayCounter, canAfford, calcPower, activeDonCount,
+  applyDeclareAttack, applyPlayCounter, applyPlayEvent, canAfford, calcPower, activeDonCount,
 } from './gameState';
 import { rankCardsForTurn } from '../../../utils/cardRanker';
 import {
@@ -22,10 +22,23 @@ const RESTED_TARGET_POWER_THRESHOLD = 5000;
 const EARLY_GAME_TURNS              = 3;  // turns 1–N use curve-based deployment
 const MIN_HEALTHY_HAND              = 5;  // don't counter non-lethal hits when hand would drop below this
 
+const weakestFieldCost = ps => ps.characterArea.length
+  ? Math.min(...ps.characterArea.map(fc => fc.card?.cost ?? 0))
+  : 0;
+
 function charCanAttack(fc, sim) {
   if (fc.restLocked) return false;
   if (!fc.justDeployed) return true;
   return evaluateContinuousKeywords(fc, AI, AI, sim).has('速攻');
+}
+
+// Like hasRush but also checks conditional Rush clauses (e.g. "gains Rush when leader has
+// Egghead type") by evaluating the condition against the current game state.
+// Used at planning time so that conditional-Rush cards are placed in rushPlan, not nonRushPlan.
+function hasEffectiveRush(card, sim) {
+  if (hasRush(card)) return true;
+  const fakeFC = { card, attachedDon: 0, justDeployed: true, state: 'active' };
+  return evaluateContinuousKeywords(fakeFC, AI, AI, sim).has('速攻');
 }
 
 function isWorthyRestTarget(fc, defPow) {
@@ -103,6 +116,50 @@ function hasCounterEvent(hand) {
   return hand.some(isCounterEventCard);
 }
 
+// Characters that boost the leader's power on-play (or via an immediate continuous
+// effect) — most valuable when played before attacks so the leader attacks with the boost.
+const PRE_ATTACK_CHARACTER_IDS = new Set([
+  'OP13-042', // gives rested DON!! to leader + 1 character
+  'EB04-007', // [On Play] leader +2000
+  'EB04-061', // [On Play] trash 1: leader +2000
+  'OP09-013', // [On Play] leader +1000
+  'P-107',    // [On Play] (conditional) leader +2000
+  'ST23-002', // [On Play] (conditional) leader +2000
+  'ST24-004', // [On Play] REST opponent char, then (conditional) leader +2000
+  'ST28-004', // [Your Turn] (conditional) leader +1000 continuous
+]);
+
+function isPreAttackCharacter(card) {
+  const baseId = (card?.id ?? '').replace(/_p\d+$/, '').replace(/_r$/, '');
+  return PRE_ATTACK_CHARACTER_IDS.has(baseId);
+}
+
+// Deploys all affordable pre-attack characters from hand before attacks.
+// Scans hand directly so cards excluded from Phase-1 planning (e.g. by DON budget
+// constraints) are still played at the right time. Clears pendingEffect in the
+// simulation — the real game engine resolves on-play effects between queued actions.
+function deployPreAttackChars(sim, actions) {
+  if (sim[AI].deployBlockedThisTurn || sim[AI].handPlayLocked) return sim;
+  let found = true;
+  while (found) {
+    found = false;
+    for (let hi = 0; hi < sim[AI].hand.length; hi++) {
+      const card = sim[AI].hand[hi];
+      if (!isPreAttackCharacter(card)) continue;
+      if (!canAfford(sim[AI].costArea, card.cost ?? 0)) continue;
+      if (sim[AI].characterArea.length >= MAX_CHARACTERS && (card.cost ?? 0) <= weakestFieldCost(sim[AI])) continue;
+      actions.push({ type: 'PLAY_CHARACTER', handIndex: hi });
+      sim = applyPlayCharacter(sim, { handIndex: hi });
+      if (sim.pendingEffect || sim.pendingReplace || sim.pendingTrigger)
+        sim = { ...sim, pendingEffect: null, pendingReplace: null, pendingTrigger: null };
+      if (sim.winner) return sim;
+      found = true;
+      break; // hand indices shifted — restart scan
+    }
+  }
+  return sim;
+}
+
 // Checks whether a card's effect targets an opponent character for removal
 // (KO, REST, or bounce). Used to identify high-value rush cards in survival mode.
 function hasOpponentRemovalEffect(card) {
@@ -141,8 +198,9 @@ function planDonAttachment(sim, actions, maxBudget = Infinity, { preferLeader = 
   }
 
   // Priority 3: hold DON!! for counter events
+  const lp             = getLeaderProfile(sim[AI].leader.card?.id);
   const opponentHandLow = sim[HUMAN].hand.length <= LOW_HAND_THRESHOLD;
-  const leaderReserve   = getLeaderProfile(sim[AI].leader.card?.id)?.donReserve ?? 0;
+  const leaderReserve   = lp?.donReserve ?? 0;
   const holdAmount      = ((!opponentHandLow && hasCounterEvent(sim[AI].hand)) ? COUNTER_HOLD_DON : 0) + leaderReserve;
   let   budget          = Math.max(0, activeDon - holdAmount);
 
@@ -157,6 +215,19 @@ function planDonAttachment(sim, actions, maxBudget = Infinity, { preferLeader = 
       budget--;
     }
     return sim;
+  }
+
+  // Priority 2b: ensure leader meets its DON!! gate (e.g. OP14-041 needs ≥1 attached).
+  // Runs before character magic-number loops so the gate is satisfied every turn.
+  {
+    const donGate = lp?.leaderDonGate ?? 0;
+    const toGate  = Math.max(0, donGate - (sim[AI].leader.attachedDon ?? 0));
+    const attach  = Math.min(toGate, budget);
+    for (let d = 0; d < attach; d++) {
+      actions.push({ type: 'ATTACH_DON', targetZone: 'leader', targetIndex: -1 });
+      sim = applyAttachDon(sim, { targetZone: 'leader', targetIndex: -1 });
+      budget--;
+    }
   }
 
   // Priority 2: attach to reach magic numbers
@@ -223,6 +294,31 @@ function planDonAttachment(sim, actions, maxBudget = Infinity, { preferLeader = 
   return sim;
 }
 
+// How many DON!! to attach to an attacker with `curPow` to reach an effective threshold.
+// killMode: push above humanLeaderPow + k*2000 (counter-proof). safe: magic numbers first.
+function donToBoost(curPow, humanLeaderPow, budget, killMode) {
+  if (budget <= 0) return 0;
+  if (killMode) {
+    const k      = Math.max(1, Math.ceil((curPow - humanLeaderPow + 1) / 2000));
+    const target = humanLeaderPow + k * 2000;
+    const needed = (target - curPow) / 1000;
+    return (needed > 0 && Number.isInteger(needed) && needed <= budget) ? needed : 0;
+  }
+  for (const magic of MAGIC_NUMBERS) {
+    if (curPow < magic) {
+      const needed = (magic - curPow) / 1000;
+      if (Number.isInteger(needed) && needed > 0 && needed <= budget) return needed;
+    }
+  }
+  if (curPow <= humanLeaderPow) {
+    const k      = Math.max(1, Math.ceil((curPow - humanLeaderPow + 1) / 2000));
+    const target = humanLeaderPow + k * 2000;
+    const needed = (target - curPow) / 1000;
+    if (needed > 0 && Number.isInteger(needed) && needed <= budget) return needed;
+  }
+  return 0;
+}
+
 // ---------------------------------------------------------------------------
 // Board State Evaluation
 // ---------------------------------------------------------------------------
@@ -284,7 +380,7 @@ function canKillHuman(sim) {
   let boardSlots = MAX_CHARACTERS - sim[AI].characterArea.length;
   let rushExtra  = 0;
   for (const rc of [...sim[AI].hand]
-    .filter(c => c.category === 'Character' && hasRush(c))
+    .filter(c => c.category === 'Character' && hasEffectiveRush(c, sim))
     .sort((a, b) => (a.cost ?? 0) - (b.cost ?? 0))) {
     if (rushExtra >= boardSlots) break;
     const cost = rc.cost ?? 0;
@@ -362,25 +458,64 @@ function playStageIfAvailable(sim, actions) {
   return sim;
 }
 
+// Returns true if the activation produced a tangible gain over the prior state:
+// active DON increased, hand grew, or overall board score improved.
+// Used to avoid committing activations that paid a cost (rested a card) for no benefit.
+function activationHasBenefit(before, after) {
+  const donGained  = after[AI].costArea.filter(d => d.state === 'active').length
+                   - before[AI].costArea.filter(d => d.state === 'active').length;
+  const handGained = after[AI].hand.length - before[AI].hand.length;
+  return donGained > 0 || handGained > 0 || evalBoardState(after) > evalBoardState(before);
+}
+
 // Activate leader and character Activate:Main abilities if they resolve cleanly.
 function activateMainAbilities(sim, actions) {
   const leaderStatus = getActivatedMainStatus(
     sim[AI].leader.card, sim[AI], sim, AI, { target: 'leader' }
   );
   if (leaderStatus?.available) {
-    const trial = applyActivateMain(sim, { zone: 'leader', index: -1 });
-    if (!trial.pendingEffect && !trial.pendingReplace && !trial.pendingTrigger) {
-      actions.push({ type: 'ACTIVATE_MAIN', zone: 'leader', index: -1 });
-      sim = trial;
-      if (sim.winner) return sim;
+    const _lp  = getLeaderProfile(sim[AI].leader.card?.id);
+    // Guard: skip leader activation until required hand cards are all present
+    const _lah = _lp?.leaderActivationRequiresHand;
+    const _skipLeader = _lah && (() => {
+      const norm = id => id?.replace(/_p\d+$/, '').replace(/_r$/, '');
+      const inHand = new Set(sim[AI].hand.map(c => norm(c.id)));
+      const have = _lah.ids.filter(id => inHand.has(id)).length;
+      return have < (_lah.minCount ?? _lah.ids.length);
+    })();
+    if (!_skipLeader) {
+      const trial = applyActivateMain(sim, { zone: 'leader', index: -1 });
+      if (!trial.pendingEffect && !trial.pendingReplace && !trial.pendingTrigger) {
+        // Skip if the activation rested the leader (costs its attack) without gaining anything.
+        // alwaysActivateMain bypasses this check (e.g. EB04-001 debuff is still worth resting for).
+        const leaderRested = sim[AI].leader.state === 'active' && trial[AI].leader.state !== 'active';
+        if (!leaderRested || _lp?.alwaysActivateMain || activationHasBenefit(sim, trial)) {
+          actions.push({ type: 'ACTIVATE_MAIN', zone: 'leader', index: -1 });
+          sim = trial;
+          if (sim.winner) return sim;
+        }
+      }
     }
   }
+  const _actLp      = getLeaderProfile(sim[AI].leader.card?.id);
+  const _actBase    = id => (id ?? '').replace(/_p\d+$/, '').replace(/_r$/, '');
+  const _actMinCost = _actLp?.charActivationsMinCost ?? {};
   for (let ci = 0; ci < sim[AI].characterArea.length; ci++) {
     const fc     = sim[AI].characterArea[ci];
     const status = getActivatedMainStatus(fc.card, sim[AI], sim, AI, { target: ci });
     if (!status?.available) continue;
+    // Enforce profile-specified minimum effective cost for self-trash activations (e.g. OP16-084 needs cost ≥ 20)
+    const _minC = _actMinCost[_actBase(fc.card?.id)] ?? 0;
+    if (_minC > 0) {
+      const _effC = (fc.card?.cost ?? 0) +
+        (sim[AI].costMods ?? []).filter(m => m.target === ci).reduce((s, m) => s + m.delta, 0);
+      if (_effC < _minC) continue;
+    }
     const trial  = applyActivateMain(sim, { zone: 'character', index: ci });
     if (trial === sim || trial.pendingEffect || trial.pendingReplace || trial.pendingTrigger) continue;
+    // Skip if the activation rested an active character without gaining anything.
+    const charRested = sim[AI].characterArea[ci]?.state === 'active' && trial[AI].characterArea[ci]?.state !== 'active';
+    if (charRested && !activationHasBenefit(sim, trial)) continue;
     actions.push({ type: 'ACTIVATE_MAIN', zone: 'character', index: ci });
     sim = trial;
     if (sim.winner) return sim;
@@ -390,7 +525,7 @@ function activateMainAbilities(sim, actions) {
 
 // Dispatch all character + leader attacks.
 // leaderOnlyMode: skip character targeting — all attackers go straight to human leader.
-function dispatchAttacks(sim, actions, { leaderOnlyMode = false } = {}) {
+function dispatchAttacks(sim, actions, { leaderOnlyMode = false, donBudget = 0, killMode = false, preferLeader = false, escalate = false } = {}) {
   const humanAtZeroLife = sim[HUMAN].lifeArea.length === 0;
 
   let isLethal = false;
@@ -406,8 +541,97 @@ function dispatchAttacks(sim, actions, { leaderOnlyMode = false } = {}) {
     isLethal = (winningChars + (leaderWins ? 1 : 0)) > humanCounterSlots;
   }
 
+  // Pre-allocate DON!! per attacker so target-selection uses expected post-boost power.
+  const donAlloc = new Map(); // key: character area index or 'leader', value: amount
+  if (donBudget > 0) {
+    if (escalate) {
+      // Shared setup: gather all potential attackers sorted by base power ascending.
+      const humanLeaderDefPow = calcPower(sim[HUMAN].leader, AI, HUMAN, sim);
+      const allPotAtks = [
+        ...sim[AI].characterArea
+          .map((fc, i) => ({ key: i, basePow: calcPower(fc, AI, AI, sim) }))
+          .filter(({ key: i }) => {
+            const fc = sim[AI].characterArea[i];
+            return fc.state === 'active' && charCanAttack(fc, sim) && !fc.attackLocked;
+          }),
+      ];
+      if (sim[AI].leader.state === 'active') {
+        allPotAtks.push({ key: 'leader', basePow: calcPower(sim[AI].leader, AI, AI, sim) });
+      }
+      allPotAtks.sort((a, b) => a.basePow - b.basePow);
+
+      const minTarget  = Math.ceil((humanLeaderDefPow + 1) / 1000) * 1000;
+      let   remBudget  = donBudget;
+
+      // If the human has an active blocker, use flat (equal) power for all attacks:
+      // the blocker can absorb any one hit, so equal power maximises the cost per
+      // counter card the opponent must spend on the remaining attacks.
+      const humanHasBlocker = sim[HUMAN].characterArea.some(
+        fc => fc.state === 'active' && fcEffectiveHasBlocker(fc, HUMAN, AI, sim)
+      );
+
+      if (humanHasBlocker) {
+        // Find the highest flat target all attackers can reach within budget.
+        let flatTarget = minTarget;
+        while (flatTarget <= humanLeaderDefPow + 40000) {
+          const needed = allPotAtks.reduce(
+            (s, { basePow }) => s + Math.max(0, Math.ceil((flatTarget + 1000 - basePow) / 1000)), 0
+          );
+          if (needed > donBudget) break;
+          flatTarget += 1000;
+        }
+        for (const { key, basePow } of allPotAtks) {
+          const needed = Math.max(0, Math.ceil((flatTarget - basePow) / 1000));
+          if (needed > 0 && needed <= remBudget) { donAlloc.set(key, needed); remBudget -= needed; }
+        }
+      } else {
+        // Escalating mode: each attack is +2000 above the previous.
+        let prevTarget = minTarget - 2000;
+        for (const { key, basePow } of allPotAtks) {
+          const target = Math.max(prevTarget + 2000, basePow);
+          const needed = Math.ceil(Math.max(0, target - basePow) / 1000);
+          if (needed <= remBudget) {
+            if (needed > 0) donAlloc.set(key, needed);
+            remBudget -= needed;
+            prevTarget = basePow + needed * 1000;
+          } else {
+            if (remBudget > 0) { donAlloc.set(key, remBudget); remBudget = 0; }
+            prevTarget = basePow + (donAlloc.get(key) ?? 0) * 1000;
+          }
+        }
+      }
+
+      if (remBudget > 0) donAlloc.set('leader', (donAlloc.get('leader') ?? 0) + remBudget);
+    } else {
+      const humanLeaderPow = calcPower(sim[HUMAN].leader, AI, HUMAN, sim);
+      let remBudget = donBudget;
+
+      if (!preferLeader) {
+        const potAtks = sim[AI].characterArea
+          .map((fc, i) => ({ i, basePow: calcPower(fc, AI, AI, sim) }))
+          .filter(({ i }) => {
+            const fc = sim[AI].characterArea[i];
+            return fc.state === 'active' && charCanAttack(fc, sim) && !fc.attackLocked;
+          })
+          .sort((a, b) => a.basePow - b.basePow);
+        for (const { i, basePow } of potAtks) {
+          const d = donToBoost(basePow, humanLeaderPow, remBudget, killMode);
+          if (d > 0) { donAlloc.set(i, d); remBudget -= d; }
+        }
+      }
+
+      const leaderBasePow = calcPower(sim[AI].leader, AI, AI, sim);
+      const leaderD = preferLeader ? remBudget : donToBoost(leaderBasePow, humanLeaderPow, remBudget, killMode);
+      if (leaderD > 0) { donAlloc.set('leader', leaderD); remBudget -= leaderD; }
+      if (remBudget > 0) donAlloc.set('leader', (donAlloc.get('leader') ?? 0) + remBudget);
+    }
+  }
+
   const characterAttackers = sim[AI].characterArea
-    .map((fc, i) => ({ fc, i, atkPow: calcPower(fc, AI, AI, sim) }))
+    .map((fc, i) => ({
+      fc, i,
+      atkPow: calcPower(fc, AI, AI, sim) + (donAlloc.get(i) ?? 0) * 1000,
+    }))
     .filter(({ fc }) => fc.state === 'active' && charCanAttack(fc, sim) && !fc.attackLocked)
     .sort((a, b) => a.atkPow - b.atkPow);
 
@@ -454,11 +678,32 @@ function dispatchAttacks(sim, actions, { leaderOnlyMode = false } = {}) {
     }
   }
 
+  // RUSH_ACTIVE_CHARS: assign unused attackers with this keyword to active enemy chars (strongest first).
+  if (!humanAtZeroLife && !leaderOnlyMode) {
+    const activeHumanTargets = sim[HUMAN].characterArea
+      .map((hfc, idx) => ({ hfc, idx, defPow: calcPower(hfc, AI, HUMAN, sim) }))
+      .filter(({ hfc, idx }) => hfc.state === 'active' && !assignedTargetIdxs.has(idx))
+      .sort((a, b) => b.defPow - a.defPow);
+    for (const enemy of activeHumanTargets) {
+      for (const atk of characterAttackers) {
+        if (usedAttackers.has(atk.i)) continue;
+        if (!sim[AI].characterArea[atk.i]?.tempKeywords?.includes('RUSH_ACTIVE_CHARS')) continue;
+        if (atk.atkPow <= enemy.defPow) continue; // must win the trade
+        targetFor.set(atk.i, enemy.idx);
+        usedAttackers.add(atk.i);
+        assignedTargetIdxs.add(enemy.idx);
+        break;
+      }
+    }
+  }
+
   const allAttacks        = [];
   const attackedEnemyIdxs = new Set();
 
   for (const { fc, i, atkPow } of characterAttackers) {
     const assignedIdx = targetFor.get(i);
+    // Rush: Character cannot attack the leader
+    if (fc.rushCharOnly && assignedIdx === undefined) continue;
     const action = assignedIdx !== undefined
       ? { type: 'DECLARE_ATTACK', attackerZone: 'character', attackerIndex: i,
           targetOwner: HUMAN, targetZone: 'character', targetIndex: assignedIdx }
@@ -471,31 +716,58 @@ function dispatchAttacks(sim, actions, { leaderOnlyMode = false } = {}) {
     allAttacks.push({ action, atkPow });
   }
 
+  const lp = getLeaderProfile(sim[AI].leader.card?.id);
   const leaderContKws = evaluateContinuousKeywords(sim[AI].leader, AI, AI, sim);
   if (sim[AI].leader.state === 'active' && !leaderContKws.has('CANNOT_ATTACK')) {
-    const leaderPow  = calcPower(sim[AI].leader, AI, AI, sim);
-    let   leaderAct  = null;
+    const leaderPow = calcPower(sim[AI].leader, AI, AI, sim) + (donAlloc.get('leader') ?? 0) * 1000;
 
-    if (!humanAtZeroLife && !leaderOnlyMode) {
-      const restedTargets = sim[HUMAN].characterArea
-        .map((hfc, idx) => ({ hfc, idx, defPow: calcPower(hfc, AI, HUMAN, sim) }))
-        .filter(({ hfc, idx, defPow }) =>
-          hfc.state === 'rest' && !attackedEnemyIdxs.has(idx) && isWorthyRestTarget(hfc, defPow))
-        .sort((a, b) => b.defPow - a.defPow);
-      for (const { idx, defPow: rcp } of restedTargets) {
-        if (leaderPow >= rcp) {
-          leaderAct = { type: 'DECLARE_ATTACK', attackerZone: 'leader', attackerIndex: -1,
-            targetOwner: HUMAN, targetZone: 'character', targetIndex: idx };
-          break;
+    if (lp?.leaderReactivateOnCharBattle && sim[AI].leader.reactivateAfterCharBattle && !leaderOnlyMode) {
+      // Zoro-style: attack a valid character first (triggers re-activation via finalizeBattleDeclaration),
+      // then attack the opponent leader. No cost restriction on this first attack — attackCostRestriction
+      // only applies after the leader re-stands. Rested chars with power ≤ leaderPow are guaranteed KOs.
+      if (!humanAtZeroLife) {
+        const charTargets = sim[HUMAN].characterArea
+          .map((hfc, idx) => ({ hfc, idx, defPow: calcPower(hfc, AI, HUMAN, sim) }))
+          .filter(({ hfc, idx }) => !attackedEnemyIdxs.has(idx))
+          .sort((a, b) => {
+            const aKo = a.hfc.state === 'rest' && a.defPow <= leaderPow;
+            const bKo = b.hfc.state === 'rest' && b.defPow <= leaderPow;
+            if (aKo !== bKo) return aKo ? -1 : 1;
+            return a.defPow - b.defPow;
+          });
+        if (charTargets.length > 0) {
+          const { idx } = charTargets[0];
+          attackedEnemyIdxs.add(idx);
+          allAttacks.unshift({ action: { type: 'DECLARE_ATTACK', attackerZone: 'leader', attackerIndex: -1,
+            targetOwner: HUMAN, targetZone: 'character', targetIndex: idx }, atkPow: leaderPow });
         }
       }
-    }
+      allAttacks.push({ action: { type: 'DECLARE_ATTACK', attackerZone: 'leader', attackerIndex: -1,
+        targetOwner: HUMAN, targetZone: 'leader', targetIndex: -1 }, atkPow: leaderPow });
+    } else {
+      let leaderAct = null;
 
-    if (!leaderAct) {
-      leaderAct = { type: 'DECLARE_ATTACK', attackerZone: 'leader', attackerIndex: -1,
-        targetOwner: HUMAN, targetZone: 'leader', targetIndex: -1 };
+      if (!humanAtZeroLife && !leaderOnlyMode) {
+        const restedTargets = sim[HUMAN].characterArea
+          .map((hfc, idx) => ({ hfc, idx, defPow: calcPower(hfc, AI, HUMAN, sim) }))
+          .filter(({ hfc, idx, defPow }) =>
+            hfc.state === 'rest' && !attackedEnemyIdxs.has(idx) && isWorthyRestTarget(hfc, defPow))
+          .sort((a, b) => b.defPow - a.defPow);
+        for (const { idx, defPow: rcp } of restedTargets) {
+          if (leaderPow >= rcp) {
+            leaderAct = { type: 'DECLARE_ATTACK', attackerZone: 'leader', attackerIndex: -1,
+              targetOwner: HUMAN, targetZone: 'character', targetIndex: idx };
+            break;
+          }
+        }
+      }
+
+      if (!leaderAct) {
+        leaderAct = { type: 'DECLARE_ATTACK', attackerZone: 'leader', attackerIndex: -1,
+          targetOwner: HUMAN, targetZone: 'leader', targetIndex: -1 };
+      }
+      allAttacks.push({ action: leaderAct, atkPow: leaderPow });
     }
-    allAttacks.push({ action: leaderAct, atkPow: leaderPow });
   }
 
   const targetKey = ({ action: a }) => `${a.targetOwner}:${a.targetZone}:${a.targetIndex}`;
@@ -505,9 +777,27 @@ function dispatchAttacks(sim, actions, { leaderOnlyMode = false } = {}) {
   });
 
   for (const { action } of allAttacks) {
+    const isLdr    = action.attackerZone === 'leader';
+    const allocKey = isLdr ? 'leader' : action.attackerIndex;
+    const allocated = donAlloc.get(allocKey) ?? 0;
+    for (let d = 0; d < allocated; d++) {
+      if (activeDonCount(sim[AI].costArea) <= 0) { donBudget -= (allocated - d); break; }
+      const zone = isLdr ? 'leader' : 'character';
+      const idx  = isLdr ? -1 : action.attackerIndex;
+      actions.push({ type: 'ATTACH_DON', targetZone: zone, targetIndex: idx });
+      sim = applyAttachDon(sim, { targetZone: zone, targetIndex: idx });
+      donBudget--;
+    }
+    donAlloc.delete(allocKey);
     actions.push(action);
     sim = applyDeclareAttack(sim, action);
     if (sim.winner) break;
+  }
+
+  while (donBudget > 0 && activeDonCount(sim[AI].costArea) > 0) {
+    actions.push({ type: 'ATTACH_DON', targetZone: 'leader', targetIndex: -1 });
+    sim = applyAttachDon(sim, { targetZone: 'leader', targetIndex: -1 });
+    donBudget--;
   }
 
   return sim;
@@ -520,7 +810,8 @@ function deployRushAndAttack(sim, actions, cardId, preferLeader = false) {
   const handIndex = sim[AI].hand.findIndex(c => c.id === cardId);
   if (handIndex === -1) return sim;
   if (!canAfford(sim[AI].costArea, sim[AI].hand[handIndex].cost ?? 0)) return sim;
-  if (sim[AI].characterArea.length >= MAX_CHARACTERS) return sim;
+  if (sim[AI].characterArea.length >= MAX_CHARACTERS
+      && (sim[AI].hand[handIndex]?.cost ?? 0) <= weakestFieldCost(sim[AI])) return sim;
 
   actions.push({ type: 'PLAY_CHARACTER', handIndex });
   sim = applyPlayCharacter(sim, { handIndex });
@@ -558,6 +849,173 @@ function deployRushAndAttack(sim, actions, cardId, preferLeader = false) {
 }
 
 // ---------------------------------------------------------------------------
+// Priority event play — leader-specific main-phase events (e.g. ST22-015 for OP13-002)
+// ---------------------------------------------------------------------------
+
+function playPriorityEvents(sim, actions) {
+  const lp         = getLeaderProfile(sim[AI].leader.card?.id);
+  const priorities = lp?.eventPlayPriority ?? [];
+  if (!priorities.length) return sim;
+
+  const ps = sim[AI];
+  if (ps.handPlayLocked) return sim;
+
+  const conditions = lp?.eventPlayConditions ?? {};
+  const _base = id => (id ?? '').replace(/_p\d+$/, '').replace(/_r$/, '');
+
+  for (const eventId of priorities) {
+    const cond = conditions[eventId] ?? {};
+
+    // If the event deploys a named card, ensure that card is currently in hand.
+    if (cond.requiredHandCard) {
+      const hasTarget = ps.hand.some(c => _base(c.id) === cond.requiredHandCard);
+      if (!hasTarget) continue;
+    }
+
+    const handIdx = ps.hand.findIndex(c => _base(c.id) === eventId);
+    if (handIdx === -1) continue;
+    const card = ps.hand[handIdx];
+    if (!canAfford(ps.costArea, card.cost ?? 0)) continue;
+
+    const trial = applyPlayEvent(sim, { handIndex: handIdx });
+    if (trial === sim || trial.pendingEffect || trial.pendingReplace || trial.pendingTrigger) continue;
+    actions.push({ type: 'PLAY_EVENT', handIndex: handIdx });
+    sim = trial;
+    if (sim.winner) return sim;
+    // Recurse — hand indices shifted; another copy may still be playable.
+    return playPriorityEvents(sim, actions);
+  }
+  return sim;
+}
+
+// ---------------------------------------------------------------------------
+// Main-phase event play — plays any affordable Event card with a [Main] effect after attacks.
+// Counter events are excluded (kept for defensive use during opponent's attacks).
+// Safety: the trial simulation gates on pendingEffect — events that require interactive choices
+// (e.g. "KO up to 1 opponent character") are automatically skipped.
+// Benefit gate: only play when the board strictly improved (draw/KO/REST visible via evalBoardState)
+// OR when the opponent's character field changed in any way that evalBoardState doesn't capture
+// (e.g. refreshLocked from OP08-036 freeze effects).
+// ---------------------------------------------------------------------------
+
+function hasMainEffect(card) {
+  const eff   = card.effect   ?? '';
+  const enEff = card.enEffect ?? '';
+  return eff.includes('主要') || enEff.includes('[Main]');
+}
+
+function oppFieldSnapshot(ps) {
+  return ps.characterArea.map(fc => ({
+    id: fc.card?.id,
+    s:  fc.state,
+    rl: fc.refreshLocked,
+    al: fc.attackLocked,
+  }));
+}
+
+function playBoardControlEvents(sim, actions) {
+  for (let hi = 0; hi < sim[AI].hand.length; hi++) {
+    const card = sim[AI].hand[hi];
+    if (card.category !== 'Event') continue;
+    if (!hasMainEffect(card)) continue;
+    if (isCounterEventCard(card)) continue;
+    if (!canAfford(sim[AI].costArea, card.cost ?? 0)) continue;
+    const trial = applyPlayEvent(sim, { handIndex: hi });
+    if (trial === sim || trial.pendingEffect || trial.pendingReplace || trial.pendingTrigger) continue;
+    const boardImproved = evalBoardState(trial) > evalBoardState(sim);
+    const oppChanged    = JSON.stringify(oppFieldSnapshot(trial[HUMAN])) !==
+                          JSON.stringify(oppFieldSnapshot(sim[HUMAN]));
+    if (!boardImproved && !oppChanged) continue;
+    actions.push({ type: 'PLAY_EVENT', handIndex: hi });
+    sim = trial;
+    if (sim.winner) return sim;
+    hi--;
+  }
+  return sim;
+}
+
+// ---------------------------------------------------------------------------
+// Post-attack event play — leader-specific events played AFTER attacks (e.g. OP12-039 for OP12-020)
+// ---------------------------------------------------------------------------
+
+function playPostAttackEvents(sim, actions) {
+  const lp = getLeaderProfile(sim[AI].leader.card?.id);
+  const postEvents = lp?.postAttackEventPlay ?? [];
+  if (!postEvents.length) return sim;
+  const _base = id => (id ?? '').replace(/_p\d+$/, '').replace(/_r$/, '');
+  for (const eventId of postEvents) {
+    const handIdx = sim[AI].hand.findIndex(c => _base(c.id) === eventId);
+    if (handIdx === -1) continue;
+    const card = sim[AI].hand[handIdx];
+    if (!canAfford(sim[AI].costArea, card.cost ?? 0)) continue;
+    const trial = applyPlayEvent(sim, { handIndex: handIdx });
+    if (trial === sim || trial.pendingEffect || trial.pendingReplace || trial.pendingTrigger) continue;
+    actions.push({ type: 'PLAY_EVENT', handIndex: handIdx });
+    sim = trial;
+    if (sim.winner) return sim;
+    // After the re-activation event, plan a leader→leader attack.
+    const leaderAct = { type: 'DECLARE_ATTACK', attackerZone: 'leader', attackerIndex: -1,
+      targetOwner: HUMAN, targetZone: 'leader', targetIndex: -1 };
+    actions.push(leaderAct);
+    sim = applyDeclareAttack(sim, leaderAct);
+    if (sim.winner) return sim;
+  }
+  return sim;
+}
+
+// ---------------------------------------------------------------------------
+// End-of-turn: deploy characters with any DON remaining above counter hold
+// ---------------------------------------------------------------------------
+
+function deployWithRemainingDon(sim, actions) {
+  const lp      = getLeaderProfile(sim[AI].leader.card?.id);
+  const oppLow  = sim[HUMAN].hand.length <= LOW_HAND_THRESHOLD;
+  const reserve = lp?.donReserve ?? 0;
+  const hold    = ((!oppLow && hasCounterEvent(sim[AI].hand)) ? COUNTER_HOLD_DON : 0) + reserve;
+
+  for (let attempt = 0; attempt < MAX_CHARACTERS; attempt++) {
+    if (sim[AI].deployBlockedThisTurn || sim[AI].handPlayLocked) break;
+
+    const available = activeDonCount(sim[AI].costArea);
+    const playable  = sim[AI].hand
+      .map((c, i) => ({ c, i }))
+      .filter(({ c }) => {
+        if (c.category !== 'Character') return false;
+        if (!isPlayableAsCharacter(c)) return false;
+        if (sim[AI].deployBlockCost) {
+          const { threshold, op } = sim[AI].deployBlockCost;
+          const cost = c.cost ?? 0;
+          if (op === 'gte' && cost >= threshold) return false;
+          if (op === 'lte' && cost <= threshold) return false;
+        }
+        const cost = c.cost ?? 0;
+        return canAfford(sim[AI].costArea, cost) && (available - cost) >= hold;
+      })
+      .sort((a, b) => (b.c.cost ?? 0) - (a.c.cost ?? 0));
+
+    if (!playable.length) break;
+    if (sim[AI].characterArea.length >= MAX_CHARACTERS
+        && (playable[0].c.cost ?? 0) <= weakestFieldCost(sim[AI])) break;
+
+    const maxCost = playable[0].c.cost ?? 0;
+    const topTier = playable.filter(({ c }) => (c.cost ?? 0) === maxCost);
+    let bestIdx = topTier[0].i;
+    if (topTier.length > 1) {
+      let best = -Infinity;
+      for (const { i } of topTier) {
+        const score = trialPlayScore(sim, i);
+        if (score > best) { best = score; bestIdx = i; }
+      }
+    }
+
+    actions.push({ type: 'PLAY_CHARACTER', handIndex: bestIdx });
+    sim = applyPlayCharacter(sim, { handIndex: bestIdx });
+    if (sim.winner) return sim;
+  }
+  return sim;
+}
+
+// ---------------------------------------------------------------------------
 // BRANCH 1: Early game (turns 1–EARLY_GAME_TURNS) — curve presence
 // ---------------------------------------------------------------------------
 
@@ -565,14 +1023,19 @@ function planEarlyGame(sim, actions, state) {
   sim = playStageIfAvailable(sim, actions);
   if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
 
+  sim = playPriorityEvents(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+
   // Play at most one character per attempt; prefer exact-DON-cost match for the curve,
   // then fall back to highest-cost affordable character.
   for (let attempt = 0; attempt < 3; attempt++) {
     const ps        = sim[AI];
-    if (ps.characterArea.length >= MAX_CHARACTERS || ps.deployBlockedThisTurn || ps.handPlayLocked) break;
+    if (ps.deployBlockedThisTurn || ps.handPlayLocked) break;
 
     const available = activeDonCount(ps.costArea);
     const ranked    = rankCardsForTurn(ps.hand, available);
+    const _ccBase   = id => (id ?? '').replace(/_p\d+$/, '').replace(/_r$/, '');
+    const _ccConds  = getLeaderProfile(sim[AI].leader.card?.id)?.cardPlayConditions ?? {};
     const playable  = ranked.filter(r => {
       if (r.category !== 'Character') return false;
       if (!isPlayableAsCharacter(r)) return false;
@@ -583,9 +1046,29 @@ function planEarlyGame(sim, actions, state) {
         if (op === 'gte' && c >= threshold) return false;
         if (op === 'lte' && c <= threshold) return false;
       }
+      const cond = _ccConds[_ccBase(r.id)];
+      if (cond?.minTotalDon && ps.costArea.length < cond.minTotalDon) return false;
       return true;
     });
     if (!playable.length) break;
+
+    // Profile card-play priority: play this card before cost-based selection
+    {
+      const _pids = getLeaderProfile(sim[AI].leader.card?.id)?.cardPlayPriority ?? [];
+      if (_pids.length) {
+        const _base = id => (id ?? '').replace(/_p\d+$/, '').replace(/_r$/, '');
+        const priCard = playable.find(r => _pids.includes(_base(r.id)));
+        if (priCard) {
+          const priIdx = ps.hand.findIndex(c => c.id === priCard.id);
+          if (priIdx !== -1) {
+            actions.push({ type: 'PLAY_CHARACTER', handIndex: priIdx });
+            sim = applyPlayCharacter(sim, { handIndex: priIdx });
+            if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+            continue;
+          }
+        }
+      }
+    }
 
     // Exact-cost match (spends all DON in one play — ideal on-curve body)
     const exactMatch = playable.filter(r => (r.cost ?? 0) === available);
@@ -603,6 +1086,8 @@ function planEarlyGame(sim, actions, state) {
       }
     }
     if (bestIdx === -1) break;
+    if (ps.characterArea.length >= MAX_CHARACTERS
+        && (ps.hand[bestIdx]?.cost ?? 0) <= weakestFieldCost(ps)) break;
 
     actions.push({ type: 'PLAY_CHARACTER', handIndex: bestIdx });
     sim = applyPlayCharacter(sim, { handIndex: bestIdx });
@@ -610,18 +1095,41 @@ function planEarlyGame(sim, actions, state) {
   }
 
   {
-    const lp            = getLeaderProfile(sim[AI].leader.card?.id);
-    const justPlayedChar = sim[AI].characterArea.some(fc => fc.justDeployed);
-    sim = planDonAttachment(sim, actions, Infinity, {
-      preferLeader: !!(lp?.preferLeaderAttach && !justPlayedChar),
-    });
+    const lp      = getLeaderProfile(sim[AI].leader.card?.id);
+    const donGate = lp?.leaderDonGate ?? 0;
+    if (donGate > 0) {
+      const avail  = activeDonCount(sim[AI].costArea);
+      const toGate = Math.max(0, donGate - (sim[AI].leader.attachedDon ?? 0));
+      const attach = Math.min(toGate, avail);
+      for (let d = 0; d < attach; d++) {
+        actions.push({ type: 'ATTACH_DON', targetZone: 'leader', targetIndex: -1 });
+        sim = applyAttachDon(sim, { targetZone: 'leader', targetIndex: -1 });
+      }
+    }
   }
   sim = activateMainAbilities(sim, actions);
   if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
 
   if (state.turn === 1) { actions.push({ type: 'END_TURN' }); return actions; }
 
-  sim = dispatchAttacks(sim, actions);
+  {
+    const lp             = getLeaderProfile(sim[AI].leader.card?.id);
+    const justPlayedChar = sim[AI].characterArea.some(fc => fc.justDeployed);
+    const oppLow         = sim[HUMAN].hand.length <= LOW_HAND_THRESHOLD;
+    const reserve        = lp?.donReserve ?? 0;
+    const hold           = ((!oppLow && hasCounterEvent(sim[AI].hand)) ? COUNTER_HOLD_DON : 0) + reserve;
+    sim = dispatchAttacks(sim, actions, {
+      donBudget: Math.max(0, activeDonCount(sim[AI].costArea) - hold),
+      preferLeader: !!(lp?.preferLeaderAttach && !justPlayedChar),
+    });
+  }
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+  sim = playPostAttackEvents(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+  sim = playBoardControlEvents(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+  sim = deployWithRemainingDon(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
   actions.push({ type: 'END_TURN' });
   return actions;
 }
@@ -640,54 +1148,78 @@ function planKillMode(sim, actions, state) {
     let donLeft    = activeDonCount(sim[AI].costArea);
     let boardSlots = MAX_CHARACTERS - sim[AI].characterArea.length;
     for (const rc of [...sim[AI].hand]
-      .filter(c => c.category === 'Character' && hasRush(c) && isPlayableAsCharacter(c))
+      .filter(c => c.category === 'Character' && hasEffectiveRush(c, sim) && isPlayableAsCharacter(c))
       .sort((a, b) => (a.cost ?? 0) - (b.cost ?? 0))) {
-      if (rushToPlay.length >= boardSlots) break;
+      if (rushToPlay.length >= boardSlots
+          && (rc.cost ?? 0) <= weakestFieldCost(sim[AI])) break;
       const cost = rc.cost ?? 0;
       if (donLeft >= cost) { donLeft -= cost; rushToPlay.push(rc.id); }
     }
   }
 
-  // Kill-optimised DON attachment: no counter hold; push each attacker above the
-  // opponent's counter threshold (+k*2000 over human leader power).
-  {
-    const humanLeaderPow = sim[HUMAN].leader.card?.power ?? 0;
-    // Reserve DON for the planned rush plays
-    const reservedForRush = rushToPlay.reduce((sum, id) => {
-      const c = sim[AI].hand.find(c => c.id === id);
-      return sum + (c?.cost ?? 0);
-    }, 0);
-    let budget = Math.max(0, activeDonCount(sim[AI].costArea) - reservedForRush);
+  // Reserve DON for rush char plays
+  const reservedForRush = rushToPlay.reduce((sum, id) => {
+    const c = sim[AI].hand.find(c => c.id === id);
+    return sum + (c?.cost ?? 0);
+  }, 0);
 
-    for (let ci = 0; ci < sim[AI].characterArea.length && budget > 0; ci++) {
-      const fc = sim[AI].characterArea[ci];
-      if (fc.state !== 'active' || !charCanAttack(fc, sim) || fc.attackLocked) continue;
-      const curPow = (fc.card.power ?? 0) + fc.attachedDon * 1000;
-      const k      = Math.max(1, Math.ceil((curPow - humanLeaderPow + 1) / 2000));
-      const target = humanLeaderPow + k * 2000;
-      const needed = (target - curPow) / 1000;
-      if (needed <= 0 || !Number.isInteger(needed) || needed > budget) continue;
-      for (let d = 0; d < needed; d++) {
-        actions.push({ type: 'ATTACH_DON', targetZone: 'character', targetIndex: ci });
-        sim = applyAttachDon(sim, { targetZone: 'character', targetIndex: ci });
-        budget--;
-      }
-    }
-    // Remaining DON → leader
-    while (budget > 0 && activeDonCount(sim[AI].costArea) > 0) {
-      actions.push({ type: 'ATTACH_DON', targetZone: 'leader', targetIndex: -1 });
-      sim = applyAttachDon(sim, { targetZone: 'leader', targetIndex: -1 });
-      budget--;
+  // Identify non-rush chars to deploy after attacks using whatever DON remains.
+  // Reserved upfront so the kill-DON attachment doesn't consume their budget.
+  const nonRushToPlay = [];
+  if (!sim[AI].deployBlockedThisTurn && !sim[AI].handPlayLocked) {
+    let donLeft    = activeDonCount(sim[AI].costArea) - reservedForRush;
+    let boardSlots = MAX_CHARACTERS - sim[AI].characterArea.length - rushToPlay.length;
+    for (const card of [...sim[AI].hand]
+      .filter(c => c.category === 'Character' && !hasEffectiveRush(c, sim) && isPlayableAsCharacter(c))
+      .sort((a, b) => (b.cost ?? 0) - (a.cost ?? 0))) {
+      if (boardSlots <= 0 && (card.cost ?? 0) <= weakestFieldCost(sim[AI])) break;
+      const cost = card.cost ?? 0;
+      if (donLeft >= cost) { donLeft -= cost; boardSlots--; nonRushToPlay.push(card.id); }
     }
   }
+  const reservedForNonRush = nonRushToPlay.reduce((sum, id) => {
+    const c = sim[AI].hand.find(c => c.id === id);
+    return sum + (c?.cost ?? 0);
+  }, 0);
 
   sim = activateMainAbilities(sim, actions);
   if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
 
+  {
+    const lp      = getLeaderProfile(sim[AI].leader.card?.id);
+    const donGate = lp?.leaderDonGate ?? 0;
+    if (donGate > 0) {
+      const avail  = activeDonCount(sim[AI].costArea);
+      const toGate = Math.max(0, donGate - (sim[AI].leader.attachedDon ?? 0));
+      const attach = Math.min(toGate, avail);
+      for (let d = 0; d < attach; d++) {
+        actions.push({ type: 'ATTACH_DON', targetZone: 'leader', targetIndex: -1 });
+        sim = applyAttachDon(sim, { targetZone: 'leader', targetIndex: -1 });
+      }
+    }
+  }
+
   if (state.turn === 1) { actions.push({ type: 'END_TURN' }); return actions; }
 
-  // All existing attackers go straight to human leader
-  sim = dispatchAttacks(sim, actions, { leaderOnlyMode: true });
+  // Play pre-attack characters (leader power boosts, rested DON!! givers)
+  sim = deployPreAttackChars(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+
+  // Recompute reserved DON — pre-attack chars may have been played and are no longer in hand
+  const _killReservedRush    = rushToPlay.reduce((s, id) => { const c = sim[AI].hand.find(c => c.id === id); return s + (c?.cost ?? 0); }, 0);
+  const _killReservedNonRush = nonRushToPlay.reduce((s, id) => { const c = sim[AI].hand.find(c => c.id === id); return s + (c?.cost ?? 0); }, 0);
+
+  // All existing attackers go straight to human leader; DON attached just before each attack,
+  // escalating by +2000 per attack so each hit requires a fresh 2000-counter to stop.
+  sim = dispatchAttacks(sim, actions, {
+    leaderOnlyMode: true,
+    donBudget: Math.max(0, activeDonCount(sim[AI].costArea) - _killReservedRush - _killReservedNonRush),
+    escalate: true,
+  });
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+  sim = playPostAttackEvents(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+  sim = playBoardControlEvents(sim, actions);
   if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
 
   // Deploy each planned rush char and immediately attack the leader
@@ -695,7 +1227,23 @@ function planKillMode(sim, actions, state) {
     sim = deployRushAndAttack(sim, actions, cardId, true);
     if (sim.winner) break;
   }
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
 
+  // Deploy non-rush chars using the DON reserved above — strengthens board for next turn
+  // even when the kill attempt is countered.
+  for (const cardId of nonRushToPlay) {
+    const hi = sim[AI].hand.findIndex(c => c.id === cardId);
+    if (hi === -1) continue;
+    if (!canAfford(sim[AI].costArea, sim[AI].hand[hi]?.cost ?? 0)) continue;
+    if (sim[AI].deployBlockedThisTurn || sim[AI].handPlayLocked) break;
+    actions.push({ type: 'PLAY_CHARACTER', handIndex: hi });
+    sim = applyPlayCharacter(sim, { handIndex: hi });
+    if (sim.winner) break;
+  }
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+
+  sim = deployWithRemainingDon(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
   actions.push({ type: 'END_TURN' });
   return actions;
 }
@@ -717,27 +1265,47 @@ function planSurvivalMode(sim, actions) {
     ? Math.max(COUNTER_HOLD_DON, cheapestEventCost)
     : COUNTER_HOLD_DON) + leaderReserve;
 
-  // Minimal DON attachment: only boost leader to enable its attack
+  // Activate leader/character Activate:Main abilities before any DON is attached.
+  // Must run first: leaders like OP16-060 require N active DON!! in costArea as their
+  // activation cost, so attaching even 1 DON first would drop the count below the threshold.
+  sim = activateMainAbilities(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+
+  // Minimal DON attachment: boost leader to strictly beat the human leader if possible
+  // Recompute budget after activation — activation may have consumed/added DON.
+  let _survivalDonBudget = Math.max(0, activeDonCount(sim[AI].costArea) - holdDon);
   {
     const leaderBasePow  = (sim[AI].leader.card?.power ?? 0) + sim[AI].leader.attachedDon * 1000;
     const humanLeaderPow = calcPower(sim[HUMAN].leader, AI, HUMAN, sim);
-    let   budget         = Math.max(0, activeDonCount(sim[AI].costArea) - holdDon);
-    if (sim[AI].leader.state === 'active' && leaderBasePow < humanLeaderPow && budget > 0) {
-      const needed  = Math.ceil((humanLeaderPow - leaderBasePow) / 1000);
-      const canGive = Math.min(needed, budget);
+    if (sim[AI].leader.state === 'active' && leaderBasePow <= humanLeaderPow && _survivalDonBudget > 0) {
+      const needed  = Math.ceil((humanLeaderPow + 1 - leaderBasePow) / 1000);
+      const canGive = Math.min(needed, _survivalDonBudget);
       for (let d = 0; d < canGive; d++) {
         actions.push({ type: 'ATTACH_DON', targetZone: 'leader', targetIndex: -1 });
         sim = applyAttachDon(sim, { targetZone: 'leader', targetIndex: -1 });
-        budget--;
+        _survivalDonBudget--;
       }
     }
   }
 
-  sim = activateMainAbilities(sim, actions);
+  // Play pre-attack characters (leader power boosts, rested DON!! givers)
+  sim = deployPreAttackChars(sim, actions);
   if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
 
+  // Priority events (e.g. ST22-015 for OP13-002) — in survival mode, noSelfLifeBoost gate
+  // detects the imminent-death condition and allows the optional life-take.
+  sim = playPriorityEvents(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+
+  // Recompute budget after pre-attack plays; pass remaining DON to attacks so characters
+  // that need a boost (e.g. leader ties opponent) can still land hits.
+  _survivalDonBudget = Math.max(0, activeDonCount(sim[AI].costArea) - holdDon);
   // Attack with existing board — prioritises rested human chars to shrink their board
-  sim = dispatchAttacks(sim, actions);
+  sim = dispatchAttacks(sim, actions, { donBudget: _survivalDonBudget });
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+  sim = playPostAttackEvents(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+  sim = playBoardControlEvents(sim, actions);
   if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
 
   // Deploy rush chars (attack immediately) and non-rush chars with removal effects
@@ -747,11 +1315,11 @@ function planSurvivalMode(sim, actions) {
     let boardSlots = MAX_CHARACTERS - sim[AI].characterArea.length;
     const removalCandidates = [...sim[AI].hand]
       .filter(c => c.category === 'Character' && isPlayableAsCharacter(c) &&
-        (hasRush(c) || hasOpponentRemovalEffect(c)) && canAfford(sim[AI].costArea, c.cost ?? 0))
+        (hasEffectiveRush(c, sim) || hasOpponentRemovalEffect(c)) && canAfford(sim[AI].costArea, c.cost ?? 0))
       // Rush chars first (immediate board impact), then non-rush; within each group cheapest first
       .sort((a, b) => {
-        const aRush = hasRush(a) ? 0 : 1;
-        const bRush = hasRush(b) ? 0 : 1;
+        const aRush = hasEffectiveRush(a, sim) ? 0 : 1;
+        const bRush = hasEffectiveRush(b, sim) ? 0 : 1;
         if (aRush !== bRush) return aRush - bRush;
         return (a.cost ?? 0) - (b.cost ?? 0);
       });
@@ -761,7 +1329,7 @@ function planSurvivalMode(sim, actions) {
       if (donLeft - cost < holdDon) continue;
       donLeft -= cost;
       boardSlots--;
-      if (hasRush(rc)) {
+      if (hasEffectiveRush(rc, sim)) {
         sim = deployRushAndAttack(sim, actions, rc.id, false);
       } else {
         const hi = sim[AI].hand.findIndex(c => c.id === rc.id);
@@ -794,9 +1362,35 @@ function planSurvivalMode(sim, actions) {
       if (sim.winner) break;
     }
   }
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
 
+  sim = deployWithRemainingDon(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
   actions.push({ type: 'END_TURN' });
   return actions;
+}
+
+// ---------------------------------------------------------------------------
+// Post-attack character activations — e.g. OP16-098: after attacking, trash itself to
+// deploy a cost-8 Yamato from trash with Rush (via OP16-079 leader's trash-deploy Rush grant).
+// Returns true when an activation was queued (caller should return actions immediately so the
+// pending-effect cascade completes before the AI plans further).
+// ---------------------------------------------------------------------------
+function postAttackCharActivate(sim, actions) {
+  const lp = getLeaderProfile(sim[AI].leader.card?.id);
+  const postActivate = lp?.postAttackCharActivations ?? [];
+  if (!postActivate.length) return false;
+  const _base = id => (id ?? '').replace(/_p\d+$/, '').replace(/_r$/, '');
+  for (const cardId of postActivate) {
+    const ci = sim[AI].characterArea.findIndex(fc => _base(fc.card?.id) === cardId);
+    if (ci === -1) continue;
+    const fc = sim[AI].characterArea[ci];
+    const status = getActivatedMainStatus(fc.card, sim[AI], sim, AI, { target: ci });
+    if (!status?.available) continue;
+    actions.push({ type: 'ACTIVATE_MAIN', zone: 'character', index: ci });
+    return true;
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -805,6 +1399,9 @@ function planSurvivalMode(sim, actions) {
 
 function planSafeMode(sim, actions, state) {
   sim = playStageIfAvailable(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+
+  sim = playPriorityEvents(sim, actions);
   if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
 
   // ── Phase 1: Pre-plan (simulation only — no dispatched actions) ────────────
@@ -826,9 +1423,10 @@ function planSafeMode(sim, actions, state) {
     let donLeft    = activeDonCount(sim[AI].costArea);
     let boardSlots = MAX_CHARACTERS - sim[AI].characterArea.length;
     for (const rc of [...sim[AI].hand]
-      .filter(c => c.category === 'Character' && hasRush(c) && isPlayableAsCharacter(c))
+      .filter(c => c.category === 'Character' && hasEffectiveRush(c, sim) && isPlayableAsCharacter(c))
       .sort((a, b) => (a.cost ?? 0) - (b.cost ?? 0))) {
-      if (rushPlan.length >= boardSlots) break;
+      if (rushPlan.length >= boardSlots
+          && (rc.cost ?? 0) <= weakestFieldCost(sim[AI])) break;
       const cost = rc.cost ?? 0;
       if (donLeft >= cost) { donLeft -= cost; rushPlan.push(rc.id); }
     }
@@ -848,13 +1446,15 @@ function planSafeMode(sim, actions, state) {
 
     for (let attempt = 0; attempt < 5; attempt++) {
       const ps        = mockSim[AI];
-      if (ps.characterArea.length >= MAX_CHARACTERS || ps.deployBlockedThisTurn || ps.handPlayLocked) break;
+      if (ps.deployBlockedThisTurn || ps.handPlayLocked) break;
       const available    = activeDonCount(ps.costArea);
       const ranked       = rankCardsForTurn(ps.hand, available);
+      const _preConds = getLeaderProfile(sim[AI].leader.card?.id)?.cardPlayConditions ?? {};
+      const _preBase  = id => (id ?? '').replace(/_p\d+$/, '').replace(/_r$/, '');
       const basePlayable = ranked.filter(r => {
         if (r.category !== 'Character') return false;
         if (!isPlayableAsCharacter(r)) return false;
-        if (hasRush(r)) return false;  // already captured in rushPlan
+        if (hasEffectiveRush(r, mockSim)) return false;  // already captured in rushPlan
         if (!canAfford(ps.costArea, r.cost ?? 0)) return false;
         if (ps.deployBlockCost) {
           const { threshold, op } = ps.deployBlockCost;
@@ -862,26 +1462,39 @@ function planSafeMode(sim, actions, state) {
           if (op === 'gte' && c >= threshold) return false;
           if (op === 'lte' && c <= threshold) return false;
         }
+        const _preCond = _preConds[_preBase(r.id)];
+        if (_preCond?.minTotalDon && ps.costArea.length < _preCond.minTotalDon) return false;
         return true;
       });
       let playable = basePlayable.filter(r => available - (r.cost ?? 0) >= leaderDonReserve);
       if (!playable.length) playable = basePlayable;
       if (!playable.length) break;
 
-      const maxCost = Math.max(...playable.map(r => r.cost ?? 0));
-      const topTier = playable.filter(r => (r.cost ?? 0) === maxCost);
-      let   bestIdx = mockSim[AI].hand.findIndex(c => c.id === topTier[0].id);
-      if (topTier.length > 1) {
-        let best = -Infinity;
-        for (const cand of topTier) {
-          const idx   = mockSim[AI].hand.findIndex(c => c.id === cand.id);
-          const score = trialPlayScore(mockSim, idx);
-          if (score > best) { best = score; bestIdx = idx; }
+      // Profile card-play priority: prefer this card over cost-based ranking
+      const _spids = getLeaderProfile(sim[AI].leader.card?.id)?.cardPlayPriority ?? [];
+      const _sbase = id => (id ?? '').replace(/_p\d+$/, '').replace(/_r$/, '');
+      const _priCard = _spids.length ? playable.find(r => _spids.includes(_sbase(r.id))) : null;
+      let bestIdx;
+      if (_priCard) {
+        bestIdx = mockSim[AI].hand.findIndex(c => c.id === _priCard.id);
+      } else {
+        const maxCost = Math.max(...playable.map(r => r.cost ?? 0));
+        const topTier = playable.filter(r => (r.cost ?? 0) === maxCost);
+        bestIdx = mockSim[AI].hand.findIndex(c => c.id === topTier[0].id);
+        if (topTier.length > 1) {
+          let best = -Infinity;
+          for (const cand of topTier) {
+            const idx   = mockSim[AI].hand.findIndex(c => c.id === cand.id);
+            const score = trialPlayScore(mockSim, idx);
+            if (score > best) { best = score; bestIdx = idx; }
+          }
         }
       }
       if (bestIdx === -1) break;
 
       const chosenCard = mockSim[AI].hand[bestIdx];
+      if (mockSim[AI].characterArea.length >= MAX_CHARACTERS
+          && (chosenCard.cost ?? 0) <= weakestFieldCost(mockSim[AI])) break;
       nonRushPlan.push(chosenCard.id);
       mockSim = applyPlayCharacter(mockSim, { handIndex: bestIdx });
       if (mockSim.pendingEffect || mockSim.pendingReplace || mockSim.pendingTrigger)
@@ -891,21 +1504,25 @@ function planSafeMode(sim, actions, state) {
 
   // ── Phase 2: Execute ───────────────────────────────────────────────────────
 
-  // 2a: Attach DON to existing board — budget = activeDon minus planned play costs minus hold
+  // 2a: Leader gate upfront; parameters for interleaved DON attachment during attacks
+  const _safeTotalCost = [...rushPlan, ...nonRushPlan].reduce((sum, id) => {
+    const c = sim[AI].hand.find(c => c.id === id);
+    return sum + (c?.cost ?? 0);
+  }, 0);
   {
-    const totalPlannedCost = [...rushPlan, ...nonRushPlan].reduce((sum, id) => {
-      const c = sim[AI].hand.find(c => c.id === id);
-      return sum + (c?.cost ?? 0);
-    }, 0);
-    const opponentHandLow = sim[HUMAN].hand.length <= LOW_HAND_THRESHOLD;
-    const leaderReserve   = getLeaderProfile(sim[AI].leader.card?.id)?.donReserve ?? 0;
-    const counterHold     = ((!opponentHandLow && hasCounterEvent(sim[AI].hand)) ? COUNTER_HOLD_DON : 0) + leaderReserve;
-    const donForAttach    = Math.max(0, activeDonCount(sim[AI].costArea) - totalPlannedCost - counterHold);
-    if (donForAttach > 0) {
-      const lp = getLeaderProfile(sim[AI].leader.card?.id);
-      sim = planDonAttachment(sim, actions, donForAttach, {
-        preferLeader: !!(lp?.preferLeaderAttach && totalPlannedCost === 0),
-      });
+    const lp      = getLeaderProfile(sim[AI].leader.card?.id);
+    const oppLow  = sim[HUMAN].hand.length <= LOW_HAND_THRESHOLD;
+    const reserve = lp?.donReserve ?? 0;
+    const hold    = ((!oppLow && hasCounterEvent(sim[AI].hand)) ? COUNTER_HOLD_DON : 0) + reserve;
+    const donGate = lp?.leaderDonGate ?? 0;
+    if (donGate > 0) {
+      const avail  = Math.max(0, activeDonCount(sim[AI].costArea) - hold);
+      const toGate = Math.max(0, donGate - (sim[AI].leader.attachedDon ?? 0));
+      const attach = Math.min(toGate, avail);
+      for (let d = 0; d < attach; d++) {
+        actions.push({ type: 'ATTACH_DON', targetZone: 'leader', targetIndex: -1 });
+        sim = applyAttachDon(sim, { targetZone: 'leader', targetIndex: -1 });
+      }
     }
   }
 
@@ -915,9 +1532,33 @@ function planSafeMode(sim, actions, state) {
 
   if (state.turn === 1) { actions.push({ type: 'END_TURN' }); return actions; }
 
-  // 2c: Attack with existing board (weakest first)
-  sim = dispatchAttacks(sim, actions);
+  // 2b.5: Play pre-attack characters (leader power boosts, rested DON!! givers)
+  sim = deployPreAttackChars(sim, actions);
   if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+
+  // 2c: Attack with existing board, DON!! attached just before each attacker
+  {
+    const lp      = getLeaderProfile(sim[AI].leader.card?.id);
+    const oppLow  = sim[HUMAN].hand.length <= LOW_HAND_THRESHOLD;
+    const reserve = lp?.donReserve ?? 0;
+    const hold    = ((!oppLow && hasCounterEvent(sim[AI].hand)) ? COUNTER_HOLD_DON : 0) + reserve;
+    // Recompute remaining plan cost — pre-attack chars played above are no longer in hand
+    const _remainingPlanCost = [...rushPlan, ...nonRushPlan].reduce((s, id) => {
+      const c = sim[AI].hand.find(c => c.id === id);
+      return s + (c?.cost ?? 0);
+    }, 0);
+    sim = dispatchAttacks(sim, actions, {
+      donBudget: Math.max(0, activeDonCount(sim[AI].costArea) - _remainingPlanCost - hold),
+      preferLeader: !!(lp?.preferLeaderAttach && _remainingPlanCost === 0),
+    });
+  }
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+  sim = playPostAttackEvents(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+  sim = playBoardControlEvents(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+  // Post-attack char activations (e.g. OP16-098 trashes itself after attacking to deploy a Rush Yamato)
+  if (postAttackCharActivate(sim, actions)) return actions;
 
   // 2d: Deploy each rush char and immediately attack
   for (const cardId of rushPlan) {
@@ -932,13 +1573,20 @@ function planSafeMode(sim, actions, state) {
     if (hi === -1) continue;
     const card = sim[AI].hand[hi];
     if (!canAfford(sim[AI].costArea, card.cost ?? 0)) continue;
-    if (sim[AI].characterArea.length >= MAX_CHARACTERS) break;
     if (sim[AI].deployBlockedThisTurn || sim[AI].handPlayLocked) break;
     actions.push({ type: 'PLAY_CHARACTER', handIndex: hi });
     sim = applyPlayCharacter(sim, { handIndex: hi });
     if (sim.winner) break;
   }
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
 
+  // 2f: Post-deploy activations — e.g. OP16-084 activation after OP16-087 boosts its cost to 20+.
+  // Must run after non-rush deploys so the cost boost is already applied.
+  sim = activateMainAbilities(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
+
+  sim = deployWithRemainingDon(sim, actions);
+  if (sim.winner) { actions.push({ type: 'END_TURN' }); return actions; }
   actions.push({ type: 'END_TURN' });
   return actions;
 }
@@ -1013,6 +1661,21 @@ export function aiDecideBlock(state) {
 // Reactive: AI decides whether to play counter cards
 // ---------------------------------------------------------------------------
 
+// Try to play a zero-cost counter event that flips defPower above atkPower.
+// Used to bypass the life-guard and hand-size guard, since cost-0 events are
+// genuinely free: no DON spent, no play value lost by using them as counters.
+function tryFreeEventCounter(state, aiPs) {
+  for (let i = 0; i < aiPs.hand.length; i++) {
+    const card = aiPs.hand[i];
+    if (card.category !== 'Event' || (card.cost ?? 0) !== 0) continue;
+    if (!(card.effect ?? '').includes('反擊') && !(card.enEffect ?? '').includes('[Counter]')) continue;
+    const trial = applyPlayCounter(state, { handIndex: i });
+    if (trial === state || !trial.battle) continue;
+    if (trial.battle.defPower > trial.battle.atkPower) return { type: 'PLAY_COUNTER', handIndex: i };
+  }
+  return null;
+}
+
 export function aiDecideCounter(state) {
   const battle = state.battle;
   if (!battle) return { type: 'SKIP_COUNTER' };
@@ -1026,7 +1689,8 @@ export function aiDecideCounter(state) {
 
   if (battle.targetZone === 'leader') {
     if (!isLethal && aiPs.lifeArea.length >= SAFE_LIFE_COUNT) {
-      return { type: 'SKIP_COUNTER' };
+      // Zero-cost events are free — use them even when life is safe
+      return tryFreeEventCounter(state, aiPs) ?? { type: 'SKIP_COUNTER' };
     }
   } else {
     const targetFc        = aiPs.characterArea[battle.targetIndex];
@@ -1067,8 +1731,9 @@ export function aiDecideCounter(state) {
   // would leave fewer than MIN_HEALTHY_HAND cards, skip — the hand is already lean
   // and we need those cards for future plays and counters this turn.
   // Exception: lethal hits must be countered regardless of hand size.
+  // Exception: zero-cost events are free to use as counters (no DON, no play value lost).
   if (!isLethal && aiPs.hand.length <= MIN_HEALTHY_HAND) {
-    return { type: 'SKIP_COUNTER' };
+    return tryFreeEventCounter(state, aiPs) ?? { type: 'SKIP_COUNTER' };
   }
 
   const isBlockerChar = (card) => card.category === 'Character' && hasBlocker(card);
@@ -1090,14 +1755,36 @@ export function aiDecideCounter(state) {
   const efficient = counterCards.find(({ card }) => card.counter > gap);
   if (efficient) return { type: 'PLAY_COUNTER', handIndex: efficient.i };
 
-  if (isLethal && counterCards.length > 0) {
-    const total = counterCards.reduce((sum, { card }) => sum + (card.counter ?? 0), 0);
-    if (total > gap) {
-      // Play highest-counter non-blocker first so blockers are spent only if unavoidable
-      const nonBlockers = counterCards.filter(({ card }) => !isBlockerChar(card));
-      const pool    = nonBlockers.length ? nonBlockers : counterCards;
-      const largest = pool.reduce((a, b) => (b.card.counter ?? 0) > (a.card.counter ?? 0) ? b : a);
-      return { type: 'PLAY_COUNTER', handIndex: largest.i };
+  if (isLethal) {
+    // Simulate each affordable event counter to measure its power delta.
+    const eventCands = aiPs.hand
+      .map((card, i) => ({ card, i }))
+      .filter(({ card }) =>
+        card.category === 'Event' &&
+        ((card.effect ?? '').includes('反擊') || (card.enEffect ?? '').includes('[Counter]')) &&
+        canAfford(aiPs.costArea, card.cost ?? 0))
+      .map(cand => {
+        const trial = applyPlayCounter(state, { handIndex: cand.i });
+        const delta = (trial === state || !trial.battle) ? 0 : trial.battle.defPower - battle.defPower;
+        return { ...cand, delta };
+      })
+      .filter(c => c.delta > 0)
+      .sort((a, b) => (a.card.cost ?? 0) - (b.card.cost ?? 0));  // cheapest first
+
+    const staticTotal = counterCards.reduce((sum, { card }) => sum + (card.counter ?? 0), 0);
+    const eventTotal  = eventCands.reduce((sum, c) => sum + c.delta, 0);
+
+    if (staticTotal + eventTotal > gap) {
+      // Spend static counters first (highest value), then event counters (cheapest first)
+      if (counterCards.length > 0) {
+        const nonBlockers = counterCards.filter(({ card }) => !isBlockerChar(card));
+        const pool    = nonBlockers.length ? nonBlockers : counterCards;
+        const largest = pool.reduce((a, b) => (b.card.counter ?? 0) > (a.card.counter ?? 0) ? b : a);
+        return { type: 'PLAY_COUNTER', handIndex: largest.i };
+      }
+      if (eventCands.length > 0) {
+        return { type: 'PLAY_COUNTER', handIndex: eventCands[0].i };
+      }
     }
   }
 

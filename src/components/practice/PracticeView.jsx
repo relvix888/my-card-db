@@ -2,9 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { PHASE, BATTLE_STEP, PLAYER } from './engine/constants';
 import { gameReducer, createInitialState, canAfford } from './engine/gameState';
 import { aiDecideBlock, aiDecideCounter, getAiTurnActions } from './engine/aiPlayer';
-import { hasRush, hasActivatedMain, getActivatedMainStatus, evaluateContinuousKeywords, fcEffectiveHasBlocker } from './engine/effects';
+import { getLeaderProfile } from './engine/leaderProfiles';
+import { hasRush, hasActivatedMain, getActivatedMainStatus, evaluateContinuousKeywords, fcEffectiveHasBlocker, getEffectiveCounter } from './engine/effects';
 import { matchesFilter, getSelfCondHandCostDelta } from './engine/effectActions';
-import deckFinalData from '../../data/deck_final.json';
 import { useFlashQueue } from './hooks/useFlashQueue';
 
 import PlayerField    from './components/PlayerField';
@@ -76,7 +76,7 @@ function checkViewport() {
   };
 }
 
-export default function PracticeView({ deckList, selectedLeader, cards, onClose, pvpMode = false, pvpGameHook, myRole = PLAYER.HUMAN }) {
+export default function PracticeView({ deckList, selectedLeader, cards, onClose, pvpMode = false, pvpGameHook, myRole = PLAYER.HUMAN, ggDecksData = {}, officialDecksData = [], prevMetaData = {} }) {
   const [logOpen, setLogOpen]     = useState(false);
   const [trashView, setTrashView] = useState(null); // null | 'human' | 'ai'
   const [simOpen, setSimOpen]     = useState(false);
@@ -184,7 +184,23 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
 
     // AI auto-resolves interactive effect choices
     if ((S.pendingEffect?.choices?.promptPlayer ?? S.pendingEffect?.owner) === PLAYER.AI) {
-      const timer = setTimeout(() => D({ type: 'RESOLVE_EFFECT_CHOICE', selectedIndices: [] }), AI_ACTION_DELAY_MS);
+      let selectedIndices = [];
+      // CHOOSE_DEPLOY_FROM_TRASH: use the leader's trashDeployPriority to pick the best target
+      if (S.pendingEffect.choices?.type === 'CHOOSE_DEPLOY_FROM_TRASH') {
+        const _lp  = getLeaderProfile(S[PLAYER.AI]?.leader?.card?.id);
+        const _pri = _lp?.trashDeployPriority ?? [];
+        if (_pri.length) {
+          const _src   = S.pendingEffect.choices.sourceOwner;
+          const _trash = S[_src]?.trash ?? [];
+          const _valid = new Set(S.pendingEffect.choices.indices ?? []);
+          const _base  = id => (id ?? '').replace(/_p\d+$/, '').replace(/_r$/, '');
+          for (const pid of _pri) {
+            const idx = _trash.findIndex((c, i) => _base(c.id) === pid && _valid.has(i));
+            if (idx !== -1) { selectedIndices = [idx]; break; }
+          }
+        }
+      }
+      const timer = setTimeout(() => D({ type: 'RESOLVE_EFFECT_CHOICE', selectedIndices }), AI_ACTION_DELAY_MS);
       return () => clearTimeout(timer);
     }
 
@@ -219,7 +235,9 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
         }
         if (!stale && peek.targetZone === 'character') {
           const tgt = S[peek.targetOwner]?.characterArea[peek.targetIndex];
-          if (!tgt || tgt.state !== 'rest') stale = true;
+          // Leaders with reactivateAfterCharBattle intentionally target active chars — skip rest check.
+          const leaderReactivating = peek.attackerZone === 'leader' && S[S.activePlayer]?.leader?.reactivateAfterCharBattle;
+          if (!tgt || (!leaderReactivating && tgt.state !== 'rest')) stale = true;
         }
         if (stale) aiActionQueue.current = getAiTurnActions(S);
       }
@@ -342,12 +360,15 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
     return (
       <AiDeckPicker
         cards={cards}
-        onSelect={(deckKey) => {
+        ggDecksData={ggDecksData}
+        officialDecksData={officialDecksData}
+        prevMetaData={prevMetaData}
+        onSelect={({ deckStr, leaderId }) => {
           const humanCards = expandDeck(deckList || {}, cards || []).filter(c => c.category !== 'Leader');
           if (!selectedLeader || humanCards.length < 10) return;
-          const aiDeckList = parseDeckString(deckFinalData[deckKey]?.deck ?? '');
+          const aiDeckList = parseDeckString(deckStr);
           const aiCards    = expandDeck(aiDeckList, cards || []).filter(c => c.category !== 'Leader');
-          const aiLeader   = (cards || []).find(c => c.id === deckKey) ?? null;
+          const aiLeader   = (cards || []).find(c => c.id === leaderId) ?? null;
           D({ type: 'START_GAME', initialState: createInitialState(selectedLeader, humanCards, aiLeader, aiCards) });
         }}
         onClose={onClose}
@@ -397,7 +418,14 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
 
   const effectHighlight = (() => {
     if (effectHoveredKey === null) return null;
+    if (S.pendingReplace && !S.pendingEffect) {
+      return { zone: 'character', index: effectHoveredKey, targetOwner: S.pendingReplace.owner };
+    }
     const choices = S.pendingEffect?.choices;
+    if (choices?.type === 'CHOOSE_GRANT_KEYWORD_TARGET') {
+      if (effectHoveredKey === 'leader') return { zone: 'leader', targetOwner: choices.targetOwner };
+      return { zone: 'character', index: effectHoveredKey, targetOwner: choices.targetOwner };
+    }
     const targets = choices?.targets;
     const t = targets?.[effectHoveredKey] ?? null;
     if (!t) return null;
@@ -445,7 +473,10 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
       });
     }
 
-    if (card.category === 'Event' && isMyTurn && S.phase === PHASE.MAIN && !inBattle) {
+    const isCounterOnlyEvent = card.category === 'Event' &&
+      (card.effect?.includes('【反擊】') || card.effect?.includes('[Counter]')) &&
+      !card.effect?.includes('【主要】') && !card.effect?.includes('[Main]');
+    if (card.category === 'Event' && isMyTurn && S.phase === PHASE.MAIN && !inBattle && !isCounterOnlyEvent) {
       const effectiveCost = Math.max(0, (card.cost ?? 0) + (handCostDeltas[index] ?? 0));
       const affordable = canAfford(myPs.costArea, effectiveCost);
       actions.push({
@@ -458,12 +489,13 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
     }
 
     if (isMyInput && inCounter && S.battle.targetOwner === myOwner) {
-      if (card.counter > 0) {
+      const effCounter = getEffectiveCounter(card, S, myOwner);
+      if (effCounter > 0) {
         actions.push({
-          label: `Activate +${card.counter.toLocaleString()}`,
+          label: `Activate +${effCounter.toLocaleString()}`,
           icon: '🛡',
           disabled: false,
-          hint: `Boost defender by ${card.counter.toLocaleString()}`,
+          hint: `Boost defender by ${effCounter.toLocaleString()}`,
           action: () => D({ type: 'PLAY_COUNTER', handIndex: index }),
         });
       } else if (card.category === 'Event' && (card.effect?.includes('【反擊】') || card.effect?.includes('[Counter]'))) {
@@ -538,9 +570,13 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
     : null;
   const fieldActions = selectedFieldCard ? buildFieldActions(selectedFieldCard.zone, selectedFieldCard.index) : [];
 
-  // Characters targetable for attack (opponent's rested characters)
+  // Characters targetable for attack (opponent's rested characters, or active if attacker has RUSH_ACTIVE_CHARS)
+  const pendingAttackerFC = pendingAttackSrc
+    ? (pendingAttackSrc.zone === 'leader' ? humanPs.leader : humanPs.characterArea[pendingAttackSrc.index])
+    : null;
+  const attackerCanHitActive = !!pendingAttackerFC?.tempKeywords?.includes('RUSH_ACTIVE_CHARS');
   const attackableAiChars = new Set(
-    aiPs.characterArea.map((fc, i) => fc.state === 'rest' ? i : -1).filter(i => i >= 0)
+    aiPs.characterArea.map((fc, i) => (fc.state === 'rest' || attackerCanHitActive) ? i : -1).filter(i => i >= 0)
   );
 
   function handleMyLeaderClick() {
@@ -595,7 +631,8 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
     if (!isMyInput) return;
 
     if (pendingAttackSrc && isMyTurn) {
-      if (aiPs.characterArea[i]?.state === 'rest') {
+      const tgtState = aiPs.characterArea[i]?.state;
+      if (tgtState === 'rest' || (tgtState === 'active' && attackerCanHitActive)) {
         D({ type: 'DECLARE_ATTACK', attackerZone: pendingAttackSrc.zone, attackerIndex: pendingAttackSrc.index, targetOwner: opponentOwner, targetZone: 'character', targetIndex: i });
         setPendingAttackSrc(null);
       }
@@ -746,7 +783,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
           effectHighlight={effectHighlight}
           revealed={gameOver || S.devRevealOpponent}
           isCompact={isCompact}
-          disableStats={attackMode || donMode || inBattle}
+          disableStats={attackMode || donMode || (inBattle && !inBlock && !inCounter)}
         />
       </div>
 
@@ -792,7 +829,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
           effectHighlight={effectHighlight}
           revealed={gameOver}
           isCompact={isCompact}
-          disableStats={attackMode || donMode || inBattle}
+          disableStats={attackMode || donMode || (inBattle && !inBlock && !inCounter)}
         />
       </div>
 
@@ -816,10 +853,11 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
         <HandArea
           hand={myPs.hand}
           costDeltas={handCostDeltas}
+          effectiveCounters={myPs.hand.map(c => getEffectiveCounter(c, S, myOwner))}
           selectedIndex={selectedHandIndex}
           isCompact={isCompact}
           scrollRef={handScrollRef}
-          disableStats={attackMode || donMode || (inBattle && !humanIsCountering)}
+          disableStats={attackMode || donMode || (inBattle && !inBlock && !inCounter)}
           onCardClick={(i) => {
             setPendingAttackSrc(null);
             setPendingDonIds(new Set());
@@ -829,7 +867,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
           highlightIndices={
             inCounter && S.battle?.targetOwner === myOwner
               ? myPs.hand.map((c, i) =>
-                  (c.counter > 0 || (c.category === 'Event' && (c.effect?.includes('【反擊】') || c.effect?.includes('[Counter]')))) ? i : -1
+                  (getEffectiveCounter(c, S, myOwner) > 0 || (c.category === 'Event' && (c.effect?.includes('【反擊】') || c.effect?.includes('[Counter]')))) ? i : -1
                 ).filter(i => i >= 0)
               : []
           }

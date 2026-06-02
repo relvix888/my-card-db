@@ -15,7 +15,7 @@ NUM_DECKS = 200
 # Current active format. Update TARGET_FORMAT each new set release.
 # LEADER_IDS = all standard-regulation leaders (block 2–5), queried from
 # Firestore via pipeline/collect/fetch_leaders.js. Refresh after each new set.
-TARGET_FORMAT = 'OP15'
+TARGET_FORMAT = 'OP16'
 REGIONS = ['east']
 LEADER_IDS = [
     'EB01-001', 'EB01-021', 'EB01-040',
@@ -33,6 +33,7 @@ LEADER_IDS = [
     'OP13-001', 'OP13-002', 'OP13-003', 'OP13-004', 'OP13-079', 'OP13-100',
     'OP14-001', 'OP14-020', 'OP14-040', 'OP14-041', 'OP14-060', 'OP14-079', 'OP14-080',
     'OP15-001', 'OP15-002', 'OP15-022', 'OP15-039', 'OP15-058', 'OP15-098',
+    'OP16-001', 'OP16-022', 'OP16-041', 'OP16-060', 'OP16-079', 'OP16-080',
     'P-047', 'P-076', 'P-086', 'P-117',
     'PRB01-001',
     'ST10-001', 'ST10-002', 'ST10-003',

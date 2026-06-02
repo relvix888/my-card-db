@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import FieldCardSlot from './FieldCardSlot';
 import DonArea from './DonArea';
+import CardDetailOverlay from './CardDetailOverlay';
 import { getSafeImageUrl, cardBackImg, donImg } from '../../../utils/cardHelpers';
 import { evaluateContinuousPower, evaluateGlobalContinuousPower, evaluateCharBasePowerOverride, evaluateLeaderBasePowerOverride, fcEffectiveHasDoubleAtk, fcEffectiveHasBlocker, fcHasBanish, fcHasUnblock, fcHasRush, fcHasCharRushOnly } from '../engine/effects';
 import { evaluateContinuousCostDelta } from '../engine/effectActions';
@@ -80,11 +81,14 @@ export default function PlayerField({
         const charAttached = fc.attachedDon ?? 0;
         const charSelected = selectedCharDonCounts[i] ?? 0;
         const charHasReturnable = donReturnMode && donReturnOptions?.some(o => o.source === 'character' && o.charIndex === i);
-        const charBaseOverride = state ? evaluateCharBasePowerOverride(fc, activePlayer, owner, state) : null;
+        const charMods = (playerState.powerMods ?? []).filter(m => m.target === i);
+        const charSetBaseMods = charMods.filter(m => m.setBase !== undefined);
+        // Timed POWER_SET (setBase) takes priority over continuous evaluateCharBasePowerOverride — mirror calcPower logic
+        const charBaseOverride = charSetBaseMods.length > 0
+          ? charSetBaseMods[charSetBaseMods.length - 1].setBase
+          : (state ? evaluateCharBasePowerOverride(fc, activePlayer, owner, state) : null);
         const charBaseDelta = charBaseOverride !== null ? charBaseOverride - (fc.card.power ?? 0) : 0;
-        const charPowerModDelta = (playerState.powerMods ?? [])
-          .filter(m => m.target === i)
-          .reduce((sum, m) => sum + m.delta, 0)
+        const charPowerModDelta = charMods.filter(m => m.setBase === undefined).reduce((sum, m) => sum + (m.delta ?? 0), 0)
           + (state ? evaluateContinuousPower(fc, activePlayer, owner, state) : 0)
           + (state ? evaluateGlobalContinuousPower(fc, activePlayer, owner, state) : 0)
           + charBaseDelta;
@@ -106,7 +110,7 @@ export default function PlayerField({
               isAttacker={isAttacker('character', i)}
               isTargetable={(targetableChars && targetableChars.has(i)) || isTarget('character', i) || (donReturnMode && charHasReturnable)}
               isEffectHighlight={effectHighlight?.zone === 'character' && effectHighlight?.index === i && (!effectHighlight?.targetOwner || effectHighlight?.targetOwner === owner)}
-              isEligibleBlocker={isDefender && !attackerHasUnblock && fc.state === 'active' && charHasBlocker}
+              isEligibleBlocker={isDefender && !attackerHasUnblock && fc.state === 'active' && charHasBlocker && !isTarget('character', i)}
               isSmall={small}
               activePlayer={activePlayer}
               owner={owner}
@@ -139,11 +143,13 @@ export default function PlayerField({
   // ── Leader / Stage shared props ────────────────────────────────────────────
   const leaderAttached = leader?.attachedDon ?? 0;
   const leaderHasReturnable = donReturnMode && donReturnOptions?.some(o => o.source === 'leader');
-  const leaderBaseOverride = state && leader ? evaluateLeaderBasePowerOverride(leader, activePlayer, owner, state) : null;
-  const leaderBaseDelta = leaderBaseOverride !== null ? leaderBaseOverride - (leader.card.power ?? 0) : 0;
-  const leaderPowerModDelta = (playerState.powerMods ?? [])
-    .filter(m => m.target === 'leader')
-    .reduce((sum, m) => sum + m.delta, 0)
+  const leaderMods = (playerState.powerMods ?? []).filter(m => m.target === 'leader');
+  const leaderSetBaseMods = leaderMods.filter(m => m.setBase !== undefined);
+  const leaderBaseOverride = leaderSetBaseMods.length > 0
+    ? leaderSetBaseMods[leaderSetBaseMods.length - 1].setBase
+    : (state && leader ? evaluateLeaderBasePowerOverride(leader, activePlayer, owner, state) : null);
+  const leaderBaseDelta = leaderBaseOverride !== null ? leaderBaseOverride - (leader?.card?.power ?? 0) : 0;
+  const leaderPowerModDelta = leaderMods.filter(m => m.setBase === undefined).reduce((sum, m) => sum + (m.delta ?? 0), 0)
     + (state && leader ? evaluateContinuousPower(leader, activePlayer, owner, state) : 0)
     + (state && leader ? evaluateGlobalContinuousPower(leader, activePlayer, owner, state) : 0)
     + leaderBaseDelta;
@@ -184,6 +190,11 @@ export default function PlayerField({
   const lcOffset = small ? 7 : 8;  // px each card fans upward
   const lifeStackHeight = lifeArea.length === 0 ? lcW : lcW + Math.max(0, lifeArea.length - 1) * lcOffset;
 
+  const [lifePreviewPos, setLifePreviewPos] = useState(null);   // { card, x, y }
+  const [lifeMobileDetail, setLifeMobileDetail] = useState(null); // card
+  const lifeTouching = useRef(false);
+  const lifeTouchTriggered = useRef(false);
+
   const LifeStack = (
     <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
       {lifeArea.length === 0 ? (
@@ -200,8 +211,17 @@ export default function PlayerField({
             return (
               <div
                 key={i}
-                className="absolute overflow-hidden rounded-lg border border-slate-600 shadow"
+                className={`absolute overflow-hidden rounded-lg border border-slate-600 shadow ${isFaceUp ? 'cursor-pointer' : ''}`}
                 style={{ width: lcH, height: lcW, left: 0, bottom: i * lcOffset, zIndex: i }}
+                onMouseMove={isFaceUp ? e => { if (!lifeTouching.current) setLifePreviewPos({ card, x: e.clientX, y: e.clientY }); } : undefined}
+                onMouseLeave={isFaceUp ? () => setLifePreviewPos(null) : undefined}
+                onTouchStart={isFaceUp ? () => { lifeTouching.current = true; lifeTouchTriggered.current = true; } : undefined}
+                onTouchEnd={isFaceUp ? () => { setTimeout(() => { lifeTouching.current = false; }, 300); } : undefined}
+                onClick={isFaceUp ? () => {
+                  if (lifeTouchTriggered.current) setLifeMobileDetail(prev => prev?.id === card.id ? null : card);
+                  else setLifeMobileDetail(null);
+                  lifeTouchTriggered.current = false;
+                } : undefined}
               >
                 <img
                   src={isFaceUp ? getSafeImageUrl(card) : cardBackImg}
@@ -231,6 +251,8 @@ export default function PlayerField({
         </div>
       )}
       <span className="text-[8px] text-rose-400 font-bold">LIFE·{lifeArea.length}</span>
+      {lifePreviewPos && <CardDetailOverlay card={lifePreviewPos.card} x={lifePreviewPos.x} y={lifePreviewPos.y} />}
+      {lifeMobileDetail && <CardDetailOverlay card={lifeMobileDetail} onClose={() => setLifeMobileDetail(null)} />}
     </div>
   );
 

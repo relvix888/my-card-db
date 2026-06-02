@@ -460,80 +460,61 @@ const DeckView = ({
 
           {/* --- WRAPPER FOR EQUAL SPACING --- */}
           <div className="flex flex-col gap-6">
-            {/* Strategy / Play Curve */}
-            <div className="bg-slate-900/30 rounded-2xl p-6 border border-slate-800">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-black text-slate-400 uppercase tracking-tighter">
-                    策略規劃 / Play Curve
-                  </h2>
-                  <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded font-mono">
-                    BETA
-                  </span>
-                </div>
-                <button
-                  onClick={() => setShowCurve(!showCurve)}
-                  className="text-xs font-bold px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700 uppercase active:scale-95"
-                >
-                  {showCurve ? "隱藏表格 Hide" : "顯示表格 Show"}
-                </button>
-              </div>
-
-              {showCurve && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
-                  {(() => {
-                    const cardsInDeck = Object.keys(deckList)
-                      .map((id) => cards.find((c) => c.id === id))
-                      .filter(Boolean);
-                    return (
-                      <>
-                        <PlayCurve
-                          title="先攻 (First)"
-                          turns={firstCurveTurns}
-                          setTurns={setFirstCurveTurns}
-                          defaultTurns={[1, 3, 5, 7, 9]}
-                          availableCards={cardsInDeck}
-                          getSafeImageUrl={getSafeImageUrl}
-                          deckList={deckList}
-                        />
-                        <PlayCurve
-                          title="後攻 (Second)"
-                          turns={secondCurveTurns}
-                          setTurns={setSecondCurveTurns}
-                          defaultTurns={[2, 4, 6, 8, 10]}
-                          availableCards={cardsInDeck}
-                          getSafeImageUrl={getSafeImageUrl}
-                          deckList={deckList}
-                        />
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-
-            {/* Turn Advisor */}
-            {/* <TurnAdvisor orderedDeck={orderedDeck} /> */}
-
             {/* Charts & Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <SimpleBarChart
-                title="費用分佈 / Cost Distribution"
-                labels={[
-                  "0",
-                  "1",
-                  "2",
-                  "3",
-                  "4",
-                  "5",
-                  "6",
-                  "7",
-                  "8",
-                  "9",
-                  "10+",
-                ]}
-                data={deckAnalysis.costs}
-              />
+              {/* Cost distribution bar chart with thumbnail tooltips */}
+              <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 h-full flex flex-col">
+                <h4 className="text-xs font-bold text-slate-400 mb-6 uppercase tracking-widest">
+                  費用分佈 / Cost Distribution
+                </h4>
+                <div className="flex items-end gap-1.5 h-32 mt-auto">
+                  {deckAnalysis.costs.map((val, i) => {
+                    const costCards = deckAnalysis.costs_cards[i] || [];
+                    const maxVal = Math.max(...deckAnalysis.costs, 1);
+                    const hoverKey = `cost_${i}`;
+                    const label = i === 10 ? "10+" : String(i);
+                    return (
+                      <div
+                        key={i}
+                        className="flex-1 flex flex-col items-center group relative h-full justify-end cursor-help"
+                        onMouseEnter={() => costCards.length && setHoveredTrait(hoverKey)}
+                        onMouseLeave={() => setHoveredTrait(null)}
+                      >
+                        <span className="text-[10px] font-black text-slate-300 mb-1">{val || ""}</span>
+                        <div
+                          className="w-full bg-blue-500 rounded-t transition-all duration-700 ease-out"
+                          style={{ height: `${(val / maxVal) * 80}%`, minHeight: val > 0 ? "4px" : "0px" }}
+                        />
+                        <span className="text-[10px] text-slate-500 mt-2 font-mono font-bold">{label}</span>
+                        {hoveredTrait === hoverKey && costCards.length > 0 && (
+                          <div
+                            className={`absolute z-[100] bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 pointer-events-none bottom-full mb-2 ${i < 3 ? "left-0" : i > 7 ? "right-0" : "left-1/2 -translate-x-1/2"}`}
+                            style={{ width: `${Math.min(costCards.length, 5) * 60 + 16}px` }}
+                          >
+                            <div className="flex flex-wrap gap-1">
+                              {costCards.map((c, idx) => (
+                                <div key={idx} className="relative shrink-0">
+                                  <img
+                                    src={getSafeImageUrl(c)}
+                                    alt={c.name}
+                                    className="w-14 rounded"
+                                    style={{ aspectRatio: "0.714" }}
+                                  />
+                                  {c.count > 1 && (
+                                    <span className="absolute bottom-0.5 right-0.5 bg-blue-600 text-white text-[9px] font-bold rounded px-0.5 leading-tight">
+                                      x{c.count}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
               <SimplePieChart
                 title="卡片類別 / Category"
                 labels={["角色卡 Character", "事件卡 Event", "舞台卡 Stage"]}
@@ -546,16 +527,68 @@ const DeckView = ({
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
-                  <SimpleBarChart
-                    title="反擊值 / Counter"
-                    labels={["+0", "+1,000", "+2,000"]}
-                    data={[
-                      deckAnalysis.counters["0"],
-                      deckAnalysis.counters["1000"],
-                      deckAnalysis.counters["2000"],
-                    ]}
-                    color="bg-emerald-500"
-                  />
+                  {/* Counter bar chart with thumbnail tooltips */}
+                  <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 h-full flex flex-col">
+                    <h4 className="text-xs font-bold text-slate-400 mb-6 uppercase tracking-widest">
+                      反擊值 / Counter
+                    </h4>
+                    <div className="flex items-end gap-1.5 h-32 mt-auto">
+                      {[
+                        { key: "0", label: "+0" },
+                        { key: "1000", label: "+1,000" },
+                        { key: "2000", label: "+2,000" },
+                      ].map(({ key, label }, i) => {
+                        const val = deckAnalysis.counters[key];
+                        const cards = deckAnalysis.counters[`${key}_cards`] || [];
+                        const maxVal = Math.max(
+                          deckAnalysis.counters["0"],
+                          deckAnalysis.counters["1000"],
+                          deckAnalysis.counters["2000"],
+                          1,
+                        );
+                        const hoverKey = `counter_${key}`;
+                        return (
+                          <div
+                            key={key}
+                            className="flex-1 flex flex-col items-center group relative h-full justify-end cursor-help"
+                            onMouseEnter={() => cards.length && setHoveredTrait(hoverKey)}
+                            onMouseLeave={() => setHoveredTrait(null)}
+                          >
+                            <span className="text-[10px] font-black text-slate-300 mb-1">{val}</span>
+                            <div
+                              className="w-full bg-emerald-500 rounded-t transition-all duration-700 ease-out"
+                              style={{ height: `${(val / maxVal) * 80}%`, minHeight: val > 0 ? "4px" : "0px" }}
+                            />
+                            <span className="text-[10px] text-slate-500 mt-2 font-mono font-bold">{label}</span>
+                            {hoveredTrait === hoverKey && cards.length > 0 && (
+                              <div
+                                className={`absolute z-[100] bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 pointer-events-none ${i === 2 ? "bottom-full mb-2" : "top-0 -translate-y-full"} ${i === 0 ? "left-0" : "left-1/2 -translate-x-1/2"}`}
+                                style={{ width: `${Math.min(cards.length, 5) * 60 + 16}px` }}
+                              >
+                                <div className="flex flex-wrap gap-1">
+                                  {cards.map((c, idx) => (
+                                    <div key={idx} className="relative shrink-0">
+                                      <img
+                                        src={getSafeImageUrl(c)}
+                                        alt={c.name}
+                                        className="w-14 rounded"
+                                        style={{ aspectRatio: "0.714" }}
+                                      />
+                                      {c.count > 1 && (
+                                        <span className="absolute bottom-0.5 right-0.5 bg-emerald-600 text-white text-[9px] font-bold rounded px-0.5 leading-tight">
+                                          x{c.count}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
                 <div className="flex flex-col gap-2">
                   <StatBox
@@ -618,28 +651,26 @@ const DeckView = ({
                             {type}
                             {hoveredTrait === type && (
                               <div
-                                className={`absolute left-0 z-[100] w-64 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-3 animate-in fade-in zoom-in duration-200 pointer-events-none ${isLastFew ? "bottom-full mb-2" : "top-full mt-1"}`}
+                                className={`absolute left-0 z-[100] bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 animate-in fade-in zoom-in duration-200 pointer-events-none ${isLastFew ? "bottom-full mb-2" : "top-full mt-1"}`}
+                                style={{ width: `${Math.min(data.cards.length, 5) * 60 + 16}px` }}
                               >
-                                <ul className="space-y-1.5">
+                                <div className="flex flex-wrap gap-1">
                                   {data.cards.map((c, idx) => (
-                                    <li
-                                      key={idx}
-                                      className="flex justify-between items-start text-[11px] gap-2 border-b border-white/5 pb-1 last:border-0"
-                                    >
-                                      <div className="flex flex-col min-w-0">
-                                        <span className="text-[9px] text-slate-500 font-mono leading-none mb-0.5">
-                                          {c.id}
+                                    <div key={idx} className="relative shrink-0">
+                                      <img
+                                        src={getSafeImageUrl(c)}
+                                        alt={c.name}
+                                        className="w-14 rounded"
+                                        style={{ aspectRatio: "0.714" }}
+                                      />
+                                      {c.count > 1 && (
+                                        <span className="absolute bottom-0.5 right-0.5 bg-blue-600 text-white text-[9px] font-bold rounded px-0.5 leading-tight">
+                                          x{c.count}
                                         </span>
-                                        <span className="text-slate-200 truncate leading-tight">
-                                          {c.name}
-                                        </span>
-                                      </div>
-                                      <span className="text-blue-400 font-mono font-bold shrink-0">
-                                        x{c.count}
-                                      </span>
-                                    </li>
+                                      )}
+                                    </div>
                                   ))}
-                                </ul>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -671,6 +702,58 @@ const DeckView = ({
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Strategy / Play Curve */}
+            <div className="bg-slate-900/30 rounded-2xl p-6 border border-slate-800">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-black text-slate-400 uppercase tracking-tighter">
+                    策略規劃 / Play Curve
+                  </h2>
+                  <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded font-mono">
+                    BETA
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowCurve(!showCurve)}
+                  className="text-xs font-bold px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700 uppercase active:scale-95"
+                >
+                  {showCurve ? "隱藏表格 Hide" : "顯示表格 Show"}
+                </button>
+              </div>
+
+              {showCurve && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
+                  {(() => {
+                    const cardsInDeck = Object.keys(deckList)
+                      .map((id) => cards.find((c) => c.id === id))
+                      .filter(Boolean);
+                    return (
+                      <>
+                        <PlayCurve
+                          title="先攻 (First)"
+                          turns={firstCurveTurns}
+                          setTurns={setFirstCurveTurns}
+                          defaultTurns={[1, 3, 5, 7, 9]}
+                          availableCards={cardsInDeck}
+                          getSafeImageUrl={getSafeImageUrl}
+                          deckList={deckList}
+                        />
+                        <PlayCurve
+                          title="後攻 (Second)"
+                          turns={secondCurveTurns}
+                          setTurns={setSecondCurveTurns}
+                          defaultTurns={[2, 4, 6, 8, 10]}
+                          availableCards={cardsInDeck}
+                          getSafeImageUrl={getSafeImageUrl}
+                          deckList={deckList}
+                        />
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </div>
         </section>

@@ -787,6 +787,22 @@
     "base_id": "-",
     "generated_id": "-",
     "rank": 0,
+    "name": "ドン!!カード(インペルダウン)",
+    "pack_id": "554116",
+    "reason": "Check if - exists in 554116.json"
+  },
+  {
+    "base_id": "-",
+    "generated_id": "-_p2",
+    "rank": 5,
+    "name": "ドン!!カード(インペルダウン)(パラレル)(スーパーパラレル)",
+    "pack_id": "554116",
+    "reason": "Check if -_p2 exists in 554116.json"
+  },
+  {
+    "base_id": "-",
+    "generated_id": "-",
+    "rank": 0,
     "name": "ドンカード(村の少年モンキー・D・ルフィ)",
     "pack_id": "554202",
     "reason": "Check if - exists in 554202.json"
@@ -5814,5 +5830,13 @@
     "name": "モンキー・D・ルフィ(プレミアムカードコレクション-ONE PIECE DAY’25-)",
     "pack_id": "554901",
     "reason": "Check if P-110 exists in 554901.json"
+  },
+  {
+    "base_id": "P-150",
+    "generated_id": "P-150",
+    "rank": 0,
+    "name": "クザン(Vジャンプ7月特大号)",
+    "pack_id": "554901",
+    "reason": "Check if P-150 exists in 554901.json"
   }
 ]

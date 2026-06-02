@@ -1,9 +1,12 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { PLAYER } from '../engine/constants';
 import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 
 export default function MulliganScreen({ state: S, dispatch: D, onClose }) {
   const humanFirst = S.firstPlayer === PLAYER.HUMAN;
+  const { i18n } = useTranslation();
+  const isChinese = i18n.language.split('-')[0] !== 'en';
 
   return (
     <div className="fixed inset-0 bg-slate-950 flex flex-col z-50" style={{ height: '100dvh' }}>
@@ -24,8 +27,8 @@ export default function MulliganScreen({ state: S, dispatch: D, onClose }) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
           <div className={`absolute bottom-3 left-0 right-0 flex justify-center`}>
-            <span className={`text-xs font-black px-3 py-1 rounded-full ${humanFirst ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
-              {humanFirst ? 'Going First' : 'Going Second'}
+            <span className={`text-sm font-black px-4 py-1.5 rounded-full shadow-lg ${humanFirst ? 'bg-emerald-500 text-white shadow-emerald-500/40' : 'bg-slate-600 text-slate-200'}`}>
+              {humanFirst ? (isChinese ? '先攻' : 'Going First') : (isChinese ? '後攻' : 'Going Second')}
             </span>
           </div>
         </div>
@@ -43,8 +46,8 @@ export default function MulliganScreen({ state: S, dispatch: D, onClose }) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
           <div className={`absolute bottom-3 left-0 right-0 flex justify-center`}>
-            <span className={`text-xs font-black px-3 py-1 rounded-full ${!humanFirst ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
-              {!humanFirst ? 'Going First' : 'Going Second'}
+            <span className={`text-sm font-black px-4 py-1.5 rounded-full shadow-lg ${!humanFirst ? 'bg-emerald-500 text-white shadow-emerald-500/40' : 'bg-slate-600 text-slate-200'}`}>
+              {!humanFirst ? (isChinese ? '先攻' : 'Going First') : (isChinese ? '後攻' : 'Going Second')}
             </span>
           </div>
         </div>
@@ -77,13 +80,13 @@ export default function MulliganScreen({ state: S, dispatch: D, onClose }) {
           onClick={() => D({ type: 'MULLIGAN_REDRAW' })}
           className="flex-1 py-4 bg-orange-700 hover:bg-orange-600 text-white font-black text-sm rounded-2xl active:scale-95 transition-all"
         >
-          Mulligan (Redraw 5)
+          {isChinese ? '重洗' : 'Mulligan (Redraw 5)'}
         </button>
         <button
           onClick={() => D({ type: 'MULLIGAN_KEEP' })}
           className="flex-1 py-4 bg-emerald-700 hover:bg-emerald-600 text-white font-black text-sm rounded-2xl active:scale-95 transition-all"
         >
-          Keep Hand
+          {isChinese ? '可以開始' : 'Keep Hand'}
         </button>
       </div>
     </div>

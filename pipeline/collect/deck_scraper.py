@@ -10,7 +10,7 @@ def scrape_top_decks(url):
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    table = soup.find('table', {'id': 'tablepress-39'})
+    table = soup.find('table', {'id': 'tablepress-41'})
     if not table:
         print("Table not found.")
         return []
@@ -70,7 +70,9 @@ def save_to_db(decks, db_path):
     print(f"Successfully saved {len(decks)} decks to {db_path}")
 
 # --- EXECUTION ---
-URL = "https://onepiecetopdecks.com/deck-list/japan-op-15-deck-list-adventure-on-kamis-island/"
+# Before changing this URL for a new set, archive the current meta:
+#   cp src/data/deck_final.json src/data/deck_prev_meta.json
+URL = "https://onepiecetopdecks.com/deck-list/japan-op16-deck-list-the-time-of-battle/"
 DB_LOCATION = "/Users/rexchan/my-card-db/pipeline/data/deck_raw.db" # Adjusted for your path
 
 all_meta_decks = scrape_top_decks(URL)

@@ -1,29 +1,22 @@
 import React from 'react';
-import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
+import { DetailPanel } from './CardDetailOverlay';
 
 export default function TriggerBar({ trigger, onResolve }) {
   if (!trigger) return null;
 
+  const card = trigger.lifeCard;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-      <div className="pointer-events-auto flex flex-col gap-3 px-5 py-4 bg-yellow-950/95 border border-yellow-500/70 rounded-2xl shadow-2xl shadow-yellow-900/60 backdrop-blur-sm max-w-xs w-full mx-4">
-        {/* Title */}
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center pointer-events-none gap-2 px-4">
+
+      <div className="pointer-events-auto drop-shadow-2xl">
+        <DetailPanel card={card} flashTrigger />
+      </div>
+
+      <div className="pointer-events-auto flex flex-col gap-3 px-5 py-4 bg-yellow-950/95 border border-yellow-500/70 rounded-2xl shadow-2xl shadow-yellow-900/60 backdrop-blur-sm max-w-xs w-full">
         <p className="text-yellow-400 font-black text-sm uppercase tracking-widest text-center">
           ⚡ Trigger!
         </p>
-
-        {/* Body: thumbnail + effect text */}
-        <div className="flex items-start gap-3">
-          <img
-            src={getSafeImageUrl(trigger.lifeCard)}
-            alt={trigger.lifeCard.name}
-            className="w-14 h-20 rounded object-cover border border-yellow-400/60 flex-shrink-0"
-            onError={e => { e.target.src = cardBackImg; }}
-          />
-          <p className="text-yellow-200 text-[11px] leading-snug">{trigger.lifeCard.trigger}</p>
-        </div>
-
-        {/* Actions */}
         <div className="flex gap-2">
           <button
             onClick={() => onResolve(true)}
