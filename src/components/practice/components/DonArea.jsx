@@ -1,8 +1,8 @@
-import React from 'react';
 import { donBackImg } from '../../../utils/cardHelpers';
 
 export default function DonArea({ donDeck = [], isOpponent, onDonClick, isSmall = false }) {
   const cls = isSmall ? 'w-12 h-16' : 'w-14 h-20';
+
   return (
     <div className="flex flex-col items-center gap-0.5">
       <div
@@ -26,6 +26,7 @@ export default function DonArea({ donDeck = [], isOpponent, onDonClick, isSmall 
         <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/30">
           <span className="bg-slate-900/70 text-white text-sm font-black px-1.5 py-0.5 rounded">{donDeck.length}</span>
         </div>
+
       </div>
       <span className="text-[7px] text-teal-600 font-bold uppercase tracking-wide">DON!!</span>
     </div>

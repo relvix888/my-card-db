@@ -14,6 +14,7 @@ export default function FieldCardSlot({
   isAttacker,
   isEffectHighlight = false,
   isEligibleBlocker = false,
+  isNewlyPlayed = false,
   isSmall,
   onClick,
   empty,
@@ -28,6 +29,7 @@ export default function FieldCardSlot({
   hasBlocker = false,
   hasBanish = false,
   hasUnblock = false,
+  blockerDisabled = false,
   disableStats = false,
 }) {
   const [previewPos, setPreviewPos] = useState(null);
@@ -53,7 +55,8 @@ export default function FieldCardSlot({
     );
   }
 
-  const { card, state: cardState, attachedDon, justDeployed, attackLocked, refreshLocked, restLocked, willBottomDeckAtEndOfTurn, effectNegated, tempKeywords, opponentTurnEndKeywords } = fieldCard;
+  const { card, state: cardState, attachedDon, justDeployed, attackLocked, refreshLocked, restLocked, willBottomDeckAtEndOfTurn, effectNegated, tempKeywords, opponentTurnEndKeywords, blockerDisabled: fcBlockerDisabled } = fieldCard;
+  const isBlockerDisabled = blockerDisabled || fcBlockerDisabled;
   const hasKoProtect       = tempKeywords?.includes('MASS_EFFECT_KO_PROTECTION') || opponentTurnEndKeywords?.includes('MASS_EFFECT_KO_PROTECTION');
   const hasRushActiveChars = tempKeywords?.includes('RUSH_ACTIVE_CHARS') || opponentTurnEndKeywords?.includes('RUSH_ACTIVE_CHARS');
   const isRested = cardState === 'rest';
@@ -69,7 +72,8 @@ export default function FieldCardSlot({
     ? (isMyTurn ? basePower + donBonus + powerModDelta : basePower + powerModDelta)
     : rawBonus !== 0 ? rawBonus : null;
 
-  const borderClass = isEffectHighlight   ? 'border-orange-400 shadow-orange-400/60'
+  const borderClass = isNewlyPlayed        ? 'border-emerald-400 shadow-emerald-400/70'
+                    : isEffectHighlight   ? 'border-orange-400 shadow-orange-400/60'
                     : isSelected          ? 'border-blue-400 shadow-blue-400/50'
                     : isAttacker          ? 'border-yellow-400 shadow-yellow-400/50'
                     : isTargetable        ? 'border-green-400 shadow-green-400/50'
@@ -78,7 +82,7 @@ export default function FieldCardSlot({
 
   return (
     <div
-      className={`relative cursor-pointer select-none transition-transform active:scale-95 ${w}`}
+      className={`relative cursor-pointer select-none transition-transform active:scale-95 ${w}${isNewlyPlayed ? ' scale-110' : ''}`}
       data-battle-role={battleRole || undefined}
       onClick={() => {
         if (touchTriggered.current && !disableStats) setMobileDetail(prev => !prev);
@@ -135,7 +139,7 @@ export default function FieldCardSlot({
           </div>
         )}
         {/* Status lock badges */}
-        {(attackLocked || refreshLocked || restLocked || willBottomDeckAtEndOfTurn || hasKoProtect || effectNegated) && (
+        {(attackLocked || refreshLocked || restLocked || willBottomDeckAtEndOfTurn || hasKoProtect || effectNegated || isBlockerDisabled) && (
           <div className="absolute top-0.5 left-0.5 flex flex-col gap-0.5 z-10 pointer-events-none">
             {attackLocked            && <span className="text-[7px] font-black px-0.5 py-px rounded bg-red-700/90    text-white leading-tight">NO ATK</span>}
             {refreshLocked           && <span className="text-[7px] font-black px-0.5 py-px rounded bg-violet-700/90 text-white leading-tight">NO ↺</span>}
@@ -143,6 +147,7 @@ export default function FieldCardSlot({
             {willBottomDeckAtEndOfTurn && <span className="text-[7px] font-black px-0.5 py-px rounded bg-cyan-700/90   text-white leading-tight">Ephemeral</span>}
             {hasKoProtect            && <span className="text-[7px] font-black px-0.5 py-px rounded bg-emerald-600/90 text-white leading-tight">NO KO</span>}
             {effectNegated           && <span className="text-[7px] font-black px-0.5 py-px rounded bg-gray-700/90   text-white leading-tight">NULL</span>}
+            {isBlockerDisabled       && <span className="text-[7px] font-black px-0.5 py-px rounded bg-pink-700/90   text-white leading-tight">NO BLK</span>}
           </div>
         )}
         {/* Bottom-left badge: DON count */}

@@ -1,0 +1,3249 @@
+{
+  "OP16-002": {
+    "name": "以藏",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 1,
+    "power": 2000,
+    "counter": 1000,
+    "score": 2.5,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 2000,
+      "counterScore": 0,
+      "effectScore": 2.5,
+      "rawTotal": 2.5,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "REVEAL_HAND_CARDS",
+        "DRAW"
+      ]
+    }
+  },
+  "OP16-003": {
+    "name": "艾德華・紐蓋特",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 8,
+    "power": 10000,
+    "counter": null,
+    "score": 3.2,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 9000,
+      "counterScore": 1,
+      "effectScore": 9.75,
+      "rawTotal": 11.75,
+      "costNorm": 3.65,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "GRANT_KEYWORD",
+        "POWER_MOD",
+        "REVEAL_HAND_CARDS",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-003_p1": {
+    "name": "艾德華・紐蓋特",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 8,
+    "power": 10000,
+    "counter": null,
+    "score": 3.2,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 9000,
+      "counterScore": 1,
+      "effectScore": 9.75,
+      "rawTotal": 11.75,
+      "costNorm": 3.65,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "GRANT_KEYWORD",
+        "POWER_MOD",
+        "REVEAL_HAND_CARDS",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-004": {
+    "name": "克利耶爾",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": 2000,
+    "score": -0.1,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": -1,
+      "effectScore": 0.5,
+      "rawTotal": -0.5,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "UNKNOWN"
+      ]
+    }
+  },
+  "OP16-005": {
+    "name": "薩吉",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 8,
+    "power": 8000,
+    "counter": 1000,
+    "score": 0.6,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 9000,
+      "counterScore": 0,
+      "effectScore": 3.2,
+      "rawTotal": 2.2,
+      "costNorm": 3.65,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "HAND_COST_MOD",
+        "防禦"
+      ]
+    }
+  },
+  "OP16-006": {
+    "name": "傑克",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 4,
+    "power": 5000,
+    "counter": 2000,
+    "score": 0.2,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 5000,
+      "counterScore": -1,
+      "effectScore": 1.5,
+      "rawTotal": 0.5,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "KO"
+      ]
+    }
+  },
+  "OP16-007": {
+    "name": "裘斯",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": null,
+    "score": 1.4,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 4,
+      "rawTotal": 5,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦",
+        "REVEAL_HAND_CARDS",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-008": {
+    "name": "史庫亞德",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 5,
+    "power": 7000,
+    "counter": null,
+    "score": 1.7,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 6000,
+      "counterScore": 1,
+      "effectScore": 3,
+      "rawTotal": 5,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "UNKNOWN",
+        "KO"
+      ]
+    }
+  },
+  "OP16-009": {
+    "name": "史比托・吉爾",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 4,
+    "power": 5000,
+    "counter": 1000,
+    "score": 1.3,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 5000,
+      "counterScore": 0,
+      "effectScore": 3.5,
+      "rawTotal": 3.5,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "GRANT_KEYWORD",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-010": {
+    "name": "納米爾",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 1,
+    "power": 2000,
+    "counter": 2000,
+    "score": 2,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 2000,
+      "counterScore": -1,
+      "effectScore": 3,
+      "rawTotal": 2,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "REVEAL_HAND_CARDS",
+        "KO"
+      ]
+    }
+  },
+  "OP16-011": {
+    "name": "比斯塔",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 6,
+    "power": 8000,
+    "counter": null,
+    "score": 2.1,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 7000,
+      "counterScore": 1,
+      "effectScore": 4.74,
+      "rawTotal": 6.74,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "REVEAL_HAND_CARDS",
+        "DRAW",
+        "KO"
+      ]
+    }
+  },
+  "OP16-012": {
+    "name": "班・貝克曼",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 5,
+    "power": 6000,
+    "counter": 1000,
+    "score": 0.9,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 6000,
+      "counterScore": 0,
+      "effectScore": 2.7,
+      "rawTotal": 2.7,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦",
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-013": {
+    "name": "馬克凱",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 6,
+    "power": 8000,
+    "counter": null,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 7000,
+      "counterScore": 1,
+      "effectScore": 0.75,
+      "rawTotal": 2.75,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "KO"
+      ]
+    }
+  },
+  "OP16-014": {
+    "name": "馬可",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 6,
+    "power": 8000,
+    "counter": null,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 7000,
+      "counterScore": 1,
+      "effectScore": 0.5,
+      "rawTotal": 2.5,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SELF_KO",
+        "SELF_DEPLOY_FROM_TRASH"
+      ]
+    }
+  },
+  "OP16-014_p1": {
+    "name": "馬可",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 6,
+    "power": 8000,
+    "counter": null,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 7000,
+      "counterScore": 1,
+      "effectScore": 0.5,
+      "rawTotal": 2.5,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SELF_KO",
+        "SELF_DEPLOY_FROM_TRASH"
+      ]
+    }
+  },
+  "OP16-015": {
+    "name": "蒙其・D・魯夫",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 4,
+    "power": 6000,
+    "counter": null,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 5000,
+      "counterScore": 1,
+      "effectScore": 0.05,
+      "rawTotal": 2.05,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "HAND_COST_MOD",
+        "POWER_SET",
+        "POWER_SET"
+      ]
+    }
+  },
+  "OP16-015_p1": {
+    "name": "蒙其・D・魯夫",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 4,
+    "power": 6000,
+    "counter": null,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 5000,
+      "counterScore": 1,
+      "effectScore": 0.05,
+      "rawTotal": 2.05,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "HAND_COST_MOD",
+        "POWER_SET",
+        "POWER_SET"
+      ]
+    }
+  },
+  "OP16-016": {
+    "name": "蘭巴",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 6,
+    "power": 8000,
+    "counter": 1000,
+    "score": 0.5,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 7000,
+      "counterScore": 0,
+      "effectScore": 0.5,
+      "rawTotal": 1.5,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "UNKNOWN"
+      ]
+    }
+  },
+  "OP16-017": {
+    "name": "小歐斯Jr.",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 4,
+    "power": 8000,
+    "counter": 1000,
+    "score": 0.4,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 3,
+      "powerBaseline": 5000,
+      "counterScore": 0,
+      "effectScore": -1.8,
+      "rawTotal": 1.2,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦"
+      ]
+    }
+  },
+  "OP16-018": {
+    "name": "洛克斯達",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 1,
+    "power": 2000,
+    "counter": 2000,
+    "score": -3,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 2000,
+      "counterScore": -1,
+      "effectScore": -2,
+      "rawTotal": -3,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": []
+    }
+  },
+  "OP16-019": {
+    "name": "讓他們看看我們的力量!!!",
+    "rarity": "Common",
+    "category": "Event",
+    "cost": 9,
+    "power": null,
+    "counter": null,
+    "score": 0.5,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 3,
+      "rawTotal": 3,
+      "costNorm": 3.83,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-020": {
+    "name": "要跟隨我的人拋棄生命跟我來吧!!!",
+    "rarity": "Uncommon",
+    "category": "Event",
+    "cost": null,
+    "power": null,
+    "counter": null,
+    "score": 1.8,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 3,
+      "rawTotal": 3,
+      "costNorm": 1,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "REVEAL_HAND_CARDS",
+        "DRAW",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-021": {
+    "name": "白鯨號",
+    "rarity": "Rare",
+    "category": "Stage",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 0.9,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 0.9,
+      "rawTotal": 0.9,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH",
+        "ATTACH_DON"
+      ]
+    }
+  },
+  "OP16-021_p1": {
+    "name": "白鯨號",
+    "rarity": "Rare",
+    "category": "Stage",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 0.9,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 0.9,
+      "rawTotal": 0.9,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH",
+        "ATTACH_DON"
+      ]
+    }
+  },
+  "OP16-023": {
+    "name": "惡龍",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 1,
+    "power": 3000,
+    "counter": 1000,
+    "score": 1.5,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 2000,
+      "counterScore": 0,
+      "effectScore": 0.5,
+      "rawTotal": 1.5,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "UNKNOWN"
+      ]
+    }
+  },
+  "OP16-024": {
+    "name": "雷電",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 2,
+    "power": 1000,
+    "counter": 1000,
+    "score": 0.6,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -2,
+      "powerBaseline": 3000,
+      "counterScore": 0,
+      "effectScore": 3.1,
+      "rawTotal": 1.1,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "REST",
+        "防禦"
+      ]
+    }
+  },
+  "OP16-025": {
+    "name": "烏薩科夫",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 2,
+    "power": 3000,
+    "counter": 2000,
+    "score": 0.2,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 3000,
+      "counterScore": -1,
+      "effectScore": 1.36,
+      "rawTotal": 0.36,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-026": {
+    "name": "艾波利歐・伊娃柯夫",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 4,
+    "power": 4000,
+    "counter": 1000,
+    "score": 1.3,
+    "tier": "A",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 5000,
+      "counterScore": 0,
+      "effectScore": 4.5,
+      "rawTotal": 3.5,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH",
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-026_p1": {
+    "name": "艾波利歐・伊娃柯夫",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 4,
+    "power": 4000,
+    "counter": 1000,
+    "score": 1.3,
+    "tier": "A",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 5000,
+      "counterScore": 0,
+      "effectScore": 4.5,
+      "rawTotal": 3.5,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH",
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-027": {
+    "name": "吉貝爾",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 2,
+    "power": 2000,
+    "counter": 2000,
+    "score": -0.1,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 3000,
+      "counterScore": -1,
+      "effectScore": 1.8,
+      "rawTotal": -0.2,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-028": {
+    "name": "斯摩格",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 6,
+    "power": 7000,
+    "counter": 2000,
+    "score": -0.2,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 7000,
+      "counterScore": -1,
+      "effectScore": 0.5,
+      "rawTotal": -0.5,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "UNKNOWN"
+      ]
+    }
+  },
+  "OP16-029": {
+    "name": "角科夫",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 2,
+    "power": 3000,
+    "counter": 2000,
+    "score": 0.2,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 3000,
+      "counterScore": -1,
+      "effectScore": 1.36,
+      "rawTotal": 0.36,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-030": {
+    "name": "托拉法爾加・羅",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 8,
+    "power": 9000,
+    "counter": null,
+    "score": 1.1,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 9000,
+      "counterScore": 1,
+      "effectScore": 3,
+      "rawTotal": 4,
+      "costNorm": 3.65,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "REFRESH_LOCK",
+        "UNREST"
+      ]
+    }
+  },
+  "OP16-031": {
+    "name": "巴其",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 4,
+    "power": 5000,
+    "counter": 1000,
+    "score": 0.3,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 5000,
+      "counterScore": 0,
+      "effectScore": 0.9,
+      "rawTotal": 0.9,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-032": {
+    "name": "波雅・漢考克",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 7,
+    "power": 9000,
+    "counter": null,
+    "score": 1.7,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 4,
+      "rawTotal": 6,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦不可",
+        "PREVENT_REST"
+      ]
+    }
+  },
+  "OP16-032_p1": {
+    "name": "波雅・漢考克",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 7,
+    "power": 9000,
+    "counter": null,
+    "score": 1.7,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 4,
+      "rawTotal": 6,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦不可",
+        "PREVENT_REST"
+      ]
+    }
+  },
+  "OP16-033": {
+    "name": "摩利",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 4,
+    "power": 5000,
+    "counter": 1000,
+    "score": 0.4,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 5000,
+      "counterScore": 0,
+      "effectScore": 1.2,
+      "rawTotal": 1.2,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦不可"
+      ]
+    }
+  },
+  "OP16-034": {
+    "name": "蒙其・D・魯夫",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 1,
+    "power": null,
+    "counter": 1000,
+    "score": 3,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 3.02,
+      "rawTotal": 3.02,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "POWER_MOD",
+        "SEARCH"
+      ]
+    }
+  },
+  "OP16-034_p1": {
+    "name": "蒙其・D・魯夫",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 1,
+    "power": null,
+    "counter": 1000,
+    "score": 3,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 3.02,
+      "rawTotal": 3.02,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "POWER_MOD",
+        "SEARCH"
+      ]
+    }
+  },
+  "OP16-035": {
+    "name": "羅羅亞・索隆",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 7,
+    "power": 9000,
+    "counter": null,
+    "score": 1.6,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 3.5,
+      "rawTotal": 5.5,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "REST",
+        "ATTACH_DON"
+      ]
+    }
+  },
+  "OP16-036": {
+    "name": "Mr.2・馮・克雷(班薩姆)",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 4,
+    "power": 1000,
+    "counter": 1000,
+    "score": -0.6,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -4,
+      "powerBaseline": 5000,
+      "counterScore": 0,
+      "effectScore": 2.4,
+      "rawTotal": -1.6,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "REST",
+        "COPY_POWER_FROM_LEADER"
+      ]
+    }
+  },
+  "OP16-037": {
+    "name": "Mr.3(賈爾迪諾)",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 2,
+    "power": 3000,
+    "counter": 1000,
+    "score": 0.7,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 3000,
+      "counterScore": 0,
+      "effectScore": 1.4,
+      "rawTotal": 1.4,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "REST"
+      ]
+    }
+  },
+  "OP16-038": {
+    "name": "走吧～～～!!!去海軍本部～～～!!!",
+    "rarity": "Rare",
+    "category": "Event",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 1.7,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 2.9,
+      "rawTotal": 2.9,
+      "costNorm": 1,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "UNREST",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-039": {
+    "name": "橡膠雙重JET槍",
+    "rarity": "Common",
+    "category": "Event",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 2.3,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 3.8,
+      "rawTotal": 3.8,
+      "costNorm": 1,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "GRANT_KEYWORD",
+        "REST"
+      ]
+    }
+  },
+  "OP16-040": {
+    "name": "橡膠鐵鎚螺旋槍",
+    "rarity": "Uncommon",
+    "category": "Event",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 2.5,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 4.2,
+      "rawTotal": 4.2,
+      "costNorm": 1,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "REFRESH_LOCK",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-042": {
+    "name": "推進城的囚犯",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 6,
+    "power": 6000,
+    "counter": 2000,
+    "score": -0.6,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 7000,
+      "counterScore": -1,
+      "effectScore": 0,
+      "rawTotal": -2,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": []
+    }
+  },
+  "OP16-042_p1": {
+    "name": "推進城的囚犯",
+    "rarity": "TR",
+    "category": "Character",
+    "cost": 6,
+    "power": 6000,
+    "counter": 2000,
+    "score": -0.6,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 7000,
+      "counterScore": -1,
+      "effectScore": 0,
+      "rawTotal": -2,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": []
+    }
+  },
+  "OP16-043": {
+    "name": "騙人布",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 2,
+    "power": 1000,
+    "counter": 1000,
+    "score": 0.2,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -2,
+      "powerBaseline": 3000,
+      "counterScore": 0,
+      "effectScore": 2.35,
+      "rawTotal": 0.35,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦",
+        "RETURN_HAND"
+      ]
+    }
+  },
+  "OP16-044": {
+    "name": "艾波利歐・伊娃柯夫",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 2,
+    "power": 2000,
+    "counter": 1000,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 3000,
+      "counterScore": 0,
+      "effectScore": 2.5,
+      "rawTotal": 1.5,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦"
+      ]
+    }
+  },
+  "OP16-045": {
+    "name": "克洛克達爾",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 4,
+    "power": 6000,
+    "counter": null,
+    "score": 2.6,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 5000,
+      "counterScore": 1,
+      "effectScore": 5,
+      "rawTotal": 7,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦",
+        "RETURN_HAND",
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-046": {
+    "name": "吉貝爾",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 5,
+    "power": 6000,
+    "counter": 2000,
+    "score": -0.2,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 6000,
+      "counterScore": -1,
+      "effectScore": 0.5,
+      "rawTotal": -0.5,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "UNKNOWN"
+      ]
+    }
+  },
+  "OP16-047": {
+    "name": "唐吉訶德・多佛朗明哥",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 3,
+    "power": null,
+    "counter": 1000,
+    "score": -0.3,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": -0.7,
+      "rawTotal": -0.7,
+      "costNorm": 2.41,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "OPP_HAND_TO_DECK"
+      ]
+    }
+  },
+  "OP16-048": {
+    "name": "巴其",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 5,
+    "power": 6000,
+    "counter": 1000,
+    "score": 2,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 6000,
+      "counterScore": 0,
+      "effectScore": 6.01,
+      "rawTotal": 6.01,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "DEPLOY",
+        "GRANT_KEYWORD"
+      ]
+    }
+  },
+  "OP16-048_p1": {
+    "name": "巴其",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 5,
+    "power": 6000,
+    "counter": 1000,
+    "score": 2,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 6000,
+      "counterScore": 0,
+      "effectScore": 6.01,
+      "rawTotal": 6.01,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "DEPLOY",
+        "GRANT_KEYWORD"
+      ]
+    }
+  },
+  "OP16-049": {
+    "name": "波特卡斯・D・艾斯",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 3,
+    "power": null,
+    "counter": 1000,
+    "score": 0.4,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 1,
+      "rawTotal": 1,
+      "costNorm": 2.41,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW"
+      ]
+    }
+  },
+  "OP16-050": {
+    "name": "奧莉芙",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 5,
+    "power": 6000,
+    "counter": 1000,
+    "score": 1.8,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 6000,
+      "counterScore": 0,
+      "effectScore": 5.5,
+      "rawTotal": 5.5,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦",
+        "RETURN_HAND",
+        "DRAW"
+      ]
+    }
+  },
+  "OP16-051": {
+    "name": "摩奇＆卡巴吉",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 6,
+    "power": 7000,
+    "counter": 1000,
+    "score": 1.1,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 7000,
+      "counterScore": 0,
+      "effectScore": 3.7,
+      "rawTotal": 3.7,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW"
+      ]
+    }
+  },
+  "OP16-052": {
+    "name": "蒙其・D・魯夫",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 2,
+    "power": 3000,
+    "counter": 1000,
+    "score": 0.4,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 3000,
+      "counterScore": 0,
+      "effectScore": 0.8,
+      "rawTotal": 0.8,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ATTACH_DON"
+      ]
+    }
+  },
+  "OP16-053": {
+    "name": "羅羅亞・索隆",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 7,
+    "power": 9000,
+    "counter": null,
+    "score": 1,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 1.36,
+      "rawTotal": 3.36,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW"
+      ]
+    }
+  },
+  "OP16-054": {
+    "name": "Mr.1(達茲・波涅士)",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 2,
+    "power": 2000,
+    "counter": 1000,
+    "score": 1.3,
+    "tier": "A",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 3000,
+      "counterScore": 0,
+      "effectScore": 3.63,
+      "rawTotal": 2.63,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "POWER_MOD",
+        "DRAW"
+      ]
+    }
+  },
+  "OP16-055": {
+    "name": "Mr.2・馮・克雷(班薩姆)",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 2,
+    "power": 1000,
+    "counter": null,
+    "score": 0.6,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -2,
+      "powerBaseline": 3000,
+      "counterScore": 1,
+      "effectScore": 2.24,
+      "rawTotal": 1.24,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "COPY_POWER_FROM_LEADER"
+      ]
+    }
+  },
+  "OP16-055_p1": {
+    "name": "Mr.2・馮・克雷(班薩姆)",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 2,
+    "power": 1000,
+    "counter": null,
+    "score": 0.6,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -2,
+      "powerBaseline": 3000,
+      "counterScore": 1,
+      "effectScore": 2.24,
+      "rawTotal": 1.24,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "COPY_POWER_FROM_LEADER"
+      ]
+    }
+  },
+  "OP16-056": {
+    "name": "Mr.3(賈爾迪諾)",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 4,
+    "power": 5000,
+    "counter": 1000,
+    "score": 1.3,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 5000,
+      "counterScore": 0,
+      "effectScore": 3.5,
+      "rawTotal": 3.5,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "ATTACK_LOCK"
+      ]
+    }
+  },
+  "OP16-056_p1": {
+    "name": "Mr.3(賈爾迪諾)",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 4,
+    "power": 5000,
+    "counter": 1000,
+    "score": 1.3,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 5000,
+      "counterScore": 0,
+      "effectScore": 3.5,
+      "rawTotal": 3.5,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "ATTACK_LOCK"
+      ]
+    }
+  },
+  "OP16-057": {
+    "name": "我們的救世主!!!巴其船長!!!!",
+    "rarity": "Common",
+    "category": "Event",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 2.2,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 3.7,
+      "rawTotal": 3.7,
+      "costNorm": 1,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-058": {
+    "name": "囚犯們開始大鬧啦～～～!!!",
+    "rarity": "Rare",
+    "category": "Event",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 2.5,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 4.2,
+      "rawTotal": 4.2,
+      "costNorm": 1,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "POWER_SET",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-059": {
+    "name": "變成超華麗大作戰吧～～～!!!",
+    "rarity": "Uncommon",
+    "category": "Event",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 3,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 5,
+      "rawTotal": 5,
+      "costNorm": 1,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "DEPLOY",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-061": {
+    "name": "海兵兄",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 5,
+    "power": 7000,
+    "counter": 1000,
+    "score": 0.5,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 6000,
+      "counterScore": 0,
+      "effectScore": 0.5,
+      "rawTotal": 1.5,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "UNKNOWN"
+      ]
+    }
+  },
+  "OP16-062": {
+    "name": "海兵弟",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 5,
+    "power": 6000,
+    "counter": 2000,
+    "score": -0.2,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 6000,
+      "counterScore": -1,
+      "effectScore": 0.5,
+      "rawTotal": -0.5,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "UNKNOWN"
+      ]
+    }
+  },
+  "OP16-063": {
+    "name": "庫山",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": null,
+    "score": 1.2,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 3.3,
+      "rawTotal": 4.3,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_DON_FROM_DECK",
+        "BLOCK_EFFECT"
+      ]
+    }
+  },
+  "OP16-063_p1": {
+    "name": "庫山",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": null,
+    "score": 1.2,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 3.3,
+      "rawTotal": 4.3,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_DON_FROM_DECK",
+        "BLOCK_EFFECT"
+      ]
+    }
+  },
+  "OP16-063_p2": {
+    "name": "庫山",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": null,
+    "score": 1.2,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 3.3,
+      "rawTotal": 4.3,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_DON_FROM_DECK",
+        "BLOCK_EFFECT"
+      ]
+    }
+  },
+  "OP16-064": {
+    "name": "克比",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 1,
+    "power": 2000,
+    "counter": 1000,
+    "score": 2.5,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 2000,
+      "counterScore": 0,
+      "effectScore": 2.5,
+      "rawTotal": 2.5,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH"
+      ]
+    }
+  },
+  "OP16-065": {
+    "name": "盃",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": null,
+    "score": 1.8,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 5.1,
+      "rawTotal": 6.1,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "POWER_MOD",
+        "ADD_DON_FROM_DECK"
+      ]
+    }
+  },
+  "OP16-065_p1": {
+    "name": "盃",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": null,
+    "score": 1.8,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 5.1,
+      "rawTotal": 6.1,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "POWER_MOD",
+        "ADD_DON_FROM_DECK"
+      ]
+    }
+  },
+  "OP16-065_p2": {
+    "name": "盃",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": null,
+    "score": 1.8,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 5.1,
+      "rawTotal": 6.1,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "POWER_MOD",
+        "ADD_DON_FROM_DECK"
+      ]
+    }
+  },
+  "OP16-066": {
+    "name": "戰國",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 5,
+    "power": 5000,
+    "counter": 2000,
+    "score": 0.1,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 6000,
+      "counterScore": -1,
+      "effectScore": 2.4,
+      "rawTotal": 0.4,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_DON_FROM_DECK",
+        "DRAW"
+      ]
+    }
+  },
+  "OP16-067": {
+    "name": "阿鶴",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 1,
+    "power": 2000,
+    "counter": 2000,
+    "score": 0,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 2000,
+      "counterScore": -1,
+      "effectScore": 1,
+      "rawTotal": 0,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH"
+      ]
+    }
+  },
+  "OP16-068": {
+    "name": "托拉法爾加・羅",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 4,
+    "power": 3000,
+    "counter": 1000,
+    "score": 0.3,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -2,
+      "powerBaseline": 5000,
+      "counterScore": 0,
+      "effectScore": 2.92,
+      "rawTotal": 0.92,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_DON_FROM_DECK",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-069": {
+    "name": "唐吉訶德・多佛朗明哥",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": null,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 1.8,
+      "rawTotal": 2.8,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_DON_FROM_DECK"
+      ]
+    }
+  },
+  "OP16-070": {
+    "name": "唐吉訶德・羅希南特",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 2,
+    "power": 1000,
+    "counter": 1000,
+    "score": -0.1,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -2,
+      "powerBaseline": 3000,
+      "counterScore": 0,
+      "effectScore": 1.9,
+      "rawTotal": -0.1,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦",
+        "ADD_DON_FROM_DECK"
+      ]
+    }
+  },
+  "OP16-071": {
+    "name": "波頭的仁王",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 3,
+    "power": 5000,
+    "counter": null,
+    "score": 0.7,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 4000,
+      "counterScore": 1,
+      "effectScore": -0.2,
+      "rawTotal": 1.8,
+      "costNorm": 2.41,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_DON_FROM_DECK",
+        "ADD_DON_FROM_DECK"
+      ]
+    }
+  },
+  "OP16-072": {
+    "name": "般若拔",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 2,
+    "power": 3000,
+    "counter": 1000,
+    "score": 1.3,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 3000,
+      "counterScore": 0,
+      "effectScore": 2.5,
+      "rawTotal": 2.5,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH"
+      ]
+    }
+  },
+  "OP16-073": {
+    "name": "波爾薩利諾",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": null,
+    "score": 1.2,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 3,
+      "rawTotal": 4,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_DON_FROM_DECK",
+        "ADD_DON_FROM_DECK",
+        "GRANT_KEYWORD"
+      ]
+    }
+  },
+  "OP16-073_p1": {
+    "name": "波爾薩利諾",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": null,
+    "score": 1.2,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 3,
+      "rawTotal": 4,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_DON_FROM_DECK",
+        "ADD_DON_FROM_DECK",
+        "GRANT_KEYWORD"
+      ]
+    }
+  },
+  "OP16-073_p2": {
+    "name": "波爾薩利諾",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": null,
+    "score": 1.2,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 3,
+      "rawTotal": 4,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_DON_FROM_DECK",
+        "ADD_DON_FROM_DECK",
+        "GRANT_KEYWORD"
+      ]
+    }
+  },
+  "OP16-074": {
+    "name": "麥哲倫",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 8,
+    "power": 10000,
+    "counter": null,
+    "score": 0.6,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 9000,
+      "counterScore": 1,
+      "effectScore": 0.05,
+      "rawTotal": 2.05,
+      "costNorm": 3.65,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "OPPONENT_DON_REST_DEFERRED",
+        "OPPONENT_DON_REST_DEFERRED"
+      ]
+    }
+  },
+  "OP16-075": {
+    "name": "蒙其・D・卡普",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 5,
+    "power": 6000,
+    "counter": 1000,
+    "score": 0.5,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 6000,
+      "counterScore": 0,
+      "effectScore": 1.4,
+      "rawTotal": 1.4,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_DON_FROM_DECK",
+        "ADD_DON_FROM_DECK"
+      ]
+    }
+  },
+  "OP16-076": {
+    "name": "「三上將」!!!",
+    "rarity": "Uncommon",
+    "category": "Event",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 2.8,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 4.7,
+      "rawTotal": 4.7,
+      "costNorm": 1,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "POWER_MOD",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-077": {
+    "name": "智將“佛之戰國”",
+    "rarity": "Rare",
+    "category": "Event",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 0.9,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 1.5,
+      "rawTotal": 1.5,
+      "costNorm": 1,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "SEARCH"
+      ]
+    }
+  },
+  "OP16-078": {
+    "name": "馬林福特",
+    "rarity": "Uncommon",
+    "category": "Stage",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 1.5,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 1.5,
+      "rawTotal": 1.5,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH",
+        "DRAW"
+      ]
+    }
+  },
+  "OP16-081": {
+    "name": "玉兒",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 2,
+    "power": null,
+    "counter": 2000,
+    "score": 0,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": -1,
+      "effectScore": 1,
+      "rawTotal": 0,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-082": {
+    "name": "錦右衛門",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 4,
+    "power": 6000,
+    "counter": null,
+    "score": 1.4,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 5000,
+      "counterScore": 1,
+      "effectScore": 1.9,
+      "rawTotal": 3.9,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH",
+        "REMAINDER_TO_TRASH"
+      ]
+    }
+  },
+  "OP16-082_p1": {
+    "name": "錦右衛門",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 4,
+    "power": 6000,
+    "counter": null,
+    "score": 1.4,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 5000,
+      "counterScore": 1,
+      "effectScore": 1.9,
+      "rawTotal": 3.9,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH",
+        "REMAINDER_TO_TRASH"
+      ]
+    }
+  },
+  "OP16-083": {
+    "name": "光月御田",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 5,
+    "power": 6000,
+    "counter": 1000,
+    "score": 1.7,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 6000,
+      "counterScore": 0,
+      "effectScore": 5,
+      "rawTotal": 5,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦",
+        "DRAW"
+      ]
+    }
+  },
+  "OP16-084": {
+    "name": "光月桃之助",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 5,
+    "power": null,
+    "counter": 2000,
+    "score": -0.2,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": -1,
+      "effectScore": 0.25,
+      "rawTotal": -0.75,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-085": {
+    "name": "光月桃之助",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 9,
+    "power": 6000,
+    "counter": 1000,
+    "score": 0.4,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -4,
+      "powerBaseline": 10000,
+      "counterScore": 0,
+      "effectScore": 5.5,
+      "rawTotal": 1.5,
+      "costNorm": 3.83,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦",
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-085_p1": {
+    "name": "光月桃之助",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 9,
+    "power": 6000,
+    "counter": 1000,
+    "score": 0.4,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -4,
+      "powerBaseline": 10000,
+      "counterScore": 0,
+      "effectScore": 5.5,
+      "rawTotal": 1.5,
+      "costNorm": 3.83,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦",
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-086": {
+    "name": "香吉士",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 8,
+    "power": 9000,
+    "counter": 2000,
+    "score": -0.1,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 9000,
+      "counterScore": -1,
+      "effectScore": 0.5,
+      "rawTotal": -0.5,
+      "costNorm": 3.65,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "UNKNOWN"
+      ]
+    }
+  },
+  "OP16-087": {
+    "name": "忍",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 2,
+    "power": 1000,
+    "counter": 2000,
+    "score": -2.2,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -2,
+      "powerBaseline": 3000,
+      "counterScore": -1,
+      "effectScore": -1.4,
+      "rawTotal": -4.4,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW"
+      ]
+    }
+  },
+  "OP16-088": {
+    "name": "霜月牛丸",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 2,
+    "power": 2000,
+    "counter": 1000,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 3000,
+      "counterScore": 0,
+      "effectScore": 2.5,
+      "rawTotal": 1.5,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦"
+      ]
+    }
+  },
+  "OP16-089": {
+    "name": "喬拉可爾・密佛格",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 6,
+    "power": 8000,
+    "counter": null,
+    "score": 1.7,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 7000,
+      "counterScore": 1,
+      "effectScore": 3.5,
+      "rawTotal": 5.5,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "速攻：角色",
+        "DRAW",
+        "COST_MOD"
+      ]
+    }
+  },
+  "OP16-090": {
+    "name": "多尼多尼・喬巴",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 3,
+    "power": 4000,
+    "counter": 1000,
+    "score": 1.4,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 4000,
+      "counterScore": 0,
+      "effectScore": 3.5,
+      "rawTotal": 3.5,
+      "costNorm": 2.41,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "KO"
+      ]
+    }
+  },
+  "OP16-091": {
+    "name": "娜美",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 1,
+    "power": 2000,
+    "counter": 1000,
+    "score": 2.4,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 2000,
+      "counterScore": 0,
+      "effectScore": 2.4,
+      "rawTotal": 2.4,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH",
+        "REMAINDER_TO_TRASH"
+      ]
+    }
+  },
+  "OP16-092": {
+    "name": "妮可・羅賓",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 1,
+    "power": 2000,
+    "counter": 1000,
+    "score": 2.5,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 2000,
+      "counterScore": 0,
+      "effectScore": 2.5,
+      "rawTotal": 2.5,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW"
+      ]
+    }
+  },
+  "OP16-093": {
+    "name": "巴索羅繆・大熊",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 3,
+    "power": 4000,
+    "counter": 1000,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 4000,
+      "counterScore": 0,
+      "effectScore": 2,
+      "rawTotal": 2,
+      "costNorm": 2.41,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "ATTACH_DON"
+      ]
+    }
+  },
+  "OP16-094": {
+    "name": "波特卡斯・D・艾斯",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 4,
+    "power": 5000,
+    "counter": 1000,
+    "score": 0.6,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 5000,
+      "counterScore": 0,
+      "effectScore": 1.7,
+      "rawTotal": 1.7,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DISCARD",
+        "ATTACH_DON"
+      ]
+    }
+  },
+  "OP16-095": {
+    "name": "蒙其・D・魯夫",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 2,
+    "power": 2000,
+    "counter": 2000,
+    "score": 0.3,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 3000,
+      "counterScore": -1,
+      "effectScore": 2.5,
+      "rawTotal": 0.5,
+      "costNorm": 2,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "GRANT_KEYWORD"
+      ]
+    }
+  },
+  "OP16-096": {
+    "name": "大和",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 8,
+    "power": 8000,
+    "counter": 1000,
+    "score": 0.7,
+    "tier": "B",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 9000,
+      "counterScore": 0,
+      "effectScore": 3.4,
+      "rawTotal": 2.4,
+      "costNorm": 3.65,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦不可",
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-097": {
+    "name": "大和",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 8,
+    "power": 8000,
+    "counter": null,
+    "score": 1.1,
+    "tier": "B",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 9000,
+      "counterScore": 1,
+      "effectScore": 4,
+      "rawTotal": 4,
+      "costNorm": 3.65,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_TO_HAND",
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-098": {
+    "name": "大和",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 6,
+    "power": 5000,
+    "counter": 1000,
+    "score": 0,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -2,
+      "powerBaseline": 7000,
+      "counterScore": 0,
+      "effectScore": 2,
+      "rawTotal": 0,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-098_p1": {
+    "name": "大和",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 6,
+    "power": 5000,
+    "counter": 1000,
+    "score": 0,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -2,
+      "powerBaseline": 7000,
+      "counterScore": 0,
+      "effectScore": 2,
+      "rawTotal": 0,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-099": {
+    "name": "我是來切斷那份“親緣”的!!!",
+    "rarity": "Uncommon",
+    "category": "Event",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 3.3,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 5.5,
+      "rawTotal": 5.5,
+      "costNorm": 1,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "DECK_TO_TRASH",
+        "DEPLOY",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-100": {
+    "name": "冰諸斬",
+    "rarity": "Common",
+    "category": "Event",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 2.7,
+    "tier": "S",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 4.56,
+      "rawTotal": 4.56,
+      "costNorm": 1,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "UNREST",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-101": {
+    "name": "馬幻刃",
+    "rarity": "Common",
+    "category": "Event",
+    "cost": 2,
+    "power": null,
+    "counter": null,
+    "score": 1.3,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 4.5,
+      "rawTotal": 4.5,
+      "costNorm": 2,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "POWER_MOD",
+        "KO"
+      ]
+    }
+  },
+  "OP16-102": {
+    "name": "亞帕羅・比薩羅",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 1,
+    "power": 2000,
+    "counter": 2000,
+    "score": 0.5,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 2000,
+      "counterScore": -1,
+      "effectScore": 1.5,
+      "rawTotal": 0.5,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "DEPLOY"
+      ]
+    }
+  },
+  "OP16-103": {
+    "name": "范・歐葛",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 1,
+    "power": 2000,
+    "counter": 1000,
+    "score": 0.9,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 2000,
+      "counterScore": 0,
+      "effectScore": 0.86,
+      "rawTotal": 0.86,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP16-104": {
+    "name": "卡達莉納・戴彭",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 4,
+    "power": 3000,
+    "counter": 2000,
+    "score": -0.7,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -2,
+      "powerBaseline": 5000,
+      "counterScore": -1,
+      "effectScore": 1.2,
+      "rawTotal": -1.8,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "COPY_POWER_FROM_TARGET"
+      ]
+    }
+  },
+  "OP16-105": {
+    "name": "月光・摩利亞",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 6,
+    "power": 7000,
+    "counter": 1000,
+    "score": 0.2,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 7000,
+      "counterScore": 0,
+      "effectScore": 0.5,
+      "rawTotal": 0.5,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "UNKNOWN"
+      ]
+    }
+  },
+  "OP16-106": {
+    "name": "薩方・烏爾夫",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 4,
+    "power": 5000,
+    "counter": 1000,
+    "score": 0.2,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 5000,
+      "counterScore": 0,
+      "effectScore": 0.57,
+      "rawTotal": 0.57,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "POWER_SET"
+      ]
+    }
+  },
+  "OP16-107": {
+    "name": "吉札士・伯吉斯",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 3,
+    "power": 5000,
+    "counter": null,
+    "score": 1,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 4000,
+      "counterScore": 1,
+      "effectScore": 0.3,
+      "rawTotal": 2.3,
+      "costNorm": 2.41,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "LIFE_TO_HAND"
+      ]
+    }
+  },
+  "OP16-108": {
+    "name": "矢龍",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 6,
+    "power": 8000,
+    "counter": null,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 7000,
+      "counterScore": 1,
+      "effectScore": 0.5,
+      "rawTotal": 2.5,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_TO_LIFE"
+      ]
+    }
+  },
+  "OP16-108_p1": {
+    "name": "矢龍",
+    "rarity": "Super Rare",
+    "category": "Character",
+    "cost": 6,
+    "power": 8000,
+    "counter": null,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 7000,
+      "counterScore": 1,
+      "effectScore": 0.5,
+      "rawTotal": 2.5,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "ADD_TO_LIFE"
+      ]
+    }
+  },
+  "OP16-109": {
+    "name": "Q醫生",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 1,
+    "power": null,
+    "counter": 2000,
+    "score": 0.3,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": -1,
+      "effectScore": 1.32,
+      "rawTotal": 0.32,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "KO"
+      ]
+    }
+  },
+  "OP16-110": {
+    "name": "巴斯可・簫特",
+    "rarity": "Rare",
+    "category": "Character",
+    "cost": 1,
+    "power": 2000,
+    "counter": 1000,
+    "score": 1.2,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 2000,
+      "counterScore": 0,
+      "effectScore": 1.2,
+      "rawTotal": 1.2,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW",
+        "REST"
+      ]
+    }
+  },
+  "OP16-111": {
+    "name": "波雅・桑塔索妮雅",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 4,
+    "power": 5000,
+    "counter": null,
+    "score": 1.3,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 5000,
+      "counterScore": 1,
+      "effectScore": 2.5,
+      "rawTotal": 3.5,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦"
+      ]
+    }
+  },
+  "OP16-112": {
+    "name": "波雅・漢考克",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 6,
+    "power": 8000,
+    "counter": 1000,
+    "score": 0.5,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 7000,
+      "counterScore": 0,
+      "effectScore": 0.5,
+      "rawTotal": 1.5,
+      "costNorm": 3.24,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "UNKNOWN"
+      ]
+    }
+  },
+  "OP16-113": {
+    "name": "波雅・瑪莉哥德",
+    "rarity": "Uncommon",
+    "category": "Character",
+    "cost": 5,
+    "power": 5000,
+    "counter": 1000,
+    "score": 0.4,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 6000,
+      "counterScore": 0,
+      "effectScore": 2.2,
+      "rawTotal": 1.2,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "GRANT_KEYWORD"
+      ]
+    }
+  },
+  "OP16-114": {
+    "name": "拉菲特",
+    "rarity": "Common",
+    "category": "Character",
+    "cost": 1,
+    "power": 2000,
+    "counter": 1000,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 2000,
+      "counterScore": 0,
+      "effectScore": 0.75,
+      "rawTotal": 0.75,
+      "costNorm": 1,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "KO"
+      ]
+    }
+  },
+  "OP16-115": {
+    "name": "闇水",
+    "rarity": "Uncommon",
+    "category": "Event",
+    "cost": 1,
+    "power": null,
+    "counter": null,
+    "score": 0.8,
+    "tier": "B",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 1.4,
+      "rawTotal": 1.4,
+      "costNorm": 1,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "ADD_TO_HAND"
+      ]
+    }
+  },
+  "OP16-116": {
+    "name": "賊哈哈哈哈哈哈！",
+    "rarity": "Rare",
+    "category": "Event",
+    "cost": 8,
+    "power": null,
+    "counter": null,
+    "score": 0.5,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 2.8,
+      "rawTotal": 2.8,
+      "costNorm": 3.65,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "DEPLOY",
+        "LIFE_TO_HAND"
+      ]
+    }
+  },
+  "OP16-116_p1": {
+    "name": "賊哈哈哈哈哈哈！",
+    "rarity": "Rare",
+    "category": "Event",
+    "cost": 8,
+    "power": null,
+    "counter": null,
+    "score": 0.5,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 2.8,
+      "rawTotal": 2.8,
+      "costNorm": 3.65,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "DEPLOY",
+        "LIFE_TO_HAND"
+      ]
+    }
+  },
+  "OP16-117": {
+    "name": "黑暗地道",
+    "rarity": "Common",
+    "category": "Event",
+    "cost": 2,
+    "power": null,
+    "counter": null,
+    "score": 0.2,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": null,
+      "counterScore": 0,
+      "effectScore": 0.5,
+      "rawTotal": 0.5,
+      "costNorm": 2,
+      "eventDiscount": 0.6,
+      "matchedEffectKeywords": [
+        "NULL_EFFECT"
+      ]
+    }
+  },
+  "OP16-118": {
+    "name": "波特卡斯・D・艾斯",
+    "rarity": "Secret Rare",
+    "category": "Character",
+    "cost": 5,
+    "power": 6000,
+    "counter": 1000,
+    "score": 1.8,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 6000,
+      "counterScore": 0,
+      "effectScore": 5.25,
+      "rawTotal": 5.25,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "HAND_COUNTER_MOD",
+        "SEARCH"
+      ]
+    }
+  },
+  "OP16-118_p1": {
+    "name": "波特卡斯・D・艾斯",
+    "rarity": "Secret Rare",
+    "category": "Character",
+    "cost": 5,
+    "power": 6000,
+    "counter": 1000,
+    "score": 1.8,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 6000,
+      "counterScore": 0,
+      "effectScore": 5.25,
+      "rawTotal": 5.25,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "HAND_COUNTER_MOD",
+        "SEARCH"
+      ]
+    }
+  },
+  "OP16-119": {
+    "name": "馬歇爾・D・汀奇",
+    "rarity": "Secret Rare",
+    "category": "Character",
+    "cost": 8,
+    "power": 10000,
+    "counter": null,
+    "score": 1.2,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 9000,
+      "counterScore": 1,
+      "effectScore": 2.5,
+      "rawTotal": 4.5,
+      "costNorm": 3.65,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH"
+      ]
+    }
+  },
+  "OP16-119_p1": {
+    "name": "馬歇爾・D・汀奇",
+    "rarity": "Secret Rare",
+    "category": "Character",
+    "cost": 8,
+    "power": 10000,
+    "counter": null,
+    "score": 1.2,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 9000,
+      "counterScore": 1,
+      "effectScore": 2.5,
+      "rawTotal": 4.5,
+      "costNorm": 3.65,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "SEARCH"
+      ]
+    }
+  },
+  "EB04-054_p1": {
+    "name": "巴索羅繆・大熊",
+    "rarity": "SP卡",
+    "category": "Character",
+    "cost": 7,
+    "power": 7000,
+    "counter": 1000,
+    "score": -0.1,
+    "tier": "C",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 8000,
+      "counterScore": 0,
+      "effectScore": 0.5,
+      "rawTotal": -0.5,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DECK_TO_LIFE",
+        "LIFE_TO_HAND"
+      ]
+    }
+  },
+  "OP10-045_p2": {
+    "name": "卡文迪許",
+    "rarity": "SP卡",
+    "category": "Character",
+    "cost": 4,
+    "power": 6000,
+    "counter": null,
+    "score": 1.4,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 1,
+      "powerBaseline": 5000,
+      "counterScore": 1,
+      "effectScore": 1.84,
+      "rawTotal": 3.84,
+      "costNorm": 2.73,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DRAW"
+      ]
+    }
+  },
+  "OP11-067_p2": {
+    "name": "夏洛特・卡塔克利",
+    "rarity": "SP卡",
+    "category": "Character",
+    "cost": 8,
+    "power": 8000,
+    "counter": null,
+    "score": 1.4,
+    "tier": "A",
+    "calculation": {
+      "powerScore": -1,
+      "powerBaseline": 9000,
+      "counterScore": 1,
+      "effectScore": 5,
+      "rawTotal": 5,
+      "costNorm": 3.65,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "防禦",
+        "UNREST",
+        "ADD_DON_FROM_DECK"
+      ]
+    }
+  },
+  "OP14-029_p1": {
+    "name": "達絲琪",
+    "rarity": "SP卡",
+    "category": "Character",
+    "cost": 5,
+    "power": 6000,
+    "counter": 1000,
+    "score": 0,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 6000,
+      "counterScore": 0,
+      "effectScore": -0.05,
+      "rawTotal": -0.05,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "POWER_MOD"
+      ]
+    }
+  },
+  "OP14-084_p2": {
+    "name": "Miss All星期天",
+    "rarity": "SP卡",
+    "category": "Character",
+    "cost": 7,
+    "power": 8000,
+    "counter": null,
+    "score": 1.3,
+    "tier": "A",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 8000,
+      "counterScore": 1,
+      "effectScore": 3.65,
+      "rawTotal": 4.65,
+      "costNorm": 3.45,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "DEPLOY",
+        "DEPLOY"
+      ]
+    }
+  },
+  "ST15-005_p1": {
+    "name": "波特卡斯・D・艾斯",
+    "rarity": "SP卡",
+    "category": "Character",
+    "cost": 5,
+    "power": 6000,
+    "counter": 1000,
+    "score": 0,
+    "tier": "C",
+    "calculation": {
+      "powerScore": 0,
+      "powerBaseline": 6000,
+      "counterScore": 0,
+      "effectScore": -0.1,
+      "rawTotal": -0.1,
+      "costNorm": 3,
+      "eventDiscount": 1,
+      "matchedEffectKeywords": [
+        "GRANT_KEYWORD"
+      ]
+    }
+  }
+}

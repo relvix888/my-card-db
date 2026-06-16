@@ -4,7 +4,7 @@ import { PLAYER } from '../engine/constants';
 import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 
 export default function MulliganScreen({ state: S, dispatch: D, onClose }) {
-  const humanFirst = S.firstPlayer === PLAYER.HUMAN;
+  const humanFirst = S.firstPlayer === PLAYER.HOST;
   const { i18n } = useTranslation();
   const isChinese = i18n.language.split('-')[0] !== 'en';
 
@@ -20,7 +20,7 @@ export default function MulliganScreen({ state: S, dispatch: D, onClose }) {
         {/* Human leader — left */}
         <div className="flex-1 relative overflow-hidden bg-slate-900">
           <img
-            src={S.human.leader?.card ? getSafeImageUrl(S.human.leader.card) : cardBackImg}
+            src={S.host.leader?.card ? getSafeImageUrl(S.host.leader.card) : cardBackImg}
             alt="Your Leader"
             className="w-full h-full object-contain"
             onError={e => { e.target.src = cardBackImg; }}
@@ -39,7 +39,7 @@ export default function MulliganScreen({ state: S, dispatch: D, onClose }) {
         {/* AI leader — right */}
         <div className="flex-1 relative overflow-hidden bg-slate-900">
           <img
-            src={S.ai.leader?.card ? getSafeImageUrl(S.ai.leader.card) : cardBackImg}
+            src={S.guest.leader?.card ? getSafeImageUrl(S.guest.leader.card) : cardBackImg}
             alt="Opponent Leader"
             className="w-full h-full object-contain"
             onError={e => { e.target.src = cardBackImg; }}
@@ -55,7 +55,7 @@ export default function MulliganScreen({ state: S, dispatch: D, onClose }) {
 
       {/* Middle ~56%: 5 starting hand cards */}
       <div className="flex-1 flex items-center justify-center gap-2 px-3 py-4">
-        {S.human.hand.map((card, i) => (
+        {S.host.hand.map((card, i) => (
           <div
             key={`${card.id}-${i}`}
             className="flex-1 relative rounded-xl overflow-hidden shadow-lg border border-slate-700"

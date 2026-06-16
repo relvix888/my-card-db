@@ -99,7 +99,7 @@ export function fcHasKeyword(fc, keyword) {
   if (!fc) return false;
   if (fc.tempKeywords?.includes(keyword)) return true;
   if (fc.opponentTurnEndKeywords?.includes(keyword)) return true;
-  if (fc.effectNegated) return false;
+  if (fc.effectNegated || fc.effectNegatedNextOppTurn) return false;
   return hasKeyword(fc.card, keyword);
 }
 // Use parser-based hasBlocker (checks passive[] from parseEffect) rather than naive
@@ -110,7 +110,7 @@ export const fcHasBlocker = (fc) => {
   if (!fc) return false;
   if (fc.tempKeywords?.includes('防禦') || fc.tempKeywords?.includes('ブロッカー') || fc.tempKeywords?.includes('Blocker')) return true;
   if (fc.opponentTurnEndKeywords?.includes('防禦') || fc.opponentTurnEndKeywords?.includes('ブロッカー') || fc.opponentTurnEndKeywords?.includes('Blocker')) return true;
-  if (fc.effectNegated) return false;
+  if (fc.effectNegated || fc.effectNegatedNextOppTurn) return false;
   return hasBlocker(fc.card);
 };
 // Includes continuous conditional grants (e.g. "gains Blocker while life ≤ 1")
@@ -119,26 +119,38 @@ export function fcEffectiveHasBlocker(fc, owner, activePlayer, state) {
   const kws = evaluateContinuousKeywords(fc, activePlayer, owner, state);
   return kws.has('防禦') || kws.has('ブロッカー') || kws.has('Blocker');
 }
-export const fcHasDoubleAtk = (fc) => fcHasKeyword(fc, '雙重攻擊') || fcHasKeyword(fc, 'ダブルアタック') || fcHasKeyword(fc, 'Double Attack');
-export const fcHasBanish    = (fc) => fcHasKeyword(fc, '消失') || fcHasKeyword(fc, 'バニッシュ') || fcHasKeyword(fc, 'Banish');
+export const fcHasDoubleAtk = (fc) => {
+  if (!fc) return false;
+  if (fc.tempKeywords?.includes('雙重攻擊') || fc.tempKeywords?.includes('ダブルアタック') || fc.tempKeywords?.includes('Double Attack')) return true;
+  if (fc.opponentTurnEndKeywords?.includes('雙重攻擊') || fc.opponentTurnEndKeywords?.includes('ダブルアタック') || fc.opponentTurnEndKeywords?.includes('Double Attack')) return true;
+  if (fc.effectNegated || fc.effectNegatedNextOppTurn) return false;
+  return hasDoubleAtk(fc.card); // parser-based: checks passive[], not raw string
+};
+export const fcHasBanish = (fc) => {
+  if (!fc) return false;
+  if (fc.tempKeywords?.includes('消失') || fc.tempKeywords?.includes('バニッシュ') || fc.tempKeywords?.includes('Banish')) return true;
+  if (fc.opponentTurnEndKeywords?.includes('消失') || fc.opponentTurnEndKeywords?.includes('バニッシュ') || fc.opponentTurnEndKeywords?.includes('Banish')) return true;
+  if (fc.effectNegated || fc.effectNegatedNextOppTurn) return false;
+  return hasBanish(fc.card); // parser-based: checks passive[], not raw string
+};
 export const fcHasUnblock   = (fc) => {
   if (!fc) return false;
   if (fc.tempKeywords?.includes('防禦不可') || fc.tempKeywords?.includes('Unblockable') || fc.opponentTurnEndKeywords?.includes('防禦不可') || fc.opponentTurnEndKeywords?.includes('Unblockable')) return true;
-  if (fc.effectNegated) return false;
+  if (fc.effectNegated || fc.effectNegatedNextOppTurn) return false;
   return cardHasUnblock(fc.card);
 };
 // Rush: full rush (can attack leader); CharRush: character-only rush
 export const fcHasRush = (fc) => {
   if (!fc) return false;
   if (fc.tempKeywords?.includes('速攻') || fc.tempKeywords?.includes('Rush') || fc.opponentTurnEndKeywords?.includes('速攻') || fc.opponentTurnEndKeywords?.includes('Rush')) return true;
-  if (fc.effectNegated) return false;
+  if (fc.effectNegated || fc.effectNegatedNextOppTurn) return false;
   return hasRush(fc.card) && !hasCharacterRushOnly(fc.card);
 };
 export const fcHasCharRushOnly = (fc) => {
   if (!fc) return false;
   if (fcHasRush(fc)) return false;
   if (fc.tempKeywords?.includes('速攻：角色') || fc.tempKeywords?.includes('Rush: Character') || fc.opponentTurnEndKeywords?.includes('速攻：角色') || fc.opponentTurnEndKeywords?.includes('Rush: Character')) return true;
-  if (fc.effectNegated) return false;
+  if (fc.effectNegated || fc.effectNegatedNextOppTurn) return false;
   if (fc.rushCharOnly) return true;
   return hasCharacterRushOnly(fc.card);
 };
@@ -225,7 +237,7 @@ export function leaderDiscardCompensationTrait(state, player) {
  */
 export function evaluateContinuousKeywords(fieldCard, activePlayer, owner, state) {
   if (!fieldCard?.card?.effect) return new Set();
-  if (fieldCard.effectNegated) return new Set();
+  if (fieldCard.effectNegated || fieldCard.effectNegatedNextOppTurn) return new Set();
   const clauses = parseEffectForCard(fieldCard.card);
   const keywords = new Set();
   for (const clause of clauses) {
@@ -254,12 +266,13 @@ export function getActivatedMainStatus(card, playerState, fullState = null, owne
   if (!hasActivatedMain(card)) return null;
 
   // Effect negated for this turn — activation not permitted
-  if (fieldPos != null && fullState != null && owner != null) {
-    const fc = getFieldCard(fullState, owner, fieldPos);
-    if (fc?.effectNegated) return { available: false, hint: 'Effect negated' };
-  }
+  const fcForKey = (fieldPos != null && fullState != null && owner != null)
+    ? getFieldCard(fullState, owner, fieldPos)
+    : null;
+  if (fcForKey?.effectNegated || fcForKey?.effectNegatedNextOppTurn) return { available: false, hint: 'Effect negated' };
 
-  const fieldTarget = fieldPos != null ? fieldPos.target : null;
+  // Use _fcId when available so the effectKey matches the key written by resolveAtTiming
+  const fieldTarget = fieldPos != null ? (fcForKey?._fcId ?? fieldPos.target) : null;
   const effectKeyZH = fieldTarget != null
     ? `${card.id}_${fieldTarget}_啟動主要`
     : `${card.id}_啟動主要`;
@@ -370,7 +383,7 @@ export function getActivatedMainStatus(card, playerState, fullState = null, owne
       }
       if (attachDonAction.filter) {
         const targetOwner = attachDonAction.filter.owner === 'opponent'
-          ? (owner === 'human' ? 'ai' : 'human')
+          ? (owner === 'host' ? 'guest' : 'host')
           : owner;
         const tps = fullState[targetOwner];
         const hasTarget =
@@ -396,6 +409,134 @@ export function counterValue(card) {
   return card?.counter || 0;
 }
 
+const EVENT_TARGET_TYPES = new Set(['KO', 'CONDITIONAL_KO', 'REST', 'POWER_MOD', 'POWER_SET', 'COST_MOD']);
+
+// Pre-compute which field cards an event card would target.
+// Called BEFORE resolveEventEffect so targets are identified before KO'd cards leave the field.
+// Returns [{ owner, zone: 'leader'|'character', index, actionType, delta }]
+export function computeEventTargets(card, state, owner) {
+  if (!card?.effect) return [];
+  const opp = owner === PLAYER.HOST ? PLAYER.GUEST : PLAYER.HOST;
+  const clauses = parseEffectForCard(card);
+  const seen = new Set();
+  const targets = [];
+
+  for (const clause of clauses) {
+    // Skip clauses whose activation requires interactive DON!! payment — the player
+    // must interact (choose which DON!! to return/rest) before picking a target, so
+    // pre-computing targets here would show arrows too early.
+    if (clause.donReturn || clause.donRest) continue;
+    for (const action of clause.actions.flat()) {
+      if (!EVENT_TARGET_TYPES.has(action.type)) continue;
+      const filter = action.filter;
+      if (!filter) continue;
+
+      const targetOwner = filter.owner === 'self' ? owner : opp;
+      const tps = state[targetOwner];
+      if (!tps) continue;
+
+      // Characters
+      if (filter.zone !== 'leader') {
+        (tps.characterArea ?? []).forEach((fc, i) => {
+          if (!fc?.card) return;
+          if (!matchesFilter(fc.card, filter, fc)) return;
+          const key = `${targetOwner}-character-${i}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          targets.push({ owner: targetOwner, zone: 'character', index: i, fcId: fc._fcId ?? null, actionType: action.type, delta: action.delta ?? null });
+        });
+      }
+      // Leader
+      if (filter.zone === 'leader' || !filter.zone) {
+        if (tps.leader?.card && matchesFilter(tps.leader.card, filter, tps.leader)) {
+          const key = `${targetOwner}-leader`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            targets.push({ owner: targetOwner, zone: 'leader', index: -1, actionType: action.type, delta: action.delta ?? null });
+          }
+        }
+      }
+    }
+  }
+
+  return targets.slice(0, 6); // cap to avoid cluttered SVG lines
+}
+
+const FIELD_EFFECT_TARGET_TYPES = new Set([
+  'KO', 'CONDITIONAL_KO', 'REST', 'UNREST', 'RETURN_HAND',
+  'POWER_MOD', 'POWER_SET', 'COST_MOD', 'GRANT_KEYWORD',
+]);
+
+function computeEffectLabel(action) {
+  switch (action.type) {
+    case 'KO': case 'CONDITIONAL_KO': return 'KO';
+    case 'REST':          return 'REST';
+    case 'UNREST':        return 'Activate';
+    case 'RETURN_HAND':   return '↩ Hand';
+    case 'POWER_MOD': {
+      const d = action.delta ?? 0;
+      return d >= 0 ? `+${d.toLocaleString()}` : `${d.toLocaleString()}`;
+    }
+    case 'POWER_SET':     return `=${(action.delta ?? 0).toLocaleString()}`;
+    case 'COST_MOD': {
+      const d = action.delta ?? 0;
+      return d < 0 ? `${d} cost` : `+${d} cost`;
+    }
+    case 'GRANT_KEYWORD': return action.keyword ?? 'Effect';
+    default: return '';
+  }
+}
+
+// Pre-compute which field cards an Activate:Main or on-play effect targets.
+// Caller provides the timing string to match (e.g. '啟動主要', '登場時').
+// Call once per timing variant and concat results when multiple language strings apply.
+// Returns [{ owner, zone, index, actionType, delta, label }]
+export function computeFieldEffectTargets(card, state, owner, timing) {
+  if (!card?.effect) return [];
+  const opp = owner === PLAYER.HOST ? PLAYER.GUEST : PLAYER.HOST;
+  const clauses = parseEffectForCard(card);
+  const seen = new Set();
+  const targets = [];
+
+  for (const clause of clauses) {
+    if (!clause.timings.includes(timing)) continue;
+    if (clause.donReturn || clause.donRest) continue;
+    for (const action of clause.actions.flat()) {
+      if (!FIELD_EFFECT_TARGET_TYPES.has(action.type)) continue;
+      const filter = action.filter;
+      if (!filter) continue;
+      // Skip activation-cost actions: self-rest ("rest this character") and DON!! rest
+      if (filter.self || filter.cardType === 'don') continue;
+
+      const targetOwner = filter.owner === 'self' ? owner : opp;
+      const tps = state[targetOwner];
+      if (!tps) continue;
+      const label = computeEffectLabel(action);
+
+      if (filter.zone !== 'leader') {
+        (tps.characterArea ?? []).forEach((fc, i) => {
+          if (!fc?.card || !matchesFilter(fc.card, filter, fc)) return;
+          const key = `${targetOwner}-character-${i}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          targets.push({ owner: targetOwner, zone: 'character', index: i, fcId: fc._fcId ?? null, actionType: action.type, delta: action.delta ?? null, label });
+        });
+      }
+      if (filter.zone === 'leader' || !filter.zone) {
+        if (tps.leader?.card && matchesFilter(tps.leader.card, filter, tps.leader)) {
+          const key = `${targetOwner}-leader`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            targets.push({ owner: targetOwner, zone: 'leader', index: -1, actionType: action.type, delta: action.delta ?? null, label });
+          }
+        }
+      }
+    }
+  }
+
+  return targets.slice(0, 6);
+}
+
 export function hasTrigger(card) {
   return !!(card?.trigger);
 }
@@ -413,7 +554,7 @@ export function leaderDonDeckSize(leader) {
 /**
  * @param {object}  card       raw card
  * @param {object}  state      game state
- * @param {string}  owner      'human'|'ai'
+ * @param {string}  owner      'host'|'guest'
  * @param {string}  timing     e.g. '登場時', '攻擊時', '觸發器'
  * @param {object}  [fieldPos] { target: 'leader'|number } — card's field index
  */
@@ -437,7 +578,7 @@ function resolveAtTiming(card, state, owner, timing, fieldPos = null, koCard = n
     const fieldCard = fieldPos ? getFieldCard(s, owner, fieldPos) : null;
 
     // Skip all effects when this character's effect has been negated for the turn.
-    if (fieldCard?.effectNegated) continue;
+    if (fieldCard?.effectNegated || fieldCard?.effectNegatedNextOppTurn) continue;
 
     // DON!! gate: card must have N DON!! already attached (prerequisite, not a consumed cost).
     // For KO-time effects the card is already off the field — use koAttachedDon if provided.
@@ -481,10 +622,13 @@ function resolveAtTiming(card, state, owner, timing, fieldPos = null, koCard = n
       : `${card.id}_${canonicalTiming}`;
     if (clause.oncePerTurn) {
       if (s[owner]?.effectUsed?.[effectKey]) continue;
-      // For optional effects that prompt the human, defer marking until confirmed.
-      const willPromptPlayer = (owner === PLAYER.HUMAN || state.pvpMode) && !ACTIVATED_TIMINGS.has(timing)
+      const willPromptPlayer = (owner === PLAYER.HOST || state.pvpMode) && !ACTIVATED_TIMINGS.has(timing)
         && (clause.isOptional || clause.donReturn);
-      if (!willPromptPlayer) s = markEffectUsed(s, owner, effectKey);
+      // For donReturn-cost effects, defer marking until the player confirms they can pay —
+      // declining because you can't afford the cost shouldn't consume the once-per-turn.
+      // For all other cases (donGate-only, no cost), mark immediately so that
+      // skipping the optional prompt still consumes the once-per-turn per OPTCG rules.
+      if (!willPromptPlayer || !clause.donReturn) s = markEffectUsed(s, owner, effectKey);
     }
 
     // For activated effects (啟動主要) that are not already explicitly oncePerTurn,
@@ -501,7 +645,7 @@ function resolveAtTiming(card, state, owner, timing, fieldPos = null, koCard = n
     if (clause.donReturn) {
       // For all non-activated timings, give the human a chance to opt in before
       // paying the cost — 咚‼-N： costs are always optional in OPTC rules.
-      if ((owner === PLAYER.HUMAN || state.pvpMode) && !ACTIVATED_TIMINGS.has(timing)) {
+      if ((owner === PLAYER.HOST || state.pvpMode) && !ACTIVATED_TIMINGS.has(timing)) {
         s = {
           ...s,
           pendingEffect: {
@@ -525,7 +669,7 @@ function resolveAtTiming(card, state, owner, timing, fieldPos = null, koCard = n
       }
       s = returnDon(s, owner, clause.donReturn, card, effectKey, clause.actions, fieldPos);
       if (!s) { s = state; continue; } // can't pay — skip this clause
-      if (s.pendingEffect) break;      // human: waiting for selection
+      if (s.pendingEffect) break;      // host: waiting for selection
     }
 
     // ②③④ etc. activation cost: rest N DON!! in the cost area (they refresh next turn).
@@ -546,7 +690,7 @@ function resolveAtTiming(card, state, owner, timing, fieldPos = null, koCard = n
     // Non-don optional effect (可：…): ask the player before paying the action cost.
     // Falls through so the sibling-folding block below can append subsequent clauses
     // (e.g. EB03-055 clause 2 DECK_TO_LIFE) into the continuation before breaking.
-    if (clause.isOptional && !clause.donReturn && (owner === PLAYER.HUMAN || state.pvpMode) && !ACTIVATED_TIMINGS.has(timing)) {
+    if (clause.isOptional && !clause.donReturn && (owner === PLAYER.HOST || state.pvpMode) && !ACTIVATED_TIMINGS.has(timing)) {
       // Affordability pre-check: if the cost includes a fixed DON!! rest (e.g. ➀) that
       // the player can't pay, skip silently — can't activate without paying the cost.
       const donCostAction = clause.actions.find(
@@ -685,7 +829,7 @@ export function resolveActivatedMainEffect(card, state, owner, zone, index) {
 // Fire the non-deployer player's leader "對手角色登場時" clauses after the opponent deploys a character.
 // deployOwner: the player who just deployed; isViaCharEffect: true when deployed via a character card's effect.
 export function resolveOnOpponentCharDeployEffect(deployedCard, state, deployOwner, isViaCharEffect) {
-  const reactor = deployOwner === PLAYER.HUMAN ? PLAYER.AI : PLAYER.HUMAN;
+  const reactor = deployOwner === PLAYER.HOST ? PLAYER.GUEST : PLAYER.HOST;
   const leader = state[reactor]?.leader;
   if (!leader?.card?.effect) return state;
 
@@ -707,7 +851,7 @@ export function resolveOnOpponentCharDeployEffect(deployedCard, state, deployOwn
     if (clause.oncePerTurn && s[reactor]?.effectUsed?.[effectKey]) continue;
 
     // Optional (可以發動): prompt the human reactor; AI always activates
-    if (clause.isOptional && (reactor === PLAYER.HUMAN || s.pvpMode)) {
+    if (clause.isOptional && (reactor === PLAYER.HOST || s.pvpMode)) {
       if (clause.oncePerTurn) s = markEffectUsed(s, reactor, effectKey);
       return {
         ...s,
@@ -780,7 +924,7 @@ export function resolveLeaderKOReplacementEffect(koCard, state, owner, koCardInd
       const effectActions = clause.actions.filter(a => a.type !== 'CONFIRM_OPTIONAL_ACTIVATION');
       const koFieldPos = { target: koCardIndex };
 
-      if (owner === PLAYER.HUMAN || state.pvpMode) {
+      if (owner === PLAYER.HOST || state.pvpMode) {
         const costText = (clause.raw ?? '').replace(/【[^】]+】/g, '').replace(/^可/, '').split('：')[0].trim();
         return {
           ...state,
@@ -844,7 +988,7 @@ export function resolveStageKOReplacementEffect(koCard, state, owner, koCardInde
     const effectKey = `${stage.card.id}_stage_KO替換時`;
     const stageFieldPos = { target: 'stage' };
 
-    if (owner === PLAYER.HUMAN || state.pvpMode) {
+    if (owner === PLAYER.HOST || state.pvpMode) {
       const costText = clause.raw
         ? clause.raw.replace(/【[^】]+】/g, '').replace(/^若.+時，/, '').replace(/^可以替換成/, '').trim()
         : `trash ${stage.card.name}`;
@@ -921,7 +1065,7 @@ export function resolveCharacterLeaveFieldEffect(card, fieldPos, state, owner) {
   if (state[owner]?.effectUsed?.[effectKey]) return state;
   if (clause.condition && !evaluateCondition(state, owner, clause.condition)) return state;
 
-  if (owner === PLAYER.HUMAN || state.pvpMode) {
+  if (owner === PLAYER.HOST || state.pvpMode) {
     const costDescription = '廢棄1張手牌';
     return {
       ...state,
@@ -1024,7 +1168,7 @@ export function resolveOnLifeZeroEffect(card, state, owner) {
 // resolveAtTiming enforces the 我方回合中 continuous constraint automatically.
 export function resolveOnLifeLeaveEffect(state) {
   let s = state;
-  for (const p of [PLAYER.HUMAN, PLAYER.AI]) {
+  for (const p of [PLAYER.HOST, PLAYER.GUEST]) {
     if (!s[p]?.leader?.card) continue;
     s = resolveAtTiming(s[p].leader.card, s, p, '生命值卡離開時', { target: 'leader' });
     if (s.pendingEffect) break;
@@ -1284,10 +1428,10 @@ function makeOnPlayOrderPending(state, owner, triggers) {
 // Called from drainOnPlayTriggers in gameState.js.
 // Returns a new state with the ordering prompt set, or null if no ordering is needed.
 export function interceptOnPlayOrder(state, triggers) {
-  const humanWithEffect = triggers.filter(t => t.owner === PLAYER.HUMAN && hasOnPlayEffect(t.card));
+  const humanWithEffect = triggers.filter(t => t.owner === PLAYER.HOST && hasOnPlayEffect(t.card));
   if (humanWithEffect.length < 2) return null;
   const others = triggers.filter(t => !humanWithEffect.includes(t));
-  return makeOnPlayOrderPending({ ...state, pendingOnPlayTriggers: others }, PLAYER.HUMAN, humanWithEffect);
+  return makeOnPlayOrderPending({ ...state, pendingOnPlayTriggers: others }, PLAYER.HOST, humanWithEffect);
 }
 
 export function resolveOnPlayOrderChoice(state, pickedIndex) {
@@ -1415,7 +1559,7 @@ export function resolveEndOfTurnEffects(state, owner) {
   }
 
   // If the human player has 2+ EOT effect sources, prompt for trigger order.
-  if (owner === PLAYER.HUMAN || state.pvpMode) {
+  if (owner === PLAYER.HOST || state.pvpMode) {
     const sources = getEotSources(s, owner);
     if (sources.length >= 2) return makeEotOrderPending(s, owner, sources);
   }
@@ -1467,7 +1611,7 @@ const AUTO_TIMINGS = new Set([
 
 export function evaluateContinuousPower(fieldCard, activePlayer, owner, state) {
   if (!fieldCard?.card?.effect) return 0;
-  if (fieldCard.effectNegated) return 0;
+  if (fieldCard.effectNegated || fieldCard.effectNegatedNextOppTurn) return 0;
   const clauses = parseEffectForCard(fieldCard.card);
   let bonus = 0;
 
@@ -1486,7 +1630,11 @@ export function evaluateContinuousPower(fieldCard, activePlayer, owner, state) {
     for (const action of clause.actions) {
       if (action.type === 'POWER_MOD' && action.filter?.self) {
         if (action.perTrashCount) {
-          const trashSize = state?.[owner]?.trash?.length ?? 0;
+          let trash = state?.[owner]?.trash ?? [];
+          if (action.trashFilter?.category) {
+            trash = trash.filter(c => c?.category === action.trashFilter.category);
+          }
+          const trashSize = trash.length;
           bonus += Math.floor(trashSize / action.perTrashCount) * action.delta;
         } else if (action.perUniqueCharName) {
           const uniqueNames = new Set(
@@ -1595,7 +1743,7 @@ export function evaluateGlobalContinuousPower(targetFC, activePlayer, owner, sta
 
   // Also check the other player's sources for cross-side continuous effects
   // (e.g. leader with "opponent's characters get -2000 during opponent's turn")
-  const srcOwner = owner === PLAYER.HUMAN ? PLAYER.AI : PLAYER.HUMAN;
+  const srcOwner = owner === PLAYER.HOST ? PLAYER.GUEST : PLAYER.HOST;
   const otherPs = state[srcOwner];
   const otherSources = [otherPs?.leader, ...(otherPs?.characterArea ?? [])];
   for (const srcFC of otherSources) {
@@ -1813,7 +1961,7 @@ export function resolveAutoKOInBattle(fc, fcIndex, state, owner, targetOwner, ta
   const effectKey = `${card.id}_${fcIndex}_AUTO_KO_IN_BATTLE`;
   if (state[owner]?.effectUsed?.[effectKey]) return state;
 
-  if (owner === PLAYER.HUMAN || state.pvpMode) {
+  if (owner === PLAYER.HOST || state.pvpMode) {
     return {
       ...state,
       waitingFor: owner,
@@ -1845,7 +1993,7 @@ function returnDon(state, owner, count, card, effectKey, continuation, fieldPos 
   const opts = buildDonReturnOptions(ps);
   if (opts.length < count) return null;
 
-  if (owner === PLAYER.HUMAN || state.pvpMode) {
+  if (owner === PLAYER.HOST || state.pvpMode) {
     return {
       ...state,
       pendingEffect: {

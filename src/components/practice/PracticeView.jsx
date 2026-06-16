@@ -17,9 +17,11 @@ import GameLog        from './components/GameLog';
 import TrashModal     from './components/TrashModal';
 import AiDeckPicker   from './components/AiDeckPicker';
 import AttackArrow       from './components/AttackArrow';
+import RedirectArrow     from './components/RedirectArrow';
 import StateSimulator    from './components/StateSimulator';
 import NewWindowPortal   from './components/NewWindowPortal';
 import CardFlashOverlay  from './components/CardFlashOverlay';
+import EventPlayOverlay  from './components/EventPlayOverlay';
 import MulliganScreen    from './components/MulliganScreen';
 import PreGameAbilityScreen from './components/PreGameAbilityScreen';
 import { useDevToolsReducer } from './hooks/useDevToolsReducer';
@@ -49,7 +51,8 @@ function rootReducer(state, action) {
 }
 
 const AI_ACTION_DELAY_MS = 700; // pause between AI actions for readability
-const AI_COUNTER_DELAY_MS = 1400; // longer delay so each counter card flash completes (flash lasts 1300ms)
+const AI_COUNTER_DELAY_MS = 1200; // longer delay so each counter card flash completes (flash lasts 1200ms)
+const AI_FIELD_PLAY_DELAY_MS = 1200; // matches flash duration so human can track the card placed
 
 // ---------------------------------------------------------------------------
 // Expand deckList { id: count } into a flat Card[] using the card database
@@ -76,9 +79,9 @@ function checkViewport() {
   };
 }
 
-export default function PracticeView({ deckList, selectedLeader, cards, onClose, pvpMode = false, pvpGameHook, myRole = PLAYER.HUMAN, ggDecksData = {}, officialDecksData = [], prevMetaData = {} }) {
+export default function PracticeView({ deckList, selectedLeader, cards, onClose, pvpMode = false, pvpGameHook, myRole = PLAYER.HOST, ggDecksData = {}, officialDecksData = [], prevMetaData = {} }) {
   const [logOpen, setLogOpen]     = useState(false);
-  const [trashView, setTrashView] = useState(null); // null | 'human' | 'ai'
+  const [trashView, setTrashView] = useState(null); // null | 'host' | 'guest'
   const [simOpen, setSimOpen]     = useState(false);
   const [passiveAi, setPassiveAi] = useState(false);
   const [pvpMyMulliganDone, setPvpMyMulliganDone] = useState(false);
@@ -108,8 +111,9 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
   const [selectedDonReturnIndices, setSelectedDonReturnIndices] = useState([]);
   const [effectHoveredKey, setEffectHoveredKey]       = useState(null);
 
-  const aiActionQueue    = useRef([]);
-  const actionJournalRef = useRef([]);
+  const aiActionQueue       = useRef([]);
+  const aiLastWasFieldPlay  = useRef(false);
+  const actionJournalRef    = useRef([]);
   const initialStateRef  = useRef(null);
   const handScrollRef    = useRef(null);
 
@@ -126,7 +130,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
       actionJournalRef.current.push({ action, timestamp: Date.now() });
     }
     _gd(action);
-    if (pvpMode && myRole === PLAYER.AI &&
+    if (pvpMode && myRole === PLAYER.GUEST &&
         (action.type === 'MULLIGAN_KEEP' || action.type === 'MULLIGAN_REDRAW')) {
       setPvpMyMulliganDone(true);
     }
@@ -151,14 +155,36 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
   }
 
   const { flashItem } = useFlashQueue(S?.cardFlashQueue, D, myRole);
+  const fieldFlashFcId = (flashItem?.label === 'PLAY_CHARACTER' || flashItem?.label === 'PLAY_STAGE')
+    ? flashItem.fieldFcId ?? null : null;
+  const donFlashItem = (flashItem?.label === 'DON_GAIN' || flashItem?.label === 'DON_ACTIVATE')
+    ? flashItem : null;
+
+  // ── On-play overlay: activate after field-dim flash ends ──────────────────
+  const prevFieldFlashRef = useRef(null);
+  useEffect(() => {
+    const prev = prevFieldFlashRef.current;
+    prevFieldFlashRef.current = fieldFlashFcId;
+    if (!prev || fieldFlashFcId) return; // only on falsy transition
+    if (S?.pendingOnPlayOverlay) {
+      D({ type: 'ACTIVATE_ON_PLAY_OVERLAY' });
+    }
+  }, [fieldFlashFcId]); // eslint-disable-line
+
+  // ── Event play overlay — auto-clear after 1500 ms ─────────────────────────
+  useEffect(() => {
+    if (!S?.eventOverlay) return;
+    const t = setTimeout(() => D({ type: 'CLEAR_EVENT_OVERLAY' }), 1800);
+    return () => clearTimeout(t);
+  }, [S?.eventOverlay]); // eslint-disable-line
 
   // ── Auto-advance AI turn ───────────────────────────────────────────────────
   useEffect(() => {
     if (pvpMode) return; // PvP: no AI auto-play; human controls both sides
     if (!S || S.winner) return;
     if (S.mulligan === 'pending') return;
-    if (S.waitingFor !== PLAYER.AI) return;
-    if (S.pendingEffect && (S.pendingEffect.choices?.promptPlayer ?? S.pendingEffect.owner) !== PLAYER.AI) return;
+    if (S.waitingFor !== PLAYER.GUEST) return;
+    if (S.pendingEffect && (S.pendingEffect.choices?.promptPlayer ?? S.pendingEffect.owner) !== PLAYER.GUEST) return;
 
     // Auto-advance automatic phases
     if (S.phase === PHASE.REFRESH)  { D({ type: 'REFRESH' });   return; }
@@ -166,28 +192,28 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
     if (S.phase === PHASE.DON)      { D({ type: 'DON_PHASE' }); return; }
 
     // Battle steps where AI is defending (human attacked)
-    if (S.battle?.step === BATTLE_STEP.BLOCK && S.waitingFor === PLAYER.AI) {
+    if (S.battle?.step === BATTLE_STEP.BLOCK && S.waitingFor === PLAYER.GUEST) {
       const decision = aiDecideBlock(S);
       const timer = setTimeout(() => D(decision), AI_ACTION_DELAY_MS);
       return () => clearTimeout(timer);
     }
-    if (S.battle?.step === BATTLE_STEP.COUNTER && S.waitingFor === PLAYER.AI) {
+    if (S.battle?.step === BATTLE_STEP.COUNTER && S.waitingFor === PLAYER.GUEST) {
       const decision = aiDecideCounter(S);
       const delay = decision.type === 'PLAY_COUNTER' ? AI_COUNTER_DELAY_MS : AI_ACTION_DELAY_MS;
       const timer = setTimeout(() => D(decision), delay);
       return () => clearTimeout(timer);
     }
-    if (S.battle?.step === BATTLE_STEP.DAMAGE && S.waitingFor === PLAYER.AI) {
+    if (S.battle?.step === BATTLE_STEP.DAMAGE && S.waitingFor === PLAYER.GUEST) {
       const timer = setTimeout(() => D({ type: 'RESOLVE_DAMAGE' }), AI_ACTION_DELAY_MS);
       return () => clearTimeout(timer);
     }
 
     // AI auto-resolves interactive effect choices
-    if ((S.pendingEffect?.choices?.promptPlayer ?? S.pendingEffect?.owner) === PLAYER.AI) {
+    if ((S.pendingEffect?.choices?.promptPlayer ?? S.pendingEffect?.owner) === PLAYER.GUEST) {
       let selectedIndices = [];
       // CHOOSE_DEPLOY_FROM_TRASH: use the leader's trashDeployPriority to pick the best target
       if (S.pendingEffect.choices?.type === 'CHOOSE_DEPLOY_FROM_TRASH') {
-        const _lp  = getLeaderProfile(S[PLAYER.AI]?.leader?.card?.id);
+        const _lp  = getLeaderProfile(S[PLAYER.GUEST]?.leader?.card?.id);
         const _pri = _lp?.trashDeployPriority ?? [];
         if (_pri.length) {
           const _src   = S.pendingEffect.choices.sourceOwner;
@@ -205,13 +231,13 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
     }
 
     // Passive AI: skip the entire main phase, immediately end turn
-    if (passiveAi && S.phase === PHASE.MAIN && S.activePlayer === PLAYER.AI) {
+    if (passiveAi && S.phase === PHASE.MAIN && S.activePlayer === PLAYER.GUEST) {
       const timer = setTimeout(() => D({ type: 'END_TURN' }), AI_ACTION_DELAY_MS);
       return () => clearTimeout(timer);
     }
 
     // AI main phase — execute queued actions
-    if (S.phase === PHASE.MAIN && S.activePlayer === PLAYER.AI) {
+    if (S.phase === PHASE.MAIN && S.activePlayer === PLAYER.GUEST) {
       if (aiActionQueue.current.length === 0) {
         aiActionQueue.current = getAiTurnActions(S);
       }
@@ -226,12 +252,24 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
       const peek = aiActionQueue.current[0];
       if (peek?.type === 'DECLARE_ATTACK') {
         let stale = false;
-        const aiPs = S[S.activePlayer];
+        const guestPs = S[S.activePlayer];
         if (peek.attackerZone === 'character') {
-          const atkFC = aiPs?.characterArea[peek.attackerIndex];
-          if (!atkFC || atkFC.state !== 'active' || (atkFC.justDeployed && !evaluateContinuousKeywords(atkFC, S.activePlayer, S.activePlayer, S).has('速攻')) || atkFC.attackLocked || atkFC.restLocked) stale = true;
+          // If we have a stable _fcId, resolve the current index first — in-flight KOs
+          // can shift the characterArea array so the planned index points to the wrong card.
+          if (peek._attackerFcId) {
+            const realIdx = guestPs?.characterArea.findIndex(fc => fc._fcId === peek._attackerFcId);
+            if (realIdx === -1) {
+              stale = true; // intended attacker was KO'd since planning — re-plan
+            } else {
+              peek.attackerIndex = realIdx; // fix the index before the staleness check below
+            }
+          }
+          if (!stale) {
+            const atkFC = guestPs?.characterArea[peek.attackerIndex];
+            if (!atkFC || atkFC.state !== 'active' || (atkFC.justDeployed && !evaluateContinuousKeywords(atkFC, S.activePlayer, S.activePlayer, S).has('速攻') && !atkFC.tempKeywords?.includes('速攻') && !atkFC.tempKeywords?.includes('Rush')) || atkFC.attackLocked || atkFC.restLocked) stale = true;
+          }
         } else if (peek.attackerZone === 'leader') {
-          if (aiPs?.leader?.state !== 'active') stale = true;
+          if (guestPs?.leader?.state !== 'active') stale = true;
         }
         if (!stale && peek.targetZone === 'character') {
           const tgt = S[peek.targetOwner]?.characterArea[peek.targetIndex];
@@ -242,26 +280,26 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
         if (stale) aiActionQueue.current = getAiTurnActions(S);
       }
       if (peek?.type === 'PLAY_CHARACTER' || peek?.type === 'PLAY_STAGE' || peek?.type === 'PLAY_EVENT') {
-        const aiPs = S[PLAYER.AI];
-        const card = aiPs?.hand[peek.handIndex];
-        if (!card || !canAfford(aiPs.costArea, card.cost) || aiPs?.handPlayLocked) {
+        const guestPs = S[PLAYER.GUEST];
+        const card = guestPs?.hand[peek.handIndex];
+        if (!card || !canAfford(guestPs.costArea, card.cost) || guestPs?.handPlayLocked) {
           aiActionQueue.current = getAiTurnActions(S);
         }
       }
       if (peek?.type === 'ACTIVATE_MAIN' && peek.zone === 'character') {
-        const aiPs = S[PLAYER.AI];
-        const fc = aiPs?.characterArea[peek.index];
+        const guestPs = S[PLAYER.GUEST];
+        const fc = guestPs?.characterArea[peek.index];
         // Rebuild queue if character is gone OR activation is no longer available (e.g. wrong card
         // was deployed due to hand-order shift, effect already used, or condition no longer met).
-        const status = fc ? getActivatedMainStatus(fc.card, aiPs, S, PLAYER.AI, { target: peek.index }) : null;
+        const status = fc ? getActivatedMainStatus(fc.card, guestPs, S, PLAYER.GUEST, { target: peek.index }) : null;
         if (!status?.available) aiActionQueue.current = getAiTurnActions(S);
       }
       if (peek?.type === 'ATTACH_DON') {
         // Rebuild queue if there are no active DON!! — applyAttachDon would be a no-op,
         // and without this guard the AI freezes because a no-op dispatch used to return
         // the same state reference, preventing React from re-rendering.
-        const aiPs = S[PLAYER.AI];
-        const hasActiveDon = (aiPs?.costArea ?? []).some(d => d.state === 'active');
+        const guestPs = S[PLAYER.GUEST];
+        const hasActiveDon = (guestPs?.costArea ?? []).some(d => d.state === 'active');
         if (!hasActiveDon) aiActionQueue.current = getAiTurnActions(S);
       }
 
@@ -273,15 +311,20 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
       // the AI's intended sequence, canceling this timer prematurely. By putting
       // the action back when it wasn't dispatched yet, the next effect run
       // re-schedules it so it actually executes.
+      const delay = aiLastWasFieldPlay.current ? AI_FIELD_PLAY_DELAY_MS : AI_ACTION_DELAY_MS;
       let dispatched = false;
-      const timer = setTimeout(() => { dispatched = true; D(next); }, AI_ACTION_DELAY_MS);
+      const timer = setTimeout(() => {
+        dispatched = true;
+        aiLastWasFieldPlay.current = next.type === 'PLAY_CHARACTER' || next.type === 'PLAY_STAGE';
+        D(next);
+      }, delay);
       return () => { clearTimeout(timer); if (!dispatched) aiActionQueue.current.unshift(next); };
     }
   }, [S, passiveAi]); // eslint-disable-line
 
   // Clear AI queue and any open field menus on turn change
   useEffect(() => {
-    if (S?.activePlayer === PLAYER.HUMAN) {
+    if (S?.activePlayer === PLAYER.HOST) {
       aiActionQueue.current = [];
     }
     setSelectedFieldCard(null);
@@ -291,7 +334,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
   useEffect(() => {
     if (!S || S.winner) return;
     if (S.mulligan === 'pending') return;
-    if (S.waitingFor !== PLAYER.HUMAN || S.activePlayer !== PLAYER.HUMAN) return;
+    if (S.waitingFor !== PLAYER.HOST || S.activePlayer !== PLAYER.HOST) return;
     if (S.pendingEffect) return; // wait for player to resolve any pending effect first
 
     const actionMap = {
@@ -311,10 +354,10 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
   // ── PvP host: auto-advance early phases for guest (AI) side ──────────────
   // The guest never dispatches REFRESH/DRAW/DON — host handles them for both sides.
   useEffect(() => {
-    if (!pvpMode || myRole !== PLAYER.HUMAN) return;
+    if (!pvpMode || myRole !== PLAYER.HOST) return;
     if (!S || S.winner) return;
     if (S.mulligan === 'pending') return;
-    if (S.waitingFor !== PLAYER.AI) return;
+    if (S.waitingFor !== PLAYER.GUEST) return;
     if (S.pendingEffect) return; // wait for any pending effect to resolve first
 
     const actionMap = {
@@ -364,12 +407,12 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
         officialDecksData={officialDecksData}
         prevMetaData={prevMetaData}
         onSelect={({ deckStr, leaderId }) => {
-          const humanCards = expandDeck(deckList || {}, cards || []).filter(c => c.category !== 'Leader');
-          if (!selectedLeader || humanCards.length < 10) return;
+          const hostCards = expandDeck(deckList || {}, cards || []).filter(c => c.category !== 'Leader');
+          if (!selectedLeader || hostCards.length < 10) return;
           const aiDeckList = parseDeckString(deckStr);
-          const aiCards    = expandDeck(aiDeckList, cards || []).filter(c => c.category !== 'Leader');
-          const aiLeader   = (cards || []).find(c => c.id === leaderId) ?? null;
-          D({ type: 'START_GAME', initialState: createInitialState(selectedLeader, humanCards, aiLeader, aiCards) });
+          const guestCards    = expandDeck(aiDeckList, cards || []).filter(c => c.category !== 'Leader');
+          const guestLeader   = (cards || []).find(c => c.id === leaderId) ?? null;
+          D({ type: 'START_GAME', initialState: createInitialState(selectedLeader, hostCards, guestLeader, guestCards) });
         }}
         onClose={onClose}
       />
@@ -383,31 +426,31 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
   // Mulligan: show until this player has decided.
   // In PvP mode, guest tracks their own mulligan locally (pvpMyMulliganDone).
   const showMulligan = pvpMode
-    ? (myRole === PLAYER.HUMAN ? S.mulligan === 'pending' : (S.mulligan === 'pending' && !pvpMyMulliganDone))
+    ? (myRole === PLAYER.HOST ? S.mulligan === 'pending' : (S.mulligan === 'pending' && !pvpMyMulliganDone))
     : S.mulligan === 'pending';
 
   if (showMulligan) {
     // Guest sees their own hand (ai side), so we swap the perspective for MulliganScreen
-    const mulliganViewState = (pvpMode && myRole === PLAYER.AI) ? {
+    const mulliganViewState = (pvpMode && myRole === PLAYER.GUEST) ? {
       ...S,
-      human: S.ai,
-      ai: S.human,
-      firstPlayer: S.firstPlayer === PLAYER.HUMAN ? PLAYER.AI : PLAYER.HUMAN,
+      host: S.guest,
+      guest: S.host,
+      firstPlayer: S.firstPlayer === PLAYER.HOST ? PLAYER.GUEST : PLAYER.HOST,
     } : S;
     return <MulliganScreen state={mulliganViewState} dispatch={D} onClose={onClose} />;
   }
 
   // ── Derived UI state ───────────────────────────────────────────────────────
-  // In PvP mode the guest plays the 'ai' engine side — swap perspective so their
+  // In PvP mode the guest plays the 'guest' engine side — swap perspective so their
   // side always renders at the bottom and they see their own hand.
-  const guestPerspective = pvpMode && myRole === PLAYER.AI;
-  const myPs       = guestPerspective ? S.ai    : S.human;
-  const opponentPs = guestPerspective ? S.human : S.ai;
-  const myOwner       = guestPerspective ? PLAYER.AI    : PLAYER.HUMAN;
-  const opponentOwner = guestPerspective ? PLAYER.HUMAN : PLAYER.AI;
+  const guestPerspective = pvpMode && myRole === PLAYER.GUEST;
+  const myPs       = guestPerspective ? S.guest    : S.host;
+  const opponentPs = guestPerspective ? S.host : S.guest;
+  const myOwner       = guestPerspective ? PLAYER.GUEST    : PLAYER.HOST;
+  const opponentOwner = guestPerspective ? PLAYER.HOST : PLAYER.GUEST;
   // Keep legacy aliases so unchanged code below compiles without modification
-  const humanPs = myPs;
-  const aiPs    = opponentPs;
+  const hostPs = myPs;
+  const guestPs    = opponentPs;
 
   const isMyTurn  = S.activePlayer === myOwner;
   const isMyInput = S.waitingFor   === myOwner;
@@ -449,7 +492,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
     if (card.category === 'Character' && isMyTurn && S.phase === PHASE.MAIN && !inBattle) {
       const effectiveCost = Math.max(0, (card.cost ?? 0) + (handCostDeltas[index] ?? 0));
       const affordable = canAfford(myPs.costArea, effectiveCost);
-      const fieldFull  = humanPs.characterArea.length >= 5;
+      const fieldFull  = hostPs.characterArea.length >= 5;
       actions.push({
         label: 'Play Character',
         icon: '⚔',
@@ -517,7 +560,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
   // Actions for a clicked field card (own character or leader)
   function buildFieldActions(zone, index) {
     if (!isMyTurn || !isMyInput || S.phase !== PHASE.MAIN || inBattle) return [];
-    const ps = humanPs;
+    const ps = hostPs;
     const fc = zone === 'leader' ? ps.leader : zone === 'stage' ? ps.stageArea : ps.characterArea[index];
     if (!fc) return [];
     const { card } = fc;
@@ -563,26 +606,26 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
 
   const fieldCardForMenu = selectedFieldCard
     ? (selectedFieldCard.zone === 'leader'
-        ? humanPs.leader?.card
+        ? hostPs.leader?.card
         : selectedFieldCard.zone === 'stage'
-          ? humanPs.stageArea?.card
-          : humanPs.characterArea[selectedFieldCard.index]?.card)
+          ? hostPs.stageArea?.card
+          : hostPs.characterArea[selectedFieldCard.index]?.card)
     : null;
   const fieldActions = selectedFieldCard ? buildFieldActions(selectedFieldCard.zone, selectedFieldCard.index) : [];
 
   // Characters targetable for attack (opponent's rested characters, or active if attacker has RUSH_ACTIVE_CHARS)
   const pendingAttackerFC = pendingAttackSrc
-    ? (pendingAttackSrc.zone === 'leader' ? humanPs.leader : humanPs.characterArea[pendingAttackSrc.index])
+    ? (pendingAttackSrc.zone === 'leader' ? hostPs.leader : hostPs.characterArea[pendingAttackSrc.index])
     : null;
   const attackerCanHitActive = !!pendingAttackerFC?.tempKeywords?.includes('RUSH_ACTIVE_CHARS');
   const attackableAiChars = new Set(
-    aiPs.characterArea.map((fc, i) => (fc.state === 'rest' || attackerCanHitActive) ? i : -1).filter(i => i >= 0)
+    guestPs.characterArea.map((fc, i) => (fc.state === 'rest' || attackerCanHitActive) ? i : -1).filter(i => i >= 0)
   );
 
   function handleMyLeaderClick() {
     // Block step: clicking own leader tries to use it as a blocker
     if (inBlock && S.battle.targetOwner === myOwner && S.waitingFor === myOwner) {
-      if (fcEffectiveHasBlocker(myPs.leader, myOwner, S.activePlayer, S) && myPs.leader?.state === 'active') {
+      if (fcEffectiveHasBlocker(myPs.leader, myOwner, S.activePlayer, S) && myPs.leader?.state === 'active' && !myPs.leader?.blockerDisabled) {
         D({ type: 'USE_BLOCKER', blockerIndex: 'leader' });
       }
       return;
@@ -597,7 +640,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
   function handleMyCharacterClick(i) {
     // Block step: clicking own character tries to use it as a blocker
     if (inBlock && S.battle.targetOwner === myOwner && S.waitingFor === myOwner) {
-      if (fcEffectiveHasBlocker(myPs.characterArea[i], myOwner, S.activePlayer, S) && myPs.characterArea[i]?.state === 'active') {
+      if (fcEffectiveHasBlocker(myPs.characterArea[i], myOwner, S.activePlayer, S) && myPs.characterArea[i]?.state === 'active' && !myPs.characterArea[i]?.blockerDisabled) {
         D({ type: 'USE_BLOCKER', blockerIndex: i });
       }
       return;
@@ -620,8 +663,8 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
   function handleAiLeaderClick() {
     if (!pendingAttackSrc || !isMyTurn || !isMyInput) return;
     const attackerFC = pendingAttackSrc.zone === 'leader'
-      ? humanPs.leader
-      : humanPs.characterArea[pendingAttackSrc.index];
+      ? hostPs.leader
+      : hostPs.characterArea[pendingAttackSrc.index];
     if (attackerFC?.rushCharOnly) return; // Rush: Character only — cannot target leader
     D({ type: 'DECLARE_ATTACK', attackerZone: pendingAttackSrc.zone, attackerIndex: pendingAttackSrc.index, targetOwner: opponentOwner, targetZone: 'leader', targetIndex: -1 });
     setPendingAttackSrc(null);
@@ -631,7 +674,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
     if (!isMyInput) return;
 
     if (pendingAttackSrc && isMyTurn) {
-      const tgtState = aiPs.characterArea[i]?.state;
+      const tgtState = guestPs.characterArea[i]?.state;
       if (tgtState === 'rest' || (tgtState === 'active' && attackerCanHitActive)) {
         D({ type: 'DECLARE_ATTACK', attackerZone: pendingAttackSrc.zone, attackerIndex: pendingAttackSrc.index, targetOwner: opponentOwner, targetZone: 'character', targetIndex: i });
         setPendingAttackSrc(null);
@@ -642,7 +685,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
 
   function handleDonAreaClick() {
     if (!isMyTurn || !isMyInput || S.phase !== PHASE.MAIN || inBattle) return;
-    const activeDons = humanPs.costArea.filter(d => d.state === 'active');
+    const activeDons = hostPs.costArea.filter(d => d.state === 'active');
     if (activeDons.length === 0) return;
     const nextCount = pendingDonIds.size >= activeDons.length ? 0 : pendingDonIds.size + 1;
     setPendingDonIds(new Set(activeDons.slice(0, nextCount).map(d => d._donId)));
@@ -704,6 +747,9 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
       onClick={() => { if (donMode) setPendingDonIds(new Set()); }}
     >
       <WaitingBanner visible={pvpMode && !!S && S.waitingFor !== myRole} />
+      {fieldFlashFcId && (
+        <div className="absolute inset-0 bg-black/60 pointer-events-none" style={{ zIndex: 10 }} />
+      )}
       {/* Back button / winner banner */}
       <div className="flex items-center justify-between px-3 pt-2 pb-1 bg-slate-950 border-b border-slate-800">
         <button onClick={onClose} className="text-slate-400 hover:text-white text-sm font-bold flex items-center gap-1">
@@ -766,7 +812,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
       <div className="flex-shrink-0">
         <div className="flex items-center justify-end px-3 py-0.5 bg-slate-900/40">
           <span className="text-[11px] font-bold text-slate-300">
-            Opp hand: <span className="text-white">{aiPs.hand.length}</span>
+            Opp hand: <span className="text-white">{guestPs.hand.length}</span>
           </span>
         </div>
         <PlayerField
@@ -779,11 +825,13 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
           targetableChars={attackMode ? attackableAiChars : null}
           onLeaderClick={handleAiLeaderClick}
           onCharacterClick={handleAiCharacterClick}
-          onTrashClick={() => setTrashView('ai')}
+          onTrashClick={() => setTrashView('guest')}
           effectHighlight={effectHighlight}
           revealed={gameOver || S.devRevealOpponent}
           isCompact={isCompact}
           disableStats={attackMode || donMode || (inBattle && !inBlock && !inCounter)}
+          fieldFlashFcId={fieldFlashFcId}
+          donFlashItem={donFlashItem?.donOwner === opponentOwner ? donFlashItem : null}
         />
       </div>
 
@@ -799,8 +847,12 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
         cardActions={selectedHandCard ? handActions : fieldCardForMenu ? fieldActions : []}
         onAction={a => a.action()}
         onClearCard={() => { setSelectedHandIndex(null); setSelectedFieldCard(null); }}
+        lastAiAction={S?.activePlayer !== myOwner
+          ? (S?.log ?? []).filter(e => e.type === 'action' || e.type === 'battle').at(-1) ?? null
+          : null}
       />
 <AttackArrow battle={S.battle} />
+<RedirectArrow battle={S.battle} />
 
       {/* My field (bottom) */}
       <div className="flex-shrink-0">
@@ -820,7 +872,7 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
             setSelectedFieldCard({ zone: 'stage', index: 0 });
           }}
           onDonAreaClick={handleDonAreaClick}
-          onTrashClick={() => setTrashView('human')}
+          onTrashClick={() => setTrashView('host')}
           donPendingIds={pendingDonIds}
           donReturnMode={donReturnMode}
           donReturnOptions={donReturnOptions}
@@ -830,6 +882,8 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
           revealed={gameOver}
           isCompact={isCompact}
           disableStats={attackMode || donMode || (inBattle && !inBlock && !inCounter)}
+          fieldFlashFcId={fieldFlashFcId}
+          donFlashItem={donFlashItem?.donOwner === myOwner ? donFlashItem : null}
         />
       </div>
 
@@ -925,13 +979,14 @@ export default function PracticeView({ deckList, selectedLeader, cards, onClose,
 
       {trashView && (
         <TrashModal
-          trash={trashView === 'human' ? humanPs.trash : aiPs.trash}
-          label={trashView === 'human' ? 'Your' : "Opponent's"}
+          trash={trashView === 'host' ? hostPs.trash : guestPs.trash}
+          label={trashView === 'host' ? 'Your' : "Opponent's"}
           onClose={() => setTrashView(null)}
         />
       )}
 
       <CardFlashOverlay flashItem={flashItem} />
+      <EventPlayOverlay eventOverlay={S?.eventOverlay} />
     </div>
     </div>
   );

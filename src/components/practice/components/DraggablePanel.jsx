@@ -50,7 +50,7 @@ export default function DraggablePanel({ children }) {
 
   if (pos) {
     return (
-      <div className="fixed z-50 w-80" style={{ left: pos.x, top: pos.y }}>
+      <div className="fixed w-80" style={{ zIndex: 160, left: pos.x, top: pos.y }}>
         <div ref={panelRef} className="pointer-events-auto w-full rounded-2xl overflow-hidden shadow-2xl">
           {dragHandle}
           {children}
@@ -60,7 +60,7 @@ export default function DraggablePanel({ children }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+    <div className="fixed inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 160 }}>
       <div ref={panelRef} className="pointer-events-auto w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl">
         {dragHandle}
         {children}

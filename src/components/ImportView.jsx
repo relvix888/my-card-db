@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 const ImportView = ({
@@ -19,6 +19,17 @@ const ImportView = ({
   const [deckSource, setDeckSource] = useState("topdecks");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedColors, setSelectedColors] = useState([]);
+  const [gridCols, setGridCols] = useState(3);
+
+  useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth;
+      setGridCols(w >= 1536 ? 8 : w >= 1280 ? 7 : w >= 1024 ? 6 : w >= 768 ? 5 : w >= 640 ? 4 : 3);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   const colorMap = {
     red: t("colors.red"),
@@ -131,16 +142,6 @@ const ImportView = ({
         (prevMetaData[b.id.toUpperCase()]?.count || 0) -
         (prevMetaData[a.id.toUpperCase()]?.count || 0),
     );
-
-  const officialDeckLabel = (leaderCard) => {
-    const colors = (leaderCard.colors || []).map((c) =>
-      t(`colors.${c.toLowerCase()}`),
-    );
-    const colorStr = isEn ? colors.join("/") : colors.join("");
-    return isEn
-      ? `(${colorStr}) ${leaderCard.name}`
-      : `(${colorStr})${leaderCard.name}`;
-  };
 
   const handleOfficialDeckClick = (entry) => {
     handleImportDeckCode(entry.deck);
@@ -307,87 +308,77 @@ const ImportView = ({
           })}
         </div>
 
-        {/* Scrollable Leader Gallery */}
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide px-2">
-          {isOfficial
-            ? officialEntries.map((entry) => (
-                <div
-                  key={entry.id}
-                  onClick={() => handleOfficialDeckClick(entry)}
-                  className="group relative flex-shrink-0 cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95"
-                >
-                  <div
-                    className="w-24 sm:w-32 aspect-[2.5/3.5] rounded-lg overflow-hidden border-2 border-transparent shadow-lg transition-colors duration-150"
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.borderColor = "#d97706")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.borderColor = "transparent")
-                    }
+        {/* Leader Grid */}
+        <div className="overflow-y-auto max-h-[780px] px-1">
+          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
+            {isOfficial
+              ? officialEntries.map((entry) => (
+                  <button
+                    key={entry.id}
+                    onClick={() => handleOfficialDeckClick(entry)}
+                    className="relative flex flex-col items-center rounded-xl border-2 border-slate-700 overflow-hidden transition-all active:scale-95 opacity-80 hover:opacity-100"
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#d97706")}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
                   >
-                    <img
-                      src={getSafeImageUrl(entry.leaderCard)}
-                      alt={entry.name || entry.leaderCard.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div
-                    className="absolute left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 text-black text-[10px] font-bold px-3 py-1 rounded shadow-xl whitespace-nowrap z-20"
-                    style={{ bottom: "-0.5rem", backgroundColor: "#d97706" }}
-                  >
-                    {officialDeckLabel(entry.leaderCard)}
-                  </div>
-                </div>
-              ))
-            : (isPrevMeta ? prevMetaLeaders : isGG ? ggLeaders : topdecksLeaders).map((leader) => (
-                <div
-                  key={leader.id}
-                  onClick={() => {
-                    if (isGG) { handleGGLeaderClick(leader); return; }
-                    if (isPrevMeta) {
-                      const entry = prevMetaData[leader.id.toUpperCase()];
-                      const deck = typeof entry === "object" ? entry.deck : entry;
-                      if (deck) { handleImportDeckCode(deck); setAppMode("DECK"); window.scrollTo({ top: 0, behavior: "smooth" }); }
-                      return;
-                    }
-                    generateMetaDeck(leader);
-                  }}
-                  className="group relative flex-shrink-0 cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95"
-                >
-                  <div
-                    className="w-24 sm:w-32 aspect-[2.5/3.5] rounded-lg overflow-hidden border-2 border-transparent shadow-lg transition-colors duration-150"
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.borderColor = isPrevMeta
-                        ? "#64748b"
-                        : isGG
-                        ? "#0d9488"
-                        : "#f59e0b")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.borderColor = "transparent")
-                    }
-                  >
-                    <img
-                      src={getSafeImageUrl(leader)}
-                      alt={leader.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-
-                  {/* Hover tooltip */}
-                  <div
-                    className="absolute left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 text-black text-[10px] font-bold px-3 py-1 rounded shadow-xl whitespace-nowrap z-20"
-                    style={{
-                      bottom: "-0.5rem",
-                      backgroundColor: isPrevMeta ? "#64748b" : isGG ? "#0d9488" : "#d97706",
-                    }}
-                  >
-                    {t("build_deck_tooltip", { name: leader.name })}
-                  </div>
-                </div>
-              ))}
+                    <div className="relative w-full overflow-hidden bg-slate-800" style={{ height: "3.75rem" }}>
+                      <img
+                        src={getSafeImageUrl(entry.leaderCard)}
+                        alt={entry.name || entry.leaderCard.name}
+                        className="absolute"
+                        style={{ width: "160%", left: "50%", transform: "translateX(-50%) translateY(-10%)" }}
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="w-full bg-slate-900 px-1 py-1.5">
+                      <p className="text-white text-[9px] font-bold truncate text-center leading-tight">
+                        {entry.name || entry.leaderCard.name}
+                      </p>
+                      <p className="text-slate-500 text-[8px] text-center mt-0.5">
+                        {entry.leaderCard.id}
+                      </p>
+                    </div>
+                  </button>
+                ))
+              : (isPrevMeta ? prevMetaLeaders : isGG ? ggLeaders : topdecksLeaders).map((leader) => {
+                  const accentColor = isPrevMeta ? "#64748b" : isGG ? "#0d9488" : "#f59e0b";
+                  return (
+                    <button
+                      key={leader.id}
+                      onClick={() => {
+                        if (isGG) { handleGGLeaderClick(leader); return; }
+                        if (isPrevMeta) {
+                          const entry = prevMetaData[leader.id.toUpperCase()];
+                          const deck = typeof entry === "object" ? entry.deck : entry;
+                          if (deck) { handleImportDeckCode(deck); setAppMode("DECK"); window.scrollTo({ top: 0, behavior: "smooth" }); }
+                          return;
+                        }
+                        generateMetaDeck(leader);
+                      }}
+                      className="relative flex flex-col items-center rounded-xl border-2 border-slate-700 overflow-hidden transition-all active:scale-95 opacity-80 hover:opacity-100"
+                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = accentColor)}
+                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
+                    >
+                      <div className="relative w-full overflow-hidden bg-slate-800" style={{ height: "3.75rem" }}>
+                        <img
+                          src={getSafeImageUrl(leader)}
+                          alt={leader.name}
+                          className="absolute"
+                          style={{ width: "160%", left: "50%", transform: "translateX(-50%) translateY(-10%)" }}
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="w-full bg-slate-900 px-1 py-1.5">
+                        <p className="text-white text-[9px] font-bold truncate text-center leading-tight">
+                          {leader.name}
+                        </p>
+                        <p className="text-slate-500 text-[8px] text-center mt-0.5">
+                          {leader.id}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+          </div>
         </div>
       </div>
 
@@ -405,12 +396,10 @@ const ImportView = ({
 
         <div className="space-y-4">
           <textarea
-            className="w-full h-40 bg-slate-950 border border-slate-700 rounded-xl p-4 font-mono text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-slate-200 transition-all placeholder:text-slate-600 resize-none"
+            className="w-full h-28 bg-slate-950 border border-slate-700 rounded-xl p-4 font-mono text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-slate-200 transition-all placeholder:text-slate-600 resize-none"
             placeholder={`${t("paste_here")}
 1xOP15-058
 3xOP12-071
-4xOP15-061
-4xOP15-066
 ...`}
             value={deckInput}
             onChange={(e) => setDeckInput(e.target.value)}

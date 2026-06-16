@@ -6,12 +6,12 @@ import { getRoomRef, sanitizeForFirestore } from '../../pvp/pvpHelpers';
 /**
  * Firebase-synced game state hook for online PvP.
  *
- * Host (myRole === 'human'):
+ * Host (myRole === 'host'):
  *   - Owns the reducer; runs every action locally
  *   - Writes full game state to Firestore after every state change
  *   - Reads pendingAction from Firestore and applies guest actions
  *
- * Guest (myRole === 'ai'):
+ * Guest (myRole === 'guest'):
  *   - Also owns a local reducer for instant optimistic UI updates
  *   - Writes desired actions to pendingAction field; host applies them authoritatively
  *   - Reconciles local state with Firestore on every snapshot (corrects any divergence)
@@ -19,12 +19,12 @@ import { getRoomRef, sanitizeForFirestore } from '../../pvp/pvpHelpers';
  * Returns [gameState, dispatch] — same interface as useReducer.
  *
  * @param {string} gameId - the 6-char room code
- * @param {'human'|'ai'} myRole
+ * @param {'host'|'guest'} myRole
  * @param {import('firebase/firestore').Firestore} db
  * @param {Function} reducer - root reducer (must handle START_GAME, _PVP_GUEST_MULLIGAN)
  */
 export function usePvpGame(gameId, myRole, db, reducer) {
-  const isHost = myRole === PLAYER.HUMAN;
+  const isHost = myRole === PLAYER.HOST;
   const roomRef = getRoomRef(db, gameId);
 
   // Both host and guest run a local reducer for instant UI updates.

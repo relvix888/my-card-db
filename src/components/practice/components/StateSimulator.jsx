@@ -43,7 +43,7 @@ export default function StateSimulator({
 }) {
   const [query, setQuery]             = useState('');
   const [tab, setTab]                 = useState('hand');
-  const [targetPlayer, setTargetPlayer] = useState(PLAYER.HUMAN);
+  const [targetPlayer, setTargetPlayer] = useState(PLAYER.HOST);
   const [colorFilter, setColorFilter]  = useState(null);   // null = all
   const [catFilter, setCatFilter]      = useState(null);   // null = all
   const [packFilter, setPackFilter]    = useState('');     // '' = all
@@ -147,7 +147,7 @@ export default function StateSimulator({
 
   // ── leader hot-swap ────────────────────────────────────────────────────────
   function swapLeader(newLeaderCard) {
-    patchPlayer(PLAYER.HUMAN, ps => ({
+    patchPlayer(PLAYER.HOST, ps => ({
       ...ps,
       leader: { ...ps.leader, card: newLeaderCard },
     }));
@@ -192,7 +192,7 @@ export default function StateSimulator({
   }
 
   function injectTopLife(card) {
-    patchPlayer(PLAYER.HUMAN, ps => ({
+    patchPlayer(PLAYER.HOST, ps => ({
       ...ps,
       lifeArea: [...ps.lifeArea, card],
       lifeAreaFaceUp: [...(ps.lifeAreaFaceUp ?? []), false],
@@ -205,8 +205,8 @@ export default function StateSimulator({
     patch(s => ({
       ...s,
       phase: PHASE.MAIN,
-      activePlayer: PLAYER.HUMAN,
-      waitingFor: PLAYER.HUMAN,
+      activePlayer: PLAYER.HOST,
+      waitingFor: PLAYER.HOST,
       battle: null,
       pendingEffect: null,
       pendingBattle: null,
@@ -222,15 +222,15 @@ export default function StateSimulator({
       desc: 'Force MAIN phase + 5 random cards in hand',
       apply() {
         patch(s => {
-          const ps = s[PLAYER.HUMAN];
+          const ps = s[PLAYER.HOST];
           const drawn = ps.deck.slice(-5);
           return {
             ...s,
             phase: PHASE.MAIN,
-            activePlayer: PLAYER.HUMAN,
-            waitingFor: PLAYER.HUMAN,
+            activePlayer: PLAYER.HOST,
+            waitingFor: PLAYER.HOST,
             battle: null, pendingEffect: null, mulligan: 'done',
-            [PLAYER.HUMAN]: { ...ps, hand: drawn, deck: ps.deck.slice(0, -5) },
+            [PLAYER.HOST]: { ...ps, hand: drawn, deck: ps.deck.slice(0, -5) },
           };
         });
       },
@@ -240,7 +240,7 @@ export default function StateSimulator({
       desc: 'Force MAIN phase + full DON + hand of 5',
       apply() {
         patch(s => {
-          const ps = s[PLAYER.HUMAN];
+          const ps = s[PLAYER.HOST];
           const drawn = ps.deck.slice(-5);
           const costArea = Array.from({ length: 10 }, (_, i) => ({
             _donId: `sim-don-${i}`, state: 'active',
@@ -248,27 +248,27 @@ export default function StateSimulator({
           return {
             ...s,
             phase: PHASE.MAIN,
-            activePlayer: PLAYER.HUMAN,
-            waitingFor: PLAYER.HUMAN,
+            activePlayer: PLAYER.HOST,
+            waitingFor: PLAYER.HOST,
             battle: null, pendingEffect: null, mulligan: 'done',
-            [PLAYER.HUMAN]: {
+            [PLAYER.HOST]: {
               ...ps, hand: drawn, deck: ps.deck.slice(0, -5), costArea, donDeck: [],
             },
           };
         });
       },
     },
-    { label: 'Low Life (Human 1 life)', apply() { setLife(PLAYER.HUMAN, 1); } },
-    { label: 'Low Life (AI 1 life)',    apply() { setLife(PLAYER.AI, 1); } },
+    { label: 'Low Life (Human 1 life)', apply() { setLife(PLAYER.HOST, 1); } },
+    { label: 'Low Life (AI 1 life)',    apply() { setLife(PLAYER.GUEST, 1); } },
     { label: 'Clear Human Hand',        apply() { clearHand(); } },
     { label: 'Clear Human Field',       apply() { clearField(); } },
   ];
 
   // ── render ────────────────────────────────────────────────────────────────
   const ps = gameState?.[targetPlayer];
-  const humanPs = gameState?.[PLAYER.HUMAN];
-  const topLifeCard = humanPs?.lifeArea?.[humanPs.lifeArea.length - 1] ?? null;
-  const currentLeaderCard = humanPs?.leader?.card ?? null;
+  const hostPs = gameState?.[PLAYER.HOST];
+  const topLifeCard = hostPs?.lifeArea?.[hostPs.lifeArea.length - 1] ?? null;
+  const currentLeaderCard = hostPs?.leader?.card ?? null;
 
   const TABS = [
     { key: 'hand',    label: 'Hand' },
@@ -313,13 +313,13 @@ export default function StateSimulator({
       <div className="flex items-center gap-3 px-4 py-2 bg-purple-900/60 border-b border-purple-700/40 flex-shrink-0">
         <span className="text-purple-300 font-black text-xs uppercase tracking-widest">⚙ State Simulator</span>
         <div className="flex gap-1 ml-2">
-          {[PLAYER.HUMAN, PLAYER.AI].map(p => (
+          {[PLAYER.HOST, PLAYER.GUEST].map(p => (
             <button key={p}
               onClick={() => setTargetPlayer(p)}
               className={`px-2 py-0.5 rounded text-xs font-bold transition-colors
                 ${targetPlayer === p ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
             >
-              {p === PLAYER.HUMAN ? 'Human' : 'AI'}
+              {p === PLAYER.HOST ? 'Human' : 'AI'}
             </button>
           ))}
         </div>
@@ -476,7 +476,7 @@ export default function StateSimulator({
             {/* Current hand */}
             <div className="flex items-center gap-2">
               <span className="text-slate-400 text-xs font-bold uppercase">
-                {targetPlayer === PLAYER.HUMAN ? 'Your' : "AI's"} Hand ({ps?.hand?.length ?? 0})
+                {targetPlayer === PLAYER.HOST ? 'Your' : "AI's"} Hand ({ps?.hand?.length ?? 0})
               </span>
               <button onClick={clearHand} className="text-xs text-red-400 hover:text-red-300 ml-auto">Clear</button>
             </div>
@@ -588,7 +588,7 @@ export default function StateSimulator({
             )}
             <div className="flex items-center gap-2">
               <span className="text-slate-400 text-xs font-bold uppercase">
-                {targetPlayer === PLAYER.HUMAN ? 'Your' : "AI's"} Field ({ps?.characterArea?.length ?? 0}/5)
+                {targetPlayer === PLAYER.HOST ? 'Your' : "AI's"} Field ({ps?.characterArea?.length ?? 0}/5)
               </span>
               <button onClick={clearField} className="text-xs text-red-400 hover:text-red-300 ml-auto">Clear Field</button>
             </div>
@@ -617,12 +617,12 @@ export default function StateSimulator({
         {tab === 'life' && (
           <div className="space-y-4">
             {/* Life count buttons (existing) */}
-            {[PLAYER.HUMAN, PLAYER.AI].map(owner => {
+            {[PLAYER.HOST, PLAYER.GUEST].map(owner => {
               const lifeCount = gameState?.[owner]?.lifeArea?.length ?? 0;
               return (
                 <div key={owner}>
                   <div className="text-slate-300 text-xs font-bold uppercase mb-2">
-                    {owner === PLAYER.HUMAN ? 'Your' : "AI's"} Life: {lifeCount}
+                    {owner === PLAYER.HOST ? 'Your' : "AI's"} Life: {lifeCount}
                   </div>
                   <div className="flex gap-1.5 flex-wrap">
                     {[0, 1, 2, 3, 4, 5, 6].map(n => (
@@ -713,8 +713,8 @@ export default function StateSimulator({
                   onClick={() => patch(s => ({
                     ...s,
                     phase: p.toLowerCase(),
-                    activePlayer: PLAYER.HUMAN,
-                    waitingFor: PLAYER.HUMAN,
+                    activePlayer: PLAYER.HOST,
+                    waitingFor: PLAYER.HOST,
                     battle: null,
                     pendingEffect: null,
                     mulligan: 'done',

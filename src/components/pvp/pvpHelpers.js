@@ -38,7 +38,7 @@ export async function joinRoomDoc(db, gameCode, guestUid) {
 }
 
 export async function submitDeck(db, gameCode, role, deckPayload) {
-  const field = role === 'human' ? 'hostDeck' : 'guestDeck';
+  const field = role === 'host' ? 'hostDeck' : 'guestDeck';
   await updateDoc(getRoomRef(db, gameCode), { [field]: deckPayload });
 }
 
@@ -60,12 +60,12 @@ export function applyGuestMulligan(state, decision) {
     return { ...state, mulligan: 'done' };
   }
   // redraw
-  const ps = state.ai;
+  const ps = state.guest;
   const combined = shuffle([...ps.deck, ...ps.hand]);
   return {
     ...state,
     mulligan: 'done',
-    ai: {
+    guest: {
       ...ps,
       hand: combined.slice(0, STARTING_HAND),
       deck: combined.slice(STARTING_HAND),

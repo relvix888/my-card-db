@@ -20,7 +20,7 @@ function pvpRootReducer(state, action) {
  * Props:
  *   db             - Firestore instance
  *   gameId         - 6-char room code
- *   myRole         - 'human' (host) | 'ai' (guest)
+ *   myRole         - 'host' (host) | 'guest' (guest)
  *   cards          - full card database
  *   deckList       - user's deck (used only to satisfy PracticeView's prop requirement)
  *   selectedLeader - user's leader card

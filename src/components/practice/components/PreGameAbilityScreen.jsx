@@ -4,7 +4,7 @@ import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 export default function PreGameAbilityScreen({ state: S, dispatch: D, onClose, myRole }) {
   const [selectedStageIndex, setSelectedStageIndex] = useState(null);
 
-  const owner = S.preGameAbilityOwner ?? 'human';
+  const owner = S.preGameAbilityOwner ?? 'host';
   const ownerPs = S[owner];
   const stageCards = ownerPs.deck
     .map((card, i) => ({ card, deckIndex: i }))

@@ -34,7 +34,7 @@ export default function OnlinePvpLobby({ db, user, cards, deckList, selectedLead
   const [tab, setTab]               = useState('create'); // 'create' | 'join'
   const [gameCode, setGameCode]     = useState('');
   const [joinCode, setJoinCode]     = useState('');
-  const [myRole, setMyRole]         = useState(null);     // 'human' | 'ai'
+  const [myRole, setMyRole]         = useState(null);     // 'host' | 'guest'
   const [roomData, setRoomData]     = useState(null);
   const [deckSubmitted, setDeckSubmitted] = useState(false);
   const [error, setError]           = useState('');
@@ -66,7 +66,7 @@ export default function OnlinePvpLobby({ db, user, cards, deckList, selectedLead
       const code = generateGameCode();
       await createRoomDoc(db, code, user.uid);
       setGameCode(code);
-      setMyRole('human');
+      setMyRole('host');
     } catch (e) {
       console.error('PvP createRoom error:', e);
       setError(`Failed to create room: ${e.message}`);
@@ -90,13 +90,13 @@ export default function OnlinePvpLobby({ db, user, cards, deckList, selectedLead
       // Rejoin: uid matches a player already assigned to this room
       if (user.uid === data.hostUid) {
         setGameCode(code);
-        setMyRole('human');
+        setMyRole('host');
         setLoading(false);
         return;
       }
       if (user.uid === data.guestUid) {
         setGameCode(code);
-        setMyRole('ai');
+        setMyRole('guest');
         setLoading(false);
         return;
       }
@@ -105,7 +105,7 @@ export default function OnlinePvpLobby({ db, user, cards, deckList, selectedLead
       if (data.guestUid) { setError('Room already has a second player.'); setLoading(false); return; }
       await joinRoomDoc(db, code, user.uid);
       setGameCode(code);
-      setMyRole('ai');
+      setMyRole('guest');
     } catch (e) {
       setError('Failed to join room. Please try again.');
     } finally {
@@ -125,7 +125,7 @@ export default function OnlinePvpLobby({ db, user, cards, deckList, selectedLead
       setDeckSubmitted(true);
 
       // If host and both decks are ready, initialize game state
-      if (myRole === 'human') {
+      if (myRole === 'host') {
         const ref = getRoomRef(db, gameCode);
         const snap = await getDoc(ref);
         const data = snap.data();
@@ -143,7 +143,7 @@ export default function OnlinePvpLobby({ db, user, cards, deckList, selectedLead
 
   // ── Watch for both decks submitted (host side) ────────────────────────────
   useEffect(() => {
-    if (myRole !== 'human' || !deckSubmitted || !roomData) return;
+    if (myRole !== 'host' || !deckSubmitted || !roomData) return;
     if (roomData.hostDeck && roomData.guestDeck && roomData.status === 'deckSubmit') {
       const deckCards = expandDeck(deckList, cards).filter(c => c.category !== 'Leader');
       const resolvedName = playerName.trim() || selectedLeader?.name || 'Player';
@@ -153,7 +153,7 @@ export default function OnlinePvpLobby({ db, user, cards, deckList, selectedLead
 
   // ── Render ────────────────────────────────────────────────────────────────
   // Waiting for opponent to join
-  if (myRole && !roomData?.guestUid && myRole === 'human') {
+  if (myRole && !roomData?.guestUid && myRole === 'host') {
     return (
       <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 gap-6">
         <button onClick={onClose} className="absolute top-4 left-4 text-slate-400 hover:text-white text-sm font-bold">← Back</button>
@@ -167,8 +167,8 @@ export default function OnlinePvpLobby({ db, user, cards, deckList, selectedLead
   }
 
   // Both joined — deck submission phase
-  if (myRole && (roomData?.guestUid || myRole === 'ai')) {
-    const opponentReady = myRole === 'human' ? !!roomData?.guestDeck : !!roomData?.hostDeck;
+  if (myRole && (roomData?.guestUid || myRole === 'guest')) {
+    const opponentReady = myRole === 'host' ? !!roomData?.guestDeck : !!roomData?.hostDeck;
     return (
       <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 gap-6">
         <button onClick={onClose} className="absolute top-4 left-4 text-slate-400 hover:text-white text-sm font-bold">← Back</button>
@@ -277,8 +277,8 @@ async function initializeGame(db, gameCode, hostLeader, hostCards, guestDeckPayl
   const guestCards = guestDeckPayload.cards.filter(c => c.category !== 'Leader');
   const guestLeader = guestDeckPayload.leader;
   const playerNames = {
-    human: hostPlayerName  || hostLeader?.name  || 'Host',
-    ai:    guestDeckPayload.playerName || guestLeader?.name || 'Guest',
+    host: hostPlayerName  || hostLeader?.name  || 'Host',
+    guest:    guestDeckPayload.playerName || guestLeader?.name || 'Guest',
   };
 
   const initialState = { ...createInitialState(hostLeader, hostCards, guestLeader, guestCards), pvpMode: true, playerNames };

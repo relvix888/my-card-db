@@ -1,7 +1,7 @@
 import React from 'react';
 import { BATTLE_STEP } from '../engine/constants';
 
-export default function BattleOverlay({ battle, humanState, aiState }) {
+export default function BattleOverlay({ battle, hostState, guestState }) {
   if (!battle) return null;
 
   const { step, atkPower, defPower, attackerOwner, targetZone } = battle;
@@ -12,7 +12,7 @@ export default function BattleOverlay({ battle, humanState, aiState }) {
     [BATTLE_STEP.DAMAGE]:  'Damage Step',
   }[step] || '';
 
-  const attackerName = attackerOwner === 'human' ? 'You' : 'AI';
+  const attackerName = attackerOwner === 'host' ? 'You' : 'AI';
   const winning = atkPower >= defPower;
 
   return (
@@ -21,7 +21,7 @@ export default function BattleOverlay({ battle, humanState, aiState }) {
         ⚔ {stepLabel}
       </div>
       <div className="flex items-center gap-3">
-        <span className={`text-sm font-black ${attackerOwner === 'human' ? 'text-blue-400' : 'text-red-400'}`}>
+        <span className={`text-sm font-black ${attackerOwner === 'host' ? 'text-blue-400' : 'text-red-400'}`}>
           {atkPower.toLocaleString()}
         </span>
         <span className="text-slate-500 font-bold">vs</span>
@@ -29,7 +29,7 @@ export default function BattleOverlay({ battle, humanState, aiState }) {
           {defPower.toLocaleString()}
         </span>
         <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${winning ? 'bg-blue-700 text-white' : 'bg-red-800 text-white'}`}>
-          {winning ? (attackerOwner === 'human' ? 'Win' : 'AI Wins') : 'Fail'}
+          {winning ? (attackerOwner === 'host' ? 'Win' : 'AI Wins') : 'Fail'}
         </span>
       </div>
     </div>

@@ -12,7 +12,7 @@ export const BATTLE_STEP = {
   DAMAGE: 'damage',
 };
 
-export const PLAYER = { HUMAN: 'human', AI: 'ai' };
+export const PLAYER = { HOST: 'host', GUEST: 'guest' };
 
 export const ZONE = {
   HAND: 'hand',

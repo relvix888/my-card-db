@@ -204,18 +204,38 @@ function buildChoiceConfig(choices, pendingEffect, state, getName) {
     })),
   };
 
-  if (type === 'CHOOSE_NULL_EFFECT_TARGET') return {
-    title: 'Negate Effect',
-    subtitle: `Choose up to ${choices.max} card(s) — their effects are negated until end of turn`,
-    maxSelect: choices.max,
-    canSkip: true,
-    items: choices.indices.map(i => {
-      const card = i === -1
-        ? state[choices.targetOwner].leader.card
-        : state[choices.targetOwner].characterArea[i].card;
-      return { key: i, card, label: `${getName(card)} (Cost ${card.cost ?? 0})` };
-    }),
-  };
+  if (type === 'CHOOSE_NULL_EFFECT_TARGET') {
+    const pmSuffix = choices.linkedPowerMod
+      ? ` + ${choices.linkedPowerMod.delta > 0 ? '+' : ''}${choices.linkedPowerMod.delta} power`
+      : '';
+    return {
+      title: 'Negate Effect',
+      subtitle: `Choose up to ${choices.max} card(s) — effects negated until ${choices.until === 'nextOppTurn' ? "end of opponent's next turn" : 'end of turn'}${pmSuffix}`,
+      maxSelect: choices.max,
+      canSkip: true,
+      items: choices.indices.map(i => {
+        const card = i === -1
+          ? state[choices.targetOwner].leader.card
+          : state[choices.targetOwner].characterArea[i].card;
+        return { key: i, card, label: `${getName(card)} (Cost ${card.cost ?? 0})` };
+      }),
+    };
+  }
+
+  if (type === 'CHOOSE_POWER_PAIR_TARGETS') {
+    const pairPs = state[choices.targetOwner];
+    const [d1, d2] = pendingEffect.action.deltas;
+    return {
+      title: 'Choose Power Targets',
+      subtitle: `Select up to ${choices.max}: 1st target ${d1 > 0 ? '+' : ''}${d1}, 2nd target ${d2 > 0 ? '+' : ''}${d2}`,
+      maxSelect: choices.max,
+      canSkip: true,
+      items: choices.targets.map((t, i) => {
+        const card = t.zone === 'leader' ? pairPs.leader.card : pairPs.characterArea[t.index].card;
+        return { key: i, card, label: `${getName(card)} (${card.power ?? '?'})` };
+      }),
+    };
+  }
 
   if (type === 'CHOOSE_POWER_TARGET') {
     const pmPs = state[choices.targetOwner];
@@ -590,6 +610,17 @@ function buildChoiceConfig(choices, pendingEffect, state, getName) {
     items: choices.options.map((_, i) => ({ key: i, card: null, donLabel: 'Rested', sourceLabel: 'Cost Area', eligible: true })),
   };
 
+  if (type === 'CHOOSE_OPP_DON_RETURN') {
+    const activeDon = (state[pendingEffect.owner]?.costArea ?? []).filter(d => d.state === 'active');
+    return {
+      title: 'Return DON!!?',
+      subtitle: `Return ${choices.count} active DON!! to your DON!! deck, or skip to take the penalty`,
+      maxSelect: choices.count,
+      canSkip: true,
+      items: activeDon.map((_, i) => ({ key: i, card: null, donLabel: 'Active', sourceLabel: 'Cost Area', eligible: true })),
+    };
+  }
+
   if (type === 'CHOOSE_DON_RETURN') {
     const ps = state[pendingEffect.owner];
     return {
@@ -813,6 +844,7 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
   // ── Effect modal ────────────────────────────────────────────────────────────
 
   const { sourceCard, choices } = pendingEffect;
+  const ACTIVATE_MAIN_TIMINGS = new Set(['啟動主要', '起動メイン', 'Activate: Main']);
 
   // ── Optional life-card take ────────────────────────────────────────────────
   if (choices.type === 'CHOOSE_LIFE_OPTIONAL') {
@@ -989,7 +1021,15 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
                 </span>
               </button>
             </div>
-            <div className="flex px-4 pb-4 pt-1 border-t border-slate-700">
+            <div className="flex gap-2 px-4 pb-4 pt-1 border-t border-slate-700">
+              {ACTIVATE_MAIN_TIMINGS.has(pendingEffect?.timing) && (
+                <button
+                  onClick={() => { onResolve('CANCEL'); }}
+                  className="flex-1 py-3 bg-red-900/60 hover:bg-red-800/60 text-red-200 font-bold text-sm rounded-xl active:scale-95 transition-all"
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 onClick={() => { onResolve([]); }}
                 className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm rounded-xl active:scale-95 transition-all"
@@ -1183,7 +1223,15 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
                 </span>
               </button>
             </div>
-            <div className="flex px-4 pb-4 pt-1 border-t border-slate-700">
+            <div className="flex gap-2 px-4 pb-4 pt-1 border-t border-slate-700">
+              {ACTIVATE_MAIN_TIMINGS.has(pendingEffect?.timing) && (
+                <button
+                  onClick={() => { onResolve('CANCEL'); }}
+                  className="flex-1 py-3 bg-red-900/60 hover:bg-red-800/60 text-red-200 font-bold text-sm rounded-xl active:scale-95 transition-all"
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 onClick={() => { onResolve([]); }}
                 className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm rounded-xl active:scale-95 transition-all"
@@ -1355,6 +1403,8 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
   const choiceConfig = buildChoiceConfig(choices, pendingEffect, state, getName);
   if (!choiceConfig) return null;
 
+  if (ACTIVATE_MAIN_TIMINGS.has(pendingEffect?.timing)) choiceConfig.canCancel = true;
+
   const { title, subtitle, items, maxSelect, canSkip, canCancel } = choiceConfig;
 
   const previewCard = hoveredCard ?? (
@@ -1365,6 +1415,7 @@ export default function EffectModal({ pendingEffect, pendingReplace, state, onRe
   if (choices.type === 'CHOOSE_DISCARD_FREE') confirmLabel = selected.length ? `Discard ${selected.length}` : 'Skip';
   if (choices.type === 'CHOOSE_FREE_EVENT')   confirmLabel = selected.length ? `Activate ${selected.length}` : 'Skip';
   if (choices.type === 'CHOOSE_DON_UNREST')   confirmLabel = selected.length ? `Activate ${selected.length}` : 'Skip';
+  if (choices.type === 'CHOOSE_OPP_DON_RETURN') confirmLabel = selected.length ? `Return ${selected.length} DON!!` : 'Return';
 
   function toggle(key) {
     const item = items.find(it => it.key === key);

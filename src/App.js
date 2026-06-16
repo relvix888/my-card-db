@@ -2056,7 +2056,17 @@ const App = () => {
       "g",
     );
 
-    const plainText = text.replace(/<br>/g, "\n");
+    // English card data stores attribute tags pre-escaped (e.g. "&lt;Slash&gt;").
+    // Decode HTML entities so they render as "<Slash>" instead of literal "&lt;Slash&gt;".
+    const decodeEntities = (s) =>
+      s
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#0?39;/g, "'")
+        .replace(/&amp;/g, "&");
+
+    const plainText = decodeEntities(text.replace(/<br>/g, "\n"));
     const parts = plainText.split(regex);
 
     return parts.map((part, index) => {

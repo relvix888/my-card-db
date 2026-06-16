@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import FieldCardSlot from './FieldCardSlot';
 import DonArea from './DonArea';
 import CardDetailOverlay from './CardDetailOverlay';
@@ -33,6 +33,8 @@ export default function PlayerField({
   revealed = false,
   isCompact = false,
   disableStats = false,
+  fieldFlashFcId = null,
+  donFlashItem = null,
 }) {
   const { leader, characterArea = [], stageArea, lifeArea = [], lifeAreaFaceUp = [], costArea = [], donDeck = [], trash = [] } = playerState;
 
@@ -53,6 +55,23 @@ export default function PlayerField({
 
   const activeDonCount = costArea.filter(d => d.state === 'active').length;
   const small = isCompact;
+
+  const [donBadge, setDonBadge] = useState(null);
+  useEffect(() => {
+    if (!donFlashItem) return;
+    const isGain = donFlashItem.label === 'DON_GAIN';
+    const isRested = isGain && donFlashItem.donState === 'rest';
+    const text = isGain
+      ? `+${donFlashItem.donCount}${isRested ? ' ↩' : ''}`
+      : `⚡${donFlashItem.donCount > 1 ? `×${donFlashItem.donCount}` : ''}`;
+    const colorCls = isGain
+      ? (isRested ? 'bg-slate-400 text-black' : 'bg-teal-400 text-black')
+      : 'bg-yellow-400 text-black';
+    setDonBadge({ text, colorCls, visible: true });
+    const fadeTimer  = setTimeout(() => setDonBadge(b => b ? { ...b, visible: false } : null), 800);
+    const clearTimer = setTimeout(() => setDonBadge(null), 1100);
+    return () => { clearTimeout(fadeTimer); clearTimeout(clearTimer); };
+  }, [donFlashItem]);
 
   // How many attached don from each source are selected for return
   const selectedLeaderDonCount = donReturnMode && donReturnOptions
@@ -103,14 +122,15 @@ export default function PlayerField({
         const charHasRush       = fcHasRush(fc);
         const charHasCharRush   = fcHasCharRushOnly(fc);
         return (
-          <div key={`${fc.card.id}-${i}`} className="relative flex-shrink-0">
+          <div key={`${fc.card.id}-${i}`} className={`relative flex-shrink-0${fieldFlashFcId && fc._fcId === fieldFlashFcId ? ' z-20' : ''}`} data-field-card={`${owner}-character-${i}`} data-field-card-fcid={fc._fcId}>
             <FieldCardSlot
               fieldCard={fc}
-              isSelected={selectedZone === 'character' && selectedIndex === i && owner === 'human'}
+              isSelected={selectedZone === 'character' && selectedIndex === i && owner === 'host'}
               isAttacker={isAttacker('character', i)}
               isTargetable={(targetableChars && targetableChars.has(i)) || isTarget('character', i) || (donReturnMode && charHasReturnable)}
               isEffectHighlight={effectHighlight?.zone === 'character' && effectHighlight?.index === i && (!effectHighlight?.targetOwner || effectHighlight?.targetOwner === owner)}
-              isEligibleBlocker={isDefender && !attackerHasUnblock && fc.state === 'active' && charHasBlocker && !isTarget('character', i)}
+              isEligibleBlocker={isDefender && !attackerHasUnblock && fc.state === 'active' && charHasBlocker && !fc.blockerDisabled && !isTarget('character', i)}
+              isNewlyPlayed={fieldFlashFcId === fc._fcId}
               isSmall={small}
               activePlayer={activePlayer}
               owner={owner}
@@ -331,7 +351,7 @@ export default function PlayerField({
   ) : (
     // Normal mode: vertical compact card + fraction label, matches DeckWidget style
     <div
-      className={`flex flex-col items-center gap-0.5 flex-shrink-0 select-none
+      className={`relative flex flex-col items-center gap-0.5 flex-shrink-0 select-none
         ${!isOpponent && activeDonCount > 0 ? 'cursor-pointer' : ''}`}
       onClick={!isOpponent && activeDonCount > 0 ? (e) => { e.stopPropagation(); onDonAreaClick?.(); } : undefined}
     >
@@ -353,6 +373,13 @@ export default function PlayerField({
           </span>
         )}
       </div>
+      {donBadge && (
+        <div className={`absolute inset-x-0 -top-5 flex justify-center pointer-events-none transition-opacity duration-300 ${donBadge.visible ? 'opacity-100' : 'opacity-0'}`}>
+          <span className={`${donBadge.colorCls} text-xs font-black px-1.5 py-0.5 rounded-full shadow-lg whitespace-nowrap`}>
+            {donBadge.text}
+          </span>
+        </div>
+      )}
       <span className={`text-[8px] font-bold ${
         selectedDonCount > 0 ? 'text-yellow-400' :
         activeDonCount === 0 ? 'text-slate-500' : 'text-teal-400'
@@ -363,10 +390,10 @@ export default function PlayerField({
   );
 
   const LeaderEl = (
-    <div className="relative flex-shrink-0">
+    <div className="relative flex-shrink-0" data-field-card={`${owner}-leader`}>
       <FieldCardSlot
         fieldCard={leader}
-        isSelected={selectedZone === 'leader' && owner === 'human'}
+        isSelected={selectedZone === 'leader' && owner === 'host'}
         isAttacker={isAttacker('leader', -1)}
         isTargetable={isTarget('leader', -1) || (targetableChars && targetableChars.has('leader')) || (donReturnMode && leaderHasReturnable)}
         isEffectHighlight={effectHighlight?.zone === 'leader' && (!effectHighlight?.targetOwner || effectHighlight?.targetOwner === owner)}
@@ -392,15 +419,19 @@ export default function PlayerField({
     </div>
   );
 
+  const stageIsNew = fieldFlashFcId && stageArea?._fcId === fieldFlashFcId;
   const StageEl = (
-    <FieldCardSlot
-      fieldCard={stageArea}
-      label="STAGE"
-      isSmall={small}
-      empty={!stageArea}
-      disableStats={disableStats}
-      onClick={onStageClick}
-    />
+    <div className={stageIsNew ? 'relative z-20' : ''}>
+      <FieldCardSlot
+        fieldCard={stageArea}
+        label="STAGE"
+        isSmall={small}
+        empty={!stageArea}
+        disableStats={disableStats}
+        isNewlyPlayed={!!stageIsNew}
+        onClick={onStageClick}
+      />
+    </div>
   );
 
   const TrashEl = (

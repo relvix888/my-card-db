@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { getSafeImageUrl, cardBackImg } from '../../../utils/cardHelpers';
 
@@ -50,13 +50,36 @@ const ZONE_CONFIG = {
 
 export default function CardFlashOverlay({ flashItem }) {
   const [display, setDisplay] = useState(null);
+  const fallbackRef = useRef(null);
+  const fadeRef     = useRef(null);
+  const hideRef     = useRef(null);
+
+  // Called once the image is loaded (or on error) — starts the visible-display countdown.
+  // Also used as the hard-cap fallback so the flash never hangs if the image never fires.
+  const handleImgReady = useRef(null);
 
   useEffect(() => {
-    if (!flashItem?.card) return;
+    if (!flashItem?.card) { setDisplay(null); return; }
+    // Field-spotlight and DON labels are handled elsewhere; skip the big overlay.
+    if (flashItem.label === 'PLAY_CHARACTER' || flashItem.label === 'PLAY_STAGE'
+        || flashItem.label === 'DON_GAIN' || flashItem.label === 'DON_ACTIVATE') { setDisplay(null); return; }
     setDisplay({ card: flashItem.card, counterBonus: flashItem.counterBonus ?? null, label: flashItem.label ?? null, faceDown: flashItem.faceDown ?? false, fading: false });
-    const fadeOut = setTimeout(() => setDisplay(d => d ? { ...d, fading: true } : d), 1000);
-    const hide    = setTimeout(() => setDisplay(null), 1300);
-    return () => { clearTimeout(fadeOut); clearTimeout(hide); };
+
+    // Hard-cap: start the fade after 1500 ms even if the image never fires onLoad/onError
+    handleImgReady.current = () => {
+      clearTimeout(fallbackRef.current);
+      clearTimeout(fadeRef.current);
+      clearTimeout(hideRef.current);
+      fadeRef.current = setTimeout(() => setDisplay(d => d ? { ...d, fading: true } : d), 900);
+      hideRef.current = setTimeout(() => setDisplay(null), 1200);
+    };
+    fallbackRef.current = setTimeout(handleImgReady.current, 1500);
+
+    return () => {
+      clearTimeout(fallbackRef.current);
+      clearTimeout(fadeRef.current);
+      clearTimeout(hideRef.current);
+    };
   }, [flashItem?.id]); // eslint-disable-line
 
   if (!display) return null;
@@ -77,7 +100,8 @@ export default function CardFlashOverlay({ flashItem }) {
           alt={display.faceDown ? 'Card' : display.card.name}
           className="rounded-2xl shadow-2xl border-2 border-white/40"
           style={{ height: Math.round(window.innerHeight * 0.62), width: 'auto', objectFit: 'contain' }}
-          onError={e => { e.target.src = cardBackImg; }}
+          onLoad={() => handleImgReady.current?.()}
+          onError={e => { e.target.src = cardBackImg; handleImgReady.current?.(); }}
         />
         {display.counterBonus && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600/90 text-white font-black rounded-full px-4 py-1 text-xl shadow-lg border border-white/30 whitespace-nowrap">

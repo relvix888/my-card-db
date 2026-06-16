@@ -16,7 +16,7 @@ export function useFlashQueue(cardFlashQueue, dispatch, myRole = null) {
     const item = localFlashQueue.current.shift();
     activeFlashRef.current = item;
     setFlashItem(item);
-    flashTimerRef.current = setTimeout(advanceFlash, 1350);
+    flashTimerRef.current = setTimeout(advanceFlash, 1200);
   }
 
   useEffect(() => {

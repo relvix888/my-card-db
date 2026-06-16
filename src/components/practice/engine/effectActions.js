@@ -8,7 +8,7 @@
 import { PLAYER, DON_PER_TURN, FIRST_TURN_DON } from './constants';
 import { getLeaderProfile } from './leaderProfiles';
 import { parseEffect, parseEffectEN } from './effectParser';
-import { hasRush, hasCharacterRushOnly, leaderDiscardCompensationTrait, hasBlocker, fcHasBlocker, leaderHasRushCharsPassive, leaderGrantsRushOnTrashDeploy, resolveLeaderKOReplacementEffect } from './effects';
+import { hasRush, hasCharacterRushOnly, leaderDiscardCompensationTrait, hasBlocker, fcHasBlocker, leaderHasRushCharsPassive, leaderGrantsRushOnTrashDeploy, resolveLeaderKOReplacementEffect, hasTrigger, evaluateContinuousPower, evaluateGlobalContinuousPower, evaluateCharBasePowerOverride, resolveOnLifeLeaveEffect } from './effects';
 
 // ─── Internal helpers (duplicated to avoid circular imports with gameState.js) ─
 
@@ -35,12 +35,12 @@ function makeDon(tag) {
 }
 
 function opp(owner) {
-  return owner === PLAYER.HUMAN ? PLAYER.AI : PLAYER.HUMAN;
+  return owner === PLAYER.HOST ? PLAYER.GUEST : PLAYER.HOST;
 }
 
-// In PvP both players are human; in AI mode only PLAYER.HUMAN gets interactive prompts.
+// In PvP both players are human; in AI mode only PLAYER.HOST gets interactive prompts.
 function shouldPrompt(owner, state) {
-  return owner === PLAYER.HUMAN || !!state.pvpMode;
+  return owner === PLAYER.HOST || !!state.pvpMode;
 }
 
 // Pick the best `take` cards from a SEARCH candidate pool using a four-tier heuristic:
@@ -49,13 +49,20 @@ function shouldPrompt(owner, state) {
 //   2. Cost not already represented in hand (new tier)
 //   3. Fallback: highest cost
 // Within each tier, higher cost wins.
-function pickAiSearchCards(candidates, take, hand, state, owner) {
+function pickAiSearchCards(candidates, take, hand, state, owner, destination) {
   if (candidates.length <= take) return candidates;
 
   const leaderId     = state[owner]?.leader?.card?.id;
   const seekPriority = getLeaderProfile(leaderId)?.seekPriority ?? [];
   const baseId       = id => (id ?? '').replace(/_p\d+$/, '').replace(/_r$/, '');
   const isPriority   = c => seekPriority.includes(baseId(c.id));
+
+  // When placing into the life area, prefer cards with a Trigger ability (highest cost first).
+  if (destination === 'life') {
+    const withTrigger = candidates.filter(c => hasTrigger(c));
+    const pool = withTrigger.length ? withTrigger : candidates;
+    return [...pool].sort((a, b) => (b.cost ?? 0) - (a.cost ?? 0)).slice(0, take);
+  }
 
   const isFirst = state.firstPlayer === owner;
 
@@ -89,7 +96,7 @@ function pickAiSearchCards(candidates, take, hand, state, owner) {
 /**
  * Return true when the parsed condition is currently met.
  * @param {object} state  full game state
- * @param {string} owner  card controller ('human'|'ai')
+ * @param {string} owner  card controller ('host'|'guest')
  * @param {object} cond   condition from effectParser.parseCondition
  */
 export function evaluateCondition(state, owner, cond, fieldCard = null, skipContinuousCost = false) {
@@ -110,7 +117,7 @@ export function evaluateCondition(state, owner, cond, fieldCard = null, skipCont
         if ((leader.colors?.length ?? 0) <= 1) return false;
       }
       if (cond.attribute && cond.predicate === 'has') {
-        if (!(leader.attributes ?? []).includes(cond.attribute)) return false;
+        if (![...(leader.attributes ?? []), ...(ps?.leader?.tempAttributes ?? [])].includes(cond.attribute)) return false;
       }
       if (cond.traits && cond.predicate === 'has') {
         if (!cond.traits.some(trait => (leader.types ?? []).some(t => t.includes(trait)))) return false;
@@ -133,7 +140,7 @@ export function evaluateCondition(state, owner, cond, fieldCard = null, skipCont
       }
       // Compound: AND opponent's field DON count
       if (cond.oppDonField) {
-        const opp = owner === 'human' ? 'ai' : 'human';
+        const opp = owner === 'host' ? 'guest' : 'host';
         const ops = state[opp];
         const fieldDon = (ops?.costArea?.length ?? 0)
           + (ops?.leader?.attachedDon ?? 0)
@@ -252,7 +259,7 @@ export function evaluateCondition(state, owner, cond, fieldCard = null, skipCont
         const oppFieldDon = (oppPs?.costArea?.length ?? 0)
           + (oppPs?.leader?.attachedDon ?? 0)
           + (oppPs?.characterArea ?? []).reduce((s, fc) => s + fc.attachedDon, 0);
-        return fieldDon <= oppFieldDon;
+        return oppFieldDon - fieldDon >= (cond.donGap ?? 0);
       }
       if (cond.count !== undefined) {
         if (cond.countOp === 'zeroOrGte') return fieldDon === 0 || fieldDon >= cond.count;
@@ -368,7 +375,7 @@ export function matchesFilter(card, filter, fc = null, power = null, effectiveCo
   if (filter.orFilters) {
     if (!filter.orFilters.some(f => matchesFilter(card, f, fc, power))) return false;
   }
-  if (filter.attribute && !(card.attributes ?? []).includes(filter.attribute)) return false;
+  if (filter.attribute && ![...(card.attributes ?? []), ...(fc?.tempAttributes ?? [])].includes(filter.attribute)) return false;
 
   if (filter.orCategories) {
     if (!filter.orCategories.includes(card.category)) return false;
@@ -598,7 +605,7 @@ export function evaluateContinuousCostDelta(targetFC, targetOwner, state) {
   if (!state) return 0;
   const activePlayer = state.activePlayer;
   let delta = 0;
-  for (const srcOwner of [PLAYER.HUMAN, PLAYER.AI]) {
+  for (const srcOwner of [PLAYER.HOST, PLAYER.GUEST]) {
     const ps = state[srcOwner];
     for (const srcFC of [ps.leader, ...(ps.characterArea ?? [])]) {
       if (!srcFC?.card?.effect) continue;
@@ -692,9 +699,10 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
     }
 
     case 'DRAW': {
-      const handBefore = state[owner].hand.length;
-      const s = execDraw(state, owner, action.count, cn(sourceCard));
-      return { ...s, _lastDrawnCount: s[owner].hand.length - handBefore };
+      const drawTarget = action.owner === 'opponent' ? opponent : owner;
+      const handBefore = state[drawTarget].hand.length;
+      const s = execDraw(state, drawTarget, action.count, cn(sourceCard));
+      return { ...s, _lastDrawnCount: s[drawTarget].hand.length - handBefore };
     }
 
     case 'DRAW_PER_RETURNED': {
@@ -763,8 +771,15 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
 
       const effectiveCount = action.count ?? 1;
       const modOpts = action.setToZero ? { setToZero: true } : {};
+      // "opponent_turn_end" stored on the *opponent*'s powerMods would be cleared at the start
+      // of the opponent's turn (applyRefresh), not the end. Remap to 'nextOwnTurnEnd' so the
+      // mod is cleared in applyEndTurn when the target player's own turn ends — which is what
+      // "until the end of your opponent's next End Phase" actually means.
+      const storedUntil = (action.until === 'opponent_turn_end' && targetOwner === opponent)
+        ? 'nextOwnTurnEnd'
+        : action.until;
       const applyMod = (s, t) =>
-        addPowerMod(s, targetOwner, t.zone === 'leader' ? 'leader' : t.index, action.delta ?? 0, action.until, modOpts);
+        addPowerMod(s, targetOwner, t.zone === 'leader' ? 'leader' : t.index, action.delta ?? 0, storedUntil, modOpts);
 
       // Mass power mod: apply to all matched targets without prompting
       if (effectiveCount >= targets.length) {
@@ -776,8 +791,8 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
           names.push(cn(t.card));
         }
         const massLog = action.setToZero
-          ? `${cn(sourceCard)}: power set to 0 for ${names.join(', ')} (${action.until}).`
-          : `${cn(sourceCard)}: ${action.delta > 0 ? '+' : ''}${action.delta} to ${names.join(', ')} (${action.until}).`;
+          ? `${cn(sourceCard)}: power set to 0 for ${names.join(', ')} (${storedUntil}).`
+          : `${cn(sourceCard)}: ${action.delta > 0 ? '+' : ''}${action.delta} to ${names.join(', ')} (${storedUntil}).`;
         return addLog(s, massLog, 'action');
       }
 
@@ -789,14 +804,66 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
           max: effectiveCount,
         }, fieldPos);
       }
-      // AI: pick highest-power target (maximises impact whether debuffing enemy or buffing own)
-      const aiTarget = [...targets].sort((a, b) => (b.card.power ?? 0) - (a.card.power ?? 0))[0];
+      // AI: pick highest-power target (maximises impact whether debuffing enemy or buffing own).
+      // Only prefer active targets over rested when the debuff is turn-only — a rested char can't
+      // attack this turn, so the immediate impact is zero. For multi-turn debuffs (nextOwnTurnEnd
+      // etc.) the rested char will refresh on the opponent's next turn, so highest power wins.
+      const _isDebuffOpp = targetOwner === opponent && (action.delta ?? 0) < 0;
+      const _isTurnOnly  = storedUntil === 'turn';
+      const aiTarget = [...targets].sort((a, b) => {
+        if (_isDebuffOpp && _isTurnOnly && a.zone === 'character' && b.zone === 'character') {
+          const aActive = state[targetOwner].characterArea[a.index]?.state === 'active' ? 1 : 0;
+          const bActive = state[targetOwner].characterArea[b.index]?.state === 'active' ? 1 : 0;
+          if (aActive !== bActive) return bActive - aActive;
+        }
+        return (b.card.power ?? 0) - (a.card.power ?? 0);
+      })[0];
       let s0 = applyMod(state, aiTarget);
       if (action.grantKeyword) s0 = applyTempKeyword(s0, targetOwner, aiTarget, action.grantKeyword);
       const aiLog = action.setToZero
-        ? `${cn(sourceCard)}: power set to 0 on ${cn(aiTarget.card)} (${action.until}).`
-        : `${cn(sourceCard)}: power ${action.delta > 0 ? '+' : ''}${action.delta} on ${cn(aiTarget.card)} (${action.until}).`;
+        ? `${cn(sourceCard)}: power set to 0 on ${cn(aiTarget.card)} (${storedUntil}).`
+        : `${cn(sourceCard)}: power ${action.delta > 0 ? '+' : ''}${action.delta} on ${cn(aiTarget.card)} (${storedUntil}).`;
       return addLog(s0, aiLog, 'action');
+    }
+
+    case 'POWER_MOD_PAIR': {
+      // "Select up to N targets: give the first -X power and the second -Y power."
+      // Both picks must be different targets; handled atomically to prevent double-targeting.
+      const targetOwner = action.filter?.owner === 'opponent' ? opponent : owner;
+      const tps = state[targetOwner];
+      const targets = [];
+      tps.characterArea.forEach((fc, i) => {
+        if (matchesFilter(fc.card, action.filter, fc))
+          targets.push({ zone: 'character', index: i, card: fc.card });
+      });
+
+      if (!targets.length) return state;
+
+      const storedUntil = (action.until === 'opponent_turn_end' && targetOwner === opponent)
+        ? 'nextOwnTurnEnd'
+        : action.until;
+
+      const applyPairMod = (s, t, delta) =>
+        addPowerMod(s, targetOwner, t.zone === 'leader' ? 'leader' : t.index, delta, storedUntil);
+
+      if (shouldPrompt(owner, state)) {
+        return setPendingEffect(state, owner, sourceCard, effectKey, action, continuation, {
+          type: 'CHOOSE_POWER_PAIR_TARGETS',
+          targetOwner,
+          targets: targets.map(t => ({ zone: t.zone, index: t.index })),
+          max: Math.min(action.count ?? 2, targets.length),
+        }, fieldPos);
+      }
+
+      // AI: apply the larger debuff to the highest-power target, smaller to the next.
+      const sorted = [...targets].sort((a, b) => (b.card.power ?? 0) - (a.card.power ?? 0));
+      let s0 = state;
+      const applied = [];
+      for (let i = 0; i < Math.min(action.deltas.length, sorted.length); i++) {
+        s0 = applyPairMod(s0, sorted[i], action.deltas[i]);
+        applied.push(`${cn(sorted[i].card)} ${action.deltas[i]}`);
+      }
+      return addLog(s0, `${cn(sourceCard)}: ${applied.join(', ')} (${storedUntil}).`, 'action');
     }
 
     case 'POWER_SET': {
@@ -1183,7 +1250,13 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
 
       const targets = tps.characterArea
         .map((fc, i) => ({ fc, i }))
-        .filter(({ fc }) => matchesFilter(fc.card, action.filter, fc));
+        .filter(({ fc }) => {
+          const baseOverride = evaluateCharBasePowerOverride(fc, state.activePlayer, targetOwner, state);
+          const effectivePower = (baseOverride !== null ? baseOverride : (fc.card?.power ?? 0))
+            + evaluateContinuousPower(fc, state.activePlayer, targetOwner, state)
+            + evaluateGlobalContinuousPower(fc, state.activePlayer, targetOwner, state);
+          return matchesFilter(fc.card, action.filter, fc, effectivePower);
+        });
 
       if (!targets.length) return state;
 
@@ -1313,8 +1386,15 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       const targetOwner = opponent;
       const tps = state[targetOwner];
       const targets = tps.characterArea
-        .map((fc, i) => ({ fc, i }))
-        .filter(({ fc }) => matchesFilter(fc.card, action.filter, fc));
+        .map((fc, i) => ({
+          fc, i,
+          // Use effective cost (base + costMods + continuous cost gains) so cost-bounded
+          // filters respect e.g. OP12-063's +5 cost while it has 4+ Events in trash.
+          effectiveCost: Math.max(0, (fc.card.cost ?? 0) + (tps.costMods ?? [])
+            .filter(m => m.target === i)
+            .reduce((acc, m) => acc + m.delta, 0) + evaluateContinuousCostDelta(fc, targetOwner, state)),
+        }))
+        .filter(({ fc, effectiveCost }) => matchesFilter(fc.card, action.filter, fc, null, effectiveCost));
 
       if (!targets.length) return state;
 
@@ -1327,7 +1407,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
         }, fieldPos);
       }
       // AI: lock highest-cost targets first
-      targets.sort((a, b) => (b.fc.card.cost ?? 0) - (a.fc.card.cost ?? 0));
+      targets.sort((a, b) => (b.effectiveCost ?? 0) - (a.effectiveCost ?? 0));
       let s = state;
       for (const { i } of targets.slice(0, action.count ?? 1)) {
         const tps2 = s[targetOwner];
@@ -1517,6 +1597,25 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
             ? (state[b.owner].characterArea[b.charIndex].card.cost ?? 0) - (state[a.owner].characterArea[a.charIndex].card.cost ?? 0)
             : (state[a.owner].characterArea[a.charIndex].card.power ?? 0) - (state[b.owner].characterArea[b.charIndex].card.power ?? 0)
         )[0];
+
+        // When returning an own character (no opponent targets), check whether the optional
+        // trade is beneficial: only proceed if a DEPLOY-from-hand continuation would place a
+        // card with strictly higher power than the character being returned. "可以X，Y" effects
+        // are optional but the parser omits CONFIRM_OPTIONAL_ACTIVATION when there is no colon
+        // separator, so the AI must make the benefit judgement here.
+        if (!opponentTargets.length) {
+          const deployFollowUp = continuation.find(
+            a => a.type === 'DEPLOY' && (a.filter?.zone ?? 'hand') === 'hand'
+          );
+          if (deployFollowUp) {
+            const ps = state[owner];
+            const bestDeployPow = ps.hand
+              .filter(c => c.category === 'Character' && matchesFilter(c, deployFollowUp.filter ?? {}))
+              .reduce((max, c) => Math.max(max, c.power ?? 0), 0);
+            const returnPow = state[pick.owner].characterArea[pick.charIndex].card.power ?? 0;
+            if (bestDeployPow <= returnPow) return state; // trade not worth it — decline
+          }
+        }
       }
       return execReturnHand(state, pick.owner, pick.charIndex, cn(sourceCard));
     }
@@ -1743,16 +1842,19 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
         }, fieldPos);
       }
       // AI: auto-select first N matching cards — cards stay in hand
+      // Return state only — outer executeActionSequence loop handles continuation.
+      // (Calling executeActionSequence(continuation) here would double-fire subsequent actions.)
       const revealed = targets.slice(0, action.count).map(t => t.c);
       return addLog(
-        executeActionSequence(state, owner, continuation, sourceCard, effectKey, fieldPos),
+        state,
         `${cn(sourceCard)}: revealed ${revealed.map(c => cn(c)).join(', ')}.`,
         'action'
       );
     }
 
     case 'REVEAL_HAND': {
-      const ps = state[owner];
+      const revealOwner = action.filter?.owner === 'opponent' ? opponent : owner;
+      const ps = state[revealOwner];
 
       // Reveal-all variant: "公開手牌" — flash every hand card, no selection prompt
       if (action.count === Infinity) {
@@ -1761,7 +1863,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
         const afterFlash = hand.reduce((acc, c) => appendFlash(acc, c, 'REVEAL'), state);
         return addLog(
           executeActionSequence(afterFlash, owner, continuation, sourceCard, effectKey, fieldPos),
-          `${cn(sourceCard)}: ${owner} reveals their hand (${hand.map(c => cn(c)).join(', ')}).`,
+          `${cn(sourceCard)}: ${revealOwner} reveals their hand (${hand.map(c => cn(c)).join(', ')}).`,
           'action'
         );
       }
@@ -1976,7 +2078,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       }
       // AI: take matching, put rest on bottom or trash depending on flag
       const allMatching = revealed.filter(c => matchesFilter(c, action.filter));
-      const matching = pickAiSearchCards(allMatching, action.take, state[owner].hand, state, owner);
+      const matching = pickAiSearchCards(allMatching, action.take, state[owner].hand, state, owner, action.destination);
       const rest     = revealed.filter(c => !matching.includes(c));
       if (action.destination === 'life') {
         const curFU = ps.lifeAreaFaceUp ?? ps.lifeArea.map(() => false);
@@ -2213,13 +2315,13 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
         });
       }
 
-      let aiState = state;
+      let guestState = state;
       for (const t of sortedTargets.slice(0, maxTargets)) {
-        const pool = aiState[targetOwner].costArea.filter(d => !action.donState || d.state === action.donState);
+        const pool = guestState[targetOwner].costArea.filter(d => !action.donState || d.state === action.donState);
         if (!pool.length) break;
-        aiState = execAttachDon(aiState, targetOwner, t, pool.slice(0, donCountOverride ?? (action.count ?? 1)));
+        guestState = execAttachDon(guestState, targetOwner, t, pool.slice(0, donCountOverride ?? (action.count ?? 1)));
       }
-      return executeActionSequence(aiState, owner, continuation, sourceCard, effectKey, fieldPos);
+      return executeActionSequence(guestState, owner, continuation, sourceCard, effectKey, fieldPos);
     }
 
     case 'FLIP_LIFE_FACE_UP': {
@@ -2267,11 +2369,11 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
     }
 
     case 'POWER_MOD_PER_SELF_DON': {
-      // Per DON!! attached to this card: compute total delta and apply as a mass POWER_MOD.
-      const srcFC = fieldPos
-        ? (fieldPos.target === 'leader' ? state[owner].leader : state[owner].characterArea[fieldPos.target])
-        : null;
-      const donCount = srcFC?.attachedDon ?? 0;
+      // "該張角色卡" in e.g. OP15-008's Activate Main refers to the opponent's character
+      // that received DON during the On Play (not OP15-008 itself).  Use the opponent's
+      // character with the most attached DON as the count source.
+      const _pmOpp = owner === 'host' ? 'guest' : 'host';
+      const donCount = Math.max(0, ...state[_pmOpp].characterArea.map(fc => fc.attachedDon ?? 0));
       if (donCount === 0) return executeActionSequence(state, owner, continuation, sourceCard, effectKey, fieldPos);
       const totalDelta = Math.floor(donCount / (action.perDon ?? 1)) * (action.delta ?? 0);
       if (totalDelta === 0) return executeActionSequence(state, owner, continuation, sourceCard, effectKey, fieldPos);
@@ -2327,7 +2429,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       const newFaceUp = (defPs.lifeAreaFaceUp ?? defPs.lifeArea.map(() => false)).slice(0, -1);
 
       // Trigger check: let the human decide whether to activate it
-      if (!!(lifeCard?.trigger) && (targetOwner === PLAYER.HUMAN || state.pvpMode)) {
+      if (!!(lifeCard?.trigger) && (targetOwner === PLAYER.HOST || state.pvpMode)) {
         return addLog(appendFlash({
           ...state,
           waitingFor: targetOwner,
@@ -2344,14 +2446,15 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
             effectContinuationFieldPos: fieldPos,
           },
           [targetOwner]: { ...defPs, lifeArea: newLife, lifeAreaFaceUp: newFaceUp },
-        }, lifeCard, 'LIFE_TO_HAND'), `Damage! Life card revealed: ${cn(lifeCard)} — has Trigger!`, 'damage');
+        }, lifeCard, 'TRIGGER', { forPlayer: targetOwner }), `Damage! Life card revealed: ${cn(lifeCard)} — has Trigger!`, 'damage');
       }
 
-      // No trigger (or opponent is AI): card goes straight to hand
-      const s = addLog(appendFlash({
-        ...state,
-        [targetOwner]: { ...defPs, lifeArea: newLife, lifeAreaFaceUp: newFaceUp, hand: [...defPs.hand, lifeCard] },
-      }, lifeCard, 'LIFE_TO_HAND'), `Damage! ${cn(lifeCard)} → ${targetOwner}'s hand. Life remaining: ${newLife.length}.`, 'action');
+      // No trigger (or opponent is AI): card goes straight to hand — only flash to the player taking damage
+      const baseDmg = { ...state, [targetOwner]: { ...defPs, lifeArea: newLife, lifeAreaFaceUp: newFaceUp, hand: [...defPs.hand, lifeCard] } };
+      const s = addLog(
+        (targetOwner === PLAYER.HOST || state.pvpMode) ? appendFlash(baseDmg, lifeCard, 'LIFE_TO_HAND', { forPlayer: targetOwner }) : baseDmg,
+        `Damage! ${cn(lifeCard)} → ${targetOwner}'s hand. Life remaining: ${newLife.length}.`, 'action'
+      );
       return executeActionSequence(s, owner, continuation, sourceCard, effectKey, fieldPos);
     }
 
@@ -2367,7 +2470,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       const newFaceUp = (defPs.lifeAreaFaceUp ?? defPs.lifeArea.map(() => false)).slice(0, -1);
 
       // Trigger check: let the human decide whether to activate it
-      if (!!(lifeCard?.trigger) && (owner === PLAYER.HUMAN || state.pvpMode)) {
+      if (!!(lifeCard?.trigger) && (owner === PLAYER.HOST || state.pvpMode)) {
         return addLog(appendFlash({
           ...state,
           waitingFor: owner,
@@ -2400,7 +2503,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       if (action.isOptional && shouldPrompt(owner, state)) {
         // When choosePosition is set, CONFIRM_OPTIONAL_ACTIVATION already captured yes/no;
         // skip the redundant yes/no prompt and go straight to the top-vs-bottom choice.
-        if (action.choosePosition && (targetOwner === PLAYER.HUMAN || state.pvpMode)) {
+        if (action.choosePosition && (targetOwner === PLAYER.HOST || state.pvpMode)) {
           return setPendingEffect(state, owner, sourceCard, effectKey, action, continuation, {
             type: 'CHOOSE_LIFE_TO_HAND_POSITION',
             targetOwner,
@@ -2443,7 +2546,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
           }
         }
       }
-      if (action.choosePosition && (targetOwner === PLAYER.HUMAN || state.pvpMode)) {
+      if (action.choosePosition && (targetOwner === PLAYER.HOST || state.pvpMode)) {
         return setPendingEffect(state, owner, sourceCard, effectKey, action, continuation, {
           type: 'CHOOSE_LIFE_TO_HAND_POSITION',
           targetOwner,
@@ -2457,7 +2560,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       const newFaceUp = (ps.lifeAreaFaceUp ?? ps.lifeArea.map(() => false)).slice(0, -take);
       const base1 = { ...state, [targetOwner]: { ...ps, lifeArea: newLife, lifeAreaFaceUp: newFaceUp, hand: [...ps.hand, ...taken] } };
       const s1 = addLog(
-        (targetOwner === PLAYER.HUMAN || state.pvpMode) ? appendFlash(base1, taken[taken.length - 1], 'LIFE_TO_HAND') : base1,
+        (targetOwner === PLAYER.HOST || state.pvpMode) ? appendFlash(base1, taken[taken.length - 1], 'LIFE_TO_HAND') : base1,
         `${cn(sourceCard)}: moved ${take} life card(s) to hand.`, 'action'
       );
       return fireLifeLeaveEffects(s1, targetOwner);
@@ -2534,20 +2637,26 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
           else { keptLife.push(ps.lifeArea[i]); keptFU.push(faceUpArr[i]); }
         }
         if (!trashed.length) return state;
-        return addLog({
+        const sfaceup = addLog({
           ...state,
           [targetOwner]: { ...ps, lifeArea: keptLife, lifeAreaFaceUp: keptFU, trash: [...ps.trash, ...trashed] },
         }, `${cn(sourceCard)}: trashed ${trashed.length} face-up life card(s).`, 'action');
+        return !sfaceup.pendingEffect && !sfaceup.winner ? resolveOnLifeLeaveEffect(sfaceup) : sfaceup;
       }
 
-      const take    = Math.min(action.count ?? 1, ps.lifeArea.length);
+      // "downTo: N" — trash from the top until only N life cards remain (dynamic count).
+      const take    = action.downTo != null
+        ? Math.max(0, ps.lifeArea.length - action.downTo)
+        : Math.min(action.count ?? 1, ps.lifeArea.length);
       if (!take) return state;
       const lifeCard  = ps.lifeArea[ps.lifeArea.length - 1];
       const trashed   = ps.lifeArea.slice(-take);
       const newLife   = ps.lifeArea.slice(0, -take);
       const newFaceUp = (ps.lifeAreaFaceUp ?? ps.lifeArea.map(() => false)).slice(0, -take);
-      // Trigger check: if the trashed life card has a trigger and its owner is the human, let them activate it
-      if (lifeCard?.trigger && (targetOwner === PLAYER.HUMAN || state.pvpMode)) {
+      // Direct Life→Trash (Banish-style) does NOT activate Triggers — those fire only
+      // when the Leader takes damage. The trigger-activation path below is reserved for
+      // single-card effects that explicitly mirror damage; "downTo" bulk-trashes silently.
+      if (action.downTo == null && lifeCard?.trigger && (targetOwner === PLAYER.HOST || state.pvpMode)) {
         return addLog(appendFlash({
           ...state,
           waitingFor: targetOwner,
@@ -2568,10 +2677,10 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       }
       const baseTrash = { ...state, [targetOwner]: { ...ps, lifeArea: newLife, lifeAreaFaceUp: newFaceUp, trash: [...ps.trash, ...trashed] } };
       const s = addLog(
-        (targetOwner === PLAYER.HUMAN || state.pvpMode) ? appendFlash(baseTrash, trashed[trashed.length - 1], 'LIFE_TO_TRASH') : baseTrash,
+        (targetOwner === PLAYER.HOST || state.pvpMode) ? appendFlash(baseTrash, trashed[trashed.length - 1], 'LIFE_TO_TRASH') : baseTrash,
         `${cn(sourceCard)}: trashed ${take} life card(s).`, 'action'
       );
-      return s;
+      return !s.pendingEffect && !s.winner ? resolveOnLifeLeaveEffect(s) : s;
     }
 
     case 'ADD_TO_HAND': {
@@ -2592,7 +2701,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
           .filter(({ c }) => matchesFilter(c, filterNoZone));
         if (!targets.length) return state;
         const effectiveCount = Math.min(count, targets.length);
-        if (srcOwner === PLAYER.HUMAN || state.pvpMode) {
+        if (srcOwner === PLAYER.HOST || state.pvpMode) {
           return setPendingEffect(state, owner, sourceCard, effectKey, action, continuation, {
             type: 'CHOOSE_ADD_TO_HAND_TARGET',
             zone: 'trash',
@@ -2621,7 +2730,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
         });
         if (!targets.length) return state;
         const effectiveCount = Math.min(count, targets.length);
-        if (srcOwner === PLAYER.HUMAN || state.pvpMode) {
+        if (srcOwner === PLAYER.HOST || state.pvpMode) {
           return setPendingEffect(state, owner, sourceCard, effectKey, action, continuation, {
             type: 'CHOOSE_ADD_TO_HAND_TARGET',
             zone: 'field',
@@ -2682,7 +2791,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       const newFaceUp = [...(ps.lifeAreaFaceUp ?? ps.lifeArea.map(() => false)), ...Array(take).fill(false)];
       const baseDtl = { ...state, [targetOwner]: { ...ps, deck: newDeck, lifeArea: newLife, lifeAreaFaceUp: newFaceUp } };
       const s1 = addLog(
-        (targetOwner === PLAYER.HUMAN || state.pvpMode) ? appendFlash(baseDtl, added[added.length - 1], 'DECK_TO_LIFE', { faceDown: true }) : baseDtl,
+        (targetOwner === PLAYER.HOST || state.pvpMode) ? appendFlash(baseDtl, added[added.length - 1], 'DECK_TO_LIFE', { faceDown: true }) : baseDtl,
         `${cn(sourceCard)}: added ${take} card(s) from deck to life.`, 'action'
       );
       return s1;
@@ -2833,6 +2942,37 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       );
     }
 
+    case 'OPPONENT_DON_RETURN_CHOICE': {
+      // The opponent MAY return N active DON!! to their DON!! deck. If they decline (or cannot),
+      // the bundled elseActions (the penalty, e.g. a -2000 power mod) fire — executed with `owner`
+      // (the card's controller) so a filter.owner='opponent' inside them still targets the attacker.
+      const count = action.count ?? 1;
+      const elseActions = action.elseActions ?? [];
+      const aps = state[opponent];
+      const activeDon = aps.costArea.filter(d => d.state === 'active').length;
+
+      // Opponent has no DON!! to return → penalty applies.
+      if (activeDon < count) {
+        return executeActionSequence(
+          addLog(state, `${cn(sourceCard)}: opponent has no active DON!! to return.`, 'action'),
+          owner, [...elseActions, ...continuation], sourceCard, effectKey, fieldPos
+        );
+      }
+      // Human opponent decides interactively; AI keeps its DON!! and takes the penalty.
+      if (shouldPrompt(opponent, state)) {
+        return setPendingEffect(state, opponent, sourceCard, effectKey, action, continuation, {
+          type: 'CHOOSE_OPP_DON_RETURN',
+          count,
+          cardOwner: owner,
+          elseActions,
+        }, fieldPos);
+      }
+      return executeActionSequence(
+        addLog(state, `${cn(sourceCard)}: opponent keeps DON!!.`, 'action'),
+        owner, [...elseActions, ...continuation], sourceCard, effectKey, fieldPos
+      );
+    }
+
     case 'UNREST_DON_END_OF_TURN': {
       const prev = state[owner].pendingDonUnrestEot ?? 0;
       return addLog(
@@ -2863,10 +3003,12 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
 
       // count === null means "all" — activate every rested DON!! without a player choice
       if (action.count === null) {
-        return addLog({
+        const activatedCount = restDons.length;
+        return addLog(appendFlash({
           ...state,
           [owner]: { ...ps, costArea: ps.costArea.map(d => d.state === 'rest' ? { ...d, state: 'active' } : d) },
-        }, `${cn(sourceCard)}: activated all DON!!.`, 'action');
+        }, null, 'DON_ACTIVATE', { donCount: activatedCount, donOwner: owner }),
+        `${cn(sourceCard)}: activated all DON!!.`, 'action');
       }
 
       if (shouldPrompt(owner, state)) {
@@ -2879,10 +3021,11 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       // AI: activate as many rested DON!! as allowed
       const toActivate  = restDons.slice(0, action.count);
       const activateIds = new Set(toActivate.map(d => d._donId));
-      return addLog({
+      return addLog(appendFlash({
         ...state,
         [owner]: { ...ps, costArea: ps.costArea.map(d => activateIds.has(d._donId) ? { ...d, state: 'active' } : d) },
-      }, `${cn(sourceCard)}: activated ${toActivate.length} DON!!.`, 'action');
+      }, null, 'DON_ACTIVATE', { donCount: toActivate.length, donOwner: owner }),
+      `${cn(sourceCard)}: activated ${toActivate.length} DON!!.`, 'action');
     }
 
     case 'LOCK_DON_UNREST_BY_CHAR': {
@@ -2987,14 +3130,20 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
 
     case 'ADD_DON_FROM_DECK': {
       const ps = state[owner];
-      const take = Math.min(action.count, ps.donDeck.length);
+      // Guard: costArea + attached must never exceed the leader's DON!! deck size.
+      const maxDon = ps.donDeckMax ?? 10;
+      const inField = ps.costArea.length
+        + (ps.leader?.attachedDon ?? 0)
+        + ps.characterArea.reduce((acc, fc) => acc + (fc.attachedDon ?? 0), 0);
+      const take = Math.min(action.count, ps.donDeck.length, Math.max(0, maxDon - inField));
       if (take === 0) return state;
       const gained = ps.donDeck.slice(-take).map(d => ({ ...d, state: action.donState ?? 'active' }));
       const newDeck = ps.donDeck.slice(0, -take);
-      return addLog({
+      return addLog(appendFlash({
         ...state,
         [owner]: { ...ps, donDeck: newDeck, costArea: [...ps.costArea, ...gained] },
-      }, `${cn(sourceCard)}: Added ${take} ${action.donState ?? 'active'} DON!! from DON!! deck.`, 'action');
+      }, null, 'DON_GAIN', { donCount: take, donOwner: owner, donState: action.donState ?? 'active' }),
+      `${cn(sourceCard)}: Added ${take} ${action.donState ?? 'active'} DON!! from DON!! deck.`, 'action');
     }
 
     case 'OPPONENT_ADD_DON': {
@@ -3003,10 +3152,11 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       if (take === 0) return state;
       const gained = ops.donDeck.slice(-take).map(d => ({ ...d, state: 'active' }));
       const newDeck = ops.donDeck.slice(0, -take);
-      return addLog({
+      return addLog(appendFlash({
         ...state,
         [opponent]: { ...ops, donDeck: newDeck, costArea: [...ops.costArea, ...gained] },
-      }, `${cn(sourceCard)}: opponent added ${take} active DON!! from DON!! deck.`, 'action');
+      }, null, 'DON_GAIN', { donCount: take, donOwner: opponent }),
+      `${cn(sourceCard)}: opponent added ${take} active DON!! from DON!! deck.`, 'action');
     }
 
     case 'BLOCK_DEPLOY': {
@@ -3270,13 +3420,23 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       // Build the fc-level patch for a non-速攻 keyword grant: append to tempKeywords or opponentTurnEndKeywords
       // "startOfOwnTurn" == "opponent_turn_end" — both mean "cleared at the start of my next turn"
       const kwUntilKey = (action.until === 'opponent_turn_end' || action.until === 'startOfOwnTurn') ? 'opponentTurnEndKeywords' : 'tempKeywords';
+      // A combined grant ("獲得【keyword】和(X)屬性") also grants attribute X for the turn.
+      const withGrantedAttr = (fc, patch) => action.attribute
+        ? { ...patch, tempAttributes: [...(fc?.tempAttributes ?? []), action.attribute] }
+        : patch;
       function makeTempPatch(fc) {
-        if (action.keyword === '速攻') return patch;
-        if (action.keyword === 'RUSH_CHARS_ONLY') return { justDeployed: false, rushCharOnly: true };
-        if (action.keyword === 'CANNOT_ATTACK' && action.costMax != null) {
-          return { attackCostRestriction: { costMax: action.costMax } };
-        }
-        return { [kwUntilKey]: [...(fc?.[kwUntilKey] ?? []), action.keyword] };
+        const base = (() => {
+          if (action.keyword === '速攻') {
+            if (action.restriction === '角色') return { justDeployed: false, rushCharOnly: true };
+            return { justDeployed: false, [kwUntilKey]: [...(fc?.[kwUntilKey] ?? []), '速攻'] };
+          }
+          if (action.keyword === 'RUSH_CHARS_ONLY') return { justDeployed: false, rushCharOnly: true };
+          if (action.keyword === 'CANNOT_ATTACK' && action.costMax != null) {
+            return { attackCostRestriction: { costMax: action.costMax } };
+          }
+          return { [kwUntilKey]: [...(fc?.[kwUntilKey] ?? []), action.keyword] };
+        })();
+        return withGrantedAttr(fc, base);
       }
 
       // Self-grant: "這張角色卡" → apply directly to fieldPos, no target selection
@@ -3318,18 +3478,35 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
         const filterKwUntilKey = (kwUntilKey === 'tempKeywords' && action.until === 'turn' && targetOwner !== state.activePlayer)
           ? 'opponentTurnEndKeywords' : kwUntilKey;
         const makeFilterPatch = (fc) => {
-          if (action.keyword === '速攻') return { justDeployed: false, ...(action.restriction === '角色' ? { rushCharOnly: true } : {}) };
-          if (action.keyword === 'RUSH_CHARS_ONLY') return { justDeployed: false, rushCharOnly: true };
-          if (action.keyword === 'CANNOT_ATTACK' && action.costMax != null) return { attackCostRestriction: { costMax: action.costMax } };
-          return { [filterKwUntilKey]: [...(fc?.[filterKwUntilKey] ?? []), action.keyword] };
+          const base = (() => {
+            if (action.keyword === '速攻') {
+              if (action.restriction === '角色') return { justDeployed: false, rushCharOnly: true };
+              return { justDeployed: false, [filterKwUntilKey]: [...(fc?.[filterKwUntilKey] ?? []), '速攻'] };
+            }
+            if (action.keyword === 'RUSH_CHARS_ONLY') return { justDeployed: false, rushCharOnly: true };
+            if (action.keyword === 'CANNOT_ATTACK' && action.costMax != null) return { attackCostRestriction: { costMax: action.costMax } };
+            return { [filterKwUntilKey]: [...(fc?.[filterKwUntilKey] ?? []), action.keyword] };
+          })();
+          return withGrantedAttr(fc, base);
         };
         const tps = state[targetOwner];
-        const leaderTarget = action.filter?.includesLeader && matchesFilter(tps.leader?.card, action.filter, tps.leader)
+        // Effective power (base + DON!! + powerMods + continuous) so power-bounded grant
+        // filters (e.g. OP16-001's 8000+ requirement) respect buffs, not just base power.
+        const grantEffPower = (fc) => {
+          if (!fc) return 0;
+          const idx = fc === tps.leader ? 'leader' : tps.characterArea.indexOf(fc);
+          const mods = (tps.powerMods ?? []).filter(m => m.target === idx).reduce((s, m) => s + (m.delta ?? 0), 0);
+          const don = state.activePlayer === targetOwner ? (fc.attachedDon ?? 0) * 1000 : 0;
+          return (fc.card?.power ?? 0) + don + mods
+            + evaluateContinuousPower(fc, state.activePlayer, targetOwner, state)
+            + evaluateGlobalContinuousPower(fc, state.activePlayer, targetOwner, state);
+        };
+        const leaderTarget = action.filter?.includesLeader && matchesFilter(tps.leader?.card, action.filter, tps.leader, grantEffPower(tps.leader))
           ? [{ fc: tps.leader, i: 'leader' }]
           : [];
         const targets = [
           ...leaderTarget,
-          ...tps.characterArea.map((fc, i) => ({ fc, i })).filter(({ fc }) => matchesFilter(fc.card, action.filter, fc)),
+          ...tps.characterArea.map((fc, i) => ({ fc, i })).filter(({ fc }) => matchesFilter(fc.card, action.filter, fc, grantEffPower(fc))),
         ];
         if (!targets.length) return state;
 
@@ -3359,9 +3536,17 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
             max: action.count ?? 1,
           }, fieldPos);
         }
-        // AI: for RUSH_ACTIVE_CHARS prefer already-attackable (not justDeployed) highest-power target
+        // AI: for RUSH_ACTIVE_CHARS prefer already-attackable (not justDeployed) highest-power target;
+        // for 速攻 (Rush) prefer highest-power justDeployed target so freshly played big chars get Rush.
         const aiTarget = action.keyword === 'RUSH_ACTIVE_CHARS'
           ? (targets.filter(t => t.i !== 'leader' && (!t.fc.justDeployed || t.fc.rushCharOnly)).concat(targets))[0]
+          : action.keyword === '速攻'
+          ? ([...targets].sort((a, b) => {
+              const aJD = a.i !== 'leader' && !!a.fc.justDeployed ? 1 : 0;
+              const bJD = b.i !== 'leader' && !!b.fc.justDeployed ? 1 : 0;
+              if (aJD !== bJD) return bJD - aJD;
+              return (b.fc.card?.power ?? 0) - (a.fc.card?.power ?? 0);
+            })[0] ?? targets[0])
           : targets[0];
         if (aiTarget.i === 'leader') {
           return addLog(
@@ -3383,12 +3568,12 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       const ps = state[owner];
       if (fieldPos.target === 'leader') {
         return addLog(
-          { ...state, [owner]: { ...ps, leader: { ...ps.leader, ...patch } } },
+          { ...state, [owner]: { ...ps, leader: { ...ps.leader, ...makeTempPatch(ps.leader) } } },
           `${cn(sourceCard)} gained 【${kwLabel}】 this turn.`, 'action'
         );
       }
       const newChars = ps.characterArea.map((fc, i) =>
-        i === fieldPos.target ? { ...fc, ...patch } : fc
+        i === fieldPos.target ? { ...fc, ...makeTempPatch(fc) } : fc
       );
       return addLog(
         { ...state, [owner]: { ...ps, characterArea: newChars } },
@@ -3812,7 +3997,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       const nullTargetOwner = action.filter?.owner === 'self' ? owner : opponent;
       const nullTargets = [];
       const nullTps0 = state[nullTargetOwner];
-      if (action.filter?.includesLeader && matchesFilter(nullTps0.leader?.card, action.filter))
+      if ((action.filter?.includesLeader || action.filter?.category === 'Leader') && matchesFilter(nullTps0.leader?.card, action.filter))
         nullTargets.push({ fc: nullTps0.leader, i: -1 });
       nullTps0.characterArea.forEach((fc, i) => {
         if (matchesFilter(fc.card, action.filter, fc)) nullTargets.push({ fc, i });
@@ -3826,25 +4011,44 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
           targetOwner: nullTargetOwner,
           indices: nullTargets.map(t => t.i),
           max: action.count ?? 1,
+          linkedPowerMod: action.linkedPowerMod ?? null,
+          linkedAttackLock: action.linkedAttackLock ?? false,
+          until: action.until ?? 'turn',
         }, fieldPos);
       }
-      // AI: negate highest-cost targets first
+      // AI: negate highest-cost targets first; apply linkedPowerMod to same targets
       const nullSorted = [...nullTargets].sort((a, b) => (b.fc.card.cost ?? 0) - (a.fc.card.cost ?? 0));
+      const negateUntilNextOppTurn = action.until === 'nextOppTurn';
       let sn = state;
       for (const { i } of nullSorted.slice(0, action.count ?? 1)) {
         const tps = sn[nullTargetOwner];
         if (i === -1) {
+          const leaderUpdate = negateUntilNextOppTurn
+            ? { effectNegatedNextOppTurn: true }
+            : { effectNegated: true };
           sn = addLog({
             ...sn,
-            [nullTargetOwner]: { ...tps, leader: { ...tps.leader, effectNegated: true } },
-          }, `${cn(tps.leader.card)}: effects negated until end of turn.`, 'action');
+            [nullTargetOwner]: { ...tps, leader: { ...tps.leader, ...leaderUpdate } },
+          }, `${cn(tps.leader.card)}: effects negated${negateUntilNextOppTurn ? ' until end of opponent\'s next turn' : ' until end of turn'}.`, 'action');
+          if (action.linkedPowerMod) {
+            sn = addLog(addPowerMod(sn, nullTargetOwner, 'leader', action.linkedPowerMod.delta, action.linkedPowerMod.until),
+              `${cn(sn[nullTargetOwner].leader.card)}: ${action.linkedPowerMod.delta > 0 ? '+' : ''}${action.linkedPowerMod.delta} power (${action.linkedPowerMod.until}).`, 'action');
+          }
         } else {
+          const charUpdate = negateUntilNextOppTurn
+            ? { effectNegatedNextOppTurn: true }
+            : { effectNegated: true };
+          if (action.linkedAttackLock) charUpdate.attackLocked = true;
           sn = addLog({
             ...sn,
             [nullTargetOwner]: { ...tps, characterArea: tps.characterArea.map((fc, idx) =>
-              idx === i ? { ...fc, effectNegated: true } : fc
+              idx === i ? { ...fc, ...charUpdate } : fc
             ) },
-          }, `${cn(tps.characterArea[i].card)}: effects negated until end of turn.`, 'action');
+          }, `${cn(tps.characterArea[i].card)}: effects negated${negateUntilNextOppTurn ? ' until end of opponent\'s next turn' : ' until end of turn'}${action.linkedAttackLock ? ', cannot attack' : ''}.`, 'action');
+          if (action.linkedPowerMod) {
+            sn = addLog(addPowerMod(sn, nullTargetOwner, i, action.linkedPowerMod.delta, action.linkedPowerMod.until),
+              `${cn(sn[nullTargetOwner].characterArea[i].card)}: ${action.linkedPowerMod.delta > 0 ? '+' : ''}${action.linkedPowerMod.delta} power (${action.linkedPowerMod.until}).`, 'action');
+          }
         }
       }
       return executeActionSequence(sn, owner, continuation, sourceCard, effectKey, fieldPos);
@@ -3901,6 +4105,14 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
 
   const { owner, sourceCard, effectKey, action, continuation, choices, fieldPos, markUsedOnConfirm } = pe;
   let s = { ...state, pendingEffect: null };
+
+  // Generic CANCEL: player backed out of a prompt — undo effectUsed and abort
+  if (selectedIndices === 'CANCEL') {
+    const ps = s[owner];
+    const newEffectUsed = { ...(ps.effectUsed ?? {}) };
+    delete newEffectUsed[effectKey];
+    return { ...s, [owner]: { ...ps, effectUsed: newEffectUsed } };
+  }
 
   switch (choices.type) {
 
@@ -4031,13 +4243,6 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
     }
 
     case 'CHOOSE_REST_TARGET': {
-      // Cancel: undo the once-per-turn mark and abort continuation entirely
-      if (selectedIndices === 'CANCEL') {
-        const ps = s[owner];
-        const newEffectUsed = { ...(ps.effectUsed ?? {}) };
-        delete newEffectUsed[effectKey];
-        return { ...s, [owner]: { ...ps, effectUsed: newEffectUsed } };
-      }
       let donRestedCount = 0;
       if (choices.targets) {
         // New all-zone format: selectedIndices are indices into choices.targets
@@ -4167,20 +4372,36 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
     }
 
     case 'CHOOSE_NULL_EFFECT_TARGET': {
+      const negUntilNextOppTurn = choices.until === 'nextOppTurn';
       for (const idx of selectedIndices.slice(0, choices.max)) {
         const tps = s[choices.targetOwner];
         if (idx === -1) {
+          const leaderNegUpdate = negUntilNextOppTurn
+            ? { effectNegatedNextOppTurn: true }
+            : { effectNegated: true };
           s = addLog({
             ...s,
-            [choices.targetOwner]: { ...tps, leader: { ...tps.leader, effectNegated: true } },
-          }, `${cn(tps.leader.card)}: effects negated until end of turn.`, 'action');
+            [choices.targetOwner]: { ...tps, leader: { ...tps.leader, ...leaderNegUpdate } },
+          }, `${cn(tps.leader.card)}: effects negated${negUntilNextOppTurn ? ' until end of opponent\'s next turn' : ' until end of turn'}.`, 'action');
+          if (choices.linkedPowerMod) {
+            s = addLog(addPowerMod(s, choices.targetOwner, 'leader', choices.linkedPowerMod.delta, choices.linkedPowerMod.until),
+              `${cn(s[choices.targetOwner].leader.card)}: ${choices.linkedPowerMod.delta > 0 ? '+' : ''}${choices.linkedPowerMod.delta} power (${choices.linkedPowerMod.until}).`, 'action');
+          }
         } else {
+          const charNegUpdate = negUntilNextOppTurn
+            ? { effectNegatedNextOppTurn: true }
+            : { effectNegated: true };
+          if (choices.linkedAttackLock) charNegUpdate.attackLocked = true;
           s = addLog({
             ...s,
             [choices.targetOwner]: { ...tps, characterArea: tps.characterArea.map((fc, i) =>
-              i === idx ? { ...fc, effectNegated: true } : fc
+              i === idx ? { ...fc, ...charNegUpdate } : fc
             ) },
-          }, `${cn(tps.characterArea[idx].card)}: effects negated until end of turn.`, 'action');
+          }, `${cn(tps.characterArea[idx].card)}: effects negated${negUntilNextOppTurn ? ' until end of opponent\'s next turn' : ' until end of turn'}${choices.linkedAttackLock ? ', cannot attack' : ''}.`, 'action');
+          if (choices.linkedPowerMod) {
+            s = addLog(addPowerMod(s, choices.targetOwner, idx, choices.linkedPowerMod.delta, choices.linkedPowerMod.until),
+              `${cn(s[choices.targetOwner].characterArea[idx].card)}: ${choices.linkedPowerMod.delta > 0 ? '+' : ''}${choices.linkedPowerMod.delta} power (${choices.linkedPowerMod.until}).`, 'action');
+          }
         }
       }
       break;
@@ -4326,12 +4547,13 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
             return true;
           }).slice(0, choices.max)
         : [...selectedIndices].sort((a, b) => b - a).slice(0, choices.max);
-      for (const idx of uniqueFilteredIndices) {
+      for (let _di = 0; _di < uniqueFilteredIndices.length; _di++) {
+        const idx = uniqueFilteredIndices[_di];
         const currentPs = s[choices.sourceOwner];
         const deployingCard = currentPs.hand[idx];
         // Stage cards always go to stageArea — skip the character-area-full check
         if (currentPs.characterArea.length >= 5 && deployingCard?.category !== 'Stage') {
-          // Field is full and it's a human deploy — ask which character to replace
+          // Field is full — ask which character to replace, carrying the remaining unprocessed indices
           s = {
             ...s,
             pendingReplace: {
@@ -4339,6 +4561,8 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
               owner: choices.sourceOwner,
               card: deployingCard,
               handIndex: idx,
+              remainingIndices: uniqueFilteredIndices.slice(_di + 1),
+              deployState: choices.deployState ?? 'active',
               continuation,
               effectKey,
               sourceCard,
@@ -4598,13 +4822,18 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
           const target = t.zone === 'leader' ? 'leader' : t.index;
           const modOpts = action.setToZero ? { setToZero: true } : action.power !== undefined ? { setBase: action.power } : {};
           const effectiveDelta = action.totalDelta ?? action.delta ?? 0;
+          // Same remap as in the POWER_MOD handler: opponent_turn_end on the opponent's cards
+          // must be stored as nextOwnTurnEnd so it clears at end of the target's own turn.
+          const _chooseUntil = (action.until === 'opponent_turn_end' && choices.targetOwner !== owner)
+            ? 'nextOwnTurnEnd'
+            : action.until;
           const chooseLog = action.setToZero
             ? `Power set to 0 applied.`
             : action.power !== undefined
             ? `Base power set to ${action.power} applied.`
             : `Power ${effectiveDelta > 0 ? '+' : ''}${effectiveDelta} applied.`;
           s = addLog(
-            addPowerMod(s, choices.targetOwner, target, action.power !== undefined ? 0 : effectiveDelta, action.until, modOpts),
+            addPowerMod(s, choices.targetOwner, target, action.power !== undefined ? 0 : effectiveDelta, _chooseUntil, modOpts),
             chooseLog, 'action'
           );
           if (action.grantKeyword) s = applyTempKeyword(s, choices.targetOwner, t, action.grantKeyword);
@@ -4613,11 +4842,30 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
             const { condition: bonusCond, delta: bonusDelta } = action.conditionalBonus;
             if (!bonusCond || evaluateCondition(s, owner, bonusCond)) {
               s = addLog(
-                addPowerMod(s, choices.targetOwner, target, bonusDelta, action.until),
+                addPowerMod(s, choices.targetOwner, target, bonusDelta, _chooseUntil),
                 `Conditional bonus: additional ${bonusDelta > 0 ? '+' : ''}${bonusDelta} applied.`, 'action'
               );
             }
           }
+        }
+      }
+      break;
+    }
+
+    case 'CHOOSE_POWER_PAIR_TARGETS': {
+      // selectedIndices[0] → deltas[0], selectedIndices[1] → deltas[1]
+      const _pairUntil = (action.until === 'opponent_turn_end' && choices.targetOwner !== owner)
+        ? 'nextOwnTurnEnd'
+        : action.until;
+      for (let i = 0; i < selectedIndices.length && i < action.deltas.length; i++) {
+        const t = choices.targets[selectedIndices[i]];
+        if (t) {
+          const target = t.zone === 'leader' ? 'leader' : t.index;
+          const delta = action.deltas[i];
+          s = addLog(
+            addPowerMod(s, choices.targetOwner, target, delta, _pairUntil),
+            `Power ${delta > 0 ? '+' : ''}${delta} applied.`, 'action'
+          );
         }
       }
       break;
@@ -4873,6 +5121,15 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
             }
           }
         }
+        // Player declined an optional effect. If effectUsed was marked eagerly (before the
+        // player responded), undo it so a second trigger in the same turn still prompts them.
+        // The once-per-turn limit should only fire when the player actually activates the effect.
+        if (markUsedOnConfirm) {
+          const curPs = s[owner];
+          const newEffectUsed = { ...(curPs.effectUsed ?? {}) };
+          delete newEffectUsed[effectKey];
+          s = { ...s, [owner]: { ...curPs, effectUsed: newEffectUsed } };
+        }
         return s; // player skipped — drop cost + effect
       }
       // Player confirmed — KO is prevented; clear the pending replacement records.
@@ -5034,14 +5291,20 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
       const kwUntilKey = (action.until === 'opponent_turn_end' || action.until === 'startOfOwnTurn' ||
         (action.until === 'turn' && choices.targetOwner !== s.activePlayer))
         ? 'opponentTurnEndKeywords' : 'tempKeywords';
+      // A combined grant ("獲得【keyword】和(X)屬性") also grants attribute X for the turn.
+      const withTgtAttr = (fc, patch) => action.attribute
+        ? { ...patch, tempAttributes: [...(fc?.tempAttributes ?? []), action.attribute] }
+        : patch;
       const tps = s[choices.targetOwner];
       if (charIdx === 'leader') {
         const ldr = tps.leader;
-        const ldrPatch = action.keyword === '速攻'
-          ? { justDeployed: false, ...(action.restriction === '角色' ? { rushCharOnly: true } : {}) }
+        const ldrPatch = withTgtAttr(ldr, action.keyword === '速攻'
+          ? (action.restriction === '角色'
+            ? { justDeployed: false, rushCharOnly: true }
+            : { justDeployed: false, [kwUntilKey]: [...(ldr[kwUntilKey] ?? []), '速攻'] })
           : action.keyword === 'RUSH_CHARS_ONLY'
             ? { justDeployed: false, rushCharOnly: true }
-            : { [kwUntilKey]: [...(ldr[kwUntilKey] ?? []), action.keyword] };
+            : { [kwUntilKey]: [...(ldr[kwUntilKey] ?? []), action.keyword] });
         s = addLog(
           { ...s, [choices.targetOwner]: { ...tps, leader: { ...ldr, ...ldrPatch } } },
           `${cn(sourceCard)}: gave 【${kwLabel}】 to ${cn(ldr.card)}.`, 'action'
@@ -5050,17 +5313,44 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
       }
       const fc = tps.characterArea[charIdx];
       if (!fc) break;
-      const fcPatch = action.keyword === '速攻'
-        ? { justDeployed: false, ...(action.restriction === '角色' ? { rushCharOnly: true } : {}) }
+      const fcPatch = withTgtAttr(fc, action.keyword === '速攻'
+        ? (action.restriction === '角色'
+          ? { justDeployed: false, rushCharOnly: true }
+          : { justDeployed: false, [kwUntilKey]: [...(fc[kwUntilKey] ?? []), '速攻'] })
         : action.keyword === 'RUSH_CHARS_ONLY'
           ? { justDeployed: false, rushCharOnly: true }
-          : { [kwUntilKey]: [...(fc[kwUntilKey] ?? []), action.keyword] };
+          : { [kwUntilKey]: [...(fc[kwUntilKey] ?? []), action.keyword] });
       const newChars = tps.characterArea.map((c, i) => i === charIdx ? { ...c, ...fcPatch } : c);
       s = addLog(
         { ...s, [choices.targetOwner]: { ...tps, characterArea: newChars } },
         `${cn(sourceCard)}: gave 【${kwLabel}】 to ${cn(fc.card)}.`, 'action'
       );
       break;
+    }
+
+    case 'CHOOSE_OPP_DON_RETURN': {
+      // pendingEffect.owner is the opponent (attacker) making the choice.
+      // Selecting DON!! → return them and skip the penalty; skipping → penalty applies.
+      // Either way the remaining actions/penalty run as the card controller (choices.cardOwner).
+      const attacker = owner;
+      const defender = choices.cardOwner;
+      const count = choices.count ?? 1;
+      const elseActions = choices.elseActions ?? [];
+      const returnDon = Array.isArray(selectedIndices) && selectedIndices.length > 0;
+      if (returnDon) {
+        const aps = s[attacker];
+        const newCostArea = [...aps.costArea];
+        const returned = [];
+        for (let k = newCostArea.length - 1; k >= 0 && returned.length < count; k--) {
+          if (newCostArea[k].state === 'active') returned.push(...newCostArea.splice(k, 1));
+        }
+        s = addLog(
+          { ...s, [attacker]: { ...aps, costArea: newCostArea, donDeck: [...aps.donDeck, ...returned.map(d => ({ ...d, state: 'active' }))] } },
+          `${cn(sourceCard)}: opponent returned ${returned.length} DON!! to deck.`, 'action'
+        );
+        return executeActionSequence(s, defender, continuation, sourceCard, effectKey, fieldPos);
+      }
+      return executeActionSequence(s, defender, [...elseActions, ...continuation], sourceCard, effectKey, fieldPos);
     }
 
     case 'CHOOSE_KEYWORD_TO_GRANT': {
@@ -5195,7 +5485,7 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
         return executeActionSequence(s, owner, remaining, sourceCard, effectKey, fieldPos);
       }
       // Player accepted — proceed with life take
-      if (action.choosePosition && (choices.targetOwner === PLAYER.HUMAN || s.pvpMode)) {
+      if (action.choosePosition && (choices.targetOwner === PLAYER.HOST || s.pvpMode)) {
         return setPendingEffect(s, owner, sourceCard, effectKey, action, continuation, {
           type: 'CHOOSE_LIFE_TO_HAND_POSITION',
           targetOwner: choices.targetOwner,
@@ -5372,6 +5662,11 @@ function applyRedirectAttack(state, owner, target) {
     ? (ps.leader.card?.name ?? 'Leader')
     : (ps.characterArea[target.index]?.card?.name ?? 'Character');
   const newTargetCardId = isLeader ? null : (ps.characterArea[target.index]?.card?.id ?? null);
+  const redirectedFrom = {
+    owner: battle.targetOwner,
+    zone:  battle.targetZone,
+    index: battle.targetIndex,
+  };
   return addLog({
     ...state,
     battle: {
@@ -5380,6 +5675,7 @@ function applyRedirectAttack(state, owner, target) {
       targetIndex:   isLeader ? undefined : target.index,
       targetCardId:  newTargetCardId,
       defPower:      newDefPower,
+      redirectedFrom,
     },
   }, `Attack redirected to ${targetName} (${newDefPower}).`, 'battle');
 }
@@ -5427,6 +5723,14 @@ function execKO(state, targetOwner, charIndex, sourceName) {
   const returnedDon = Array.from({ length: koFC.attachedDon }, (_, i) =>
     ({ ...makeDon(`ko-eff-${i}`), state: 'rest' })
   );
+
+  // Check for character's own leave-field replacement before applying the KO.
+  // e.g. OP12-070: "if this character would be removed by opponent's effect, return 1 DON!! instead"
+  const replace = checkLeaveFieldReplacement(state, targetOwner, charIndex, {
+    context: 'KO', targetOwner, targetIndex: charIndex,
+    koCard: koFC.card, sourceName, returnedDon,
+  });
+  if (replace) return replace.state;
   const pendingKOEffects = koFC.card?.effect?.includes('KO時')
     ? [...(state.pendingKOEffects ?? []), { card: koFC.card, owner: targetOwner, attachedDon: koFC.attachedDon ?? 0 }]
     : state.pendingKOEffects;
@@ -5465,13 +5769,16 @@ export function checkLeaveFieldReplacement(state, targetOwner, charIndex, leaveC
   if (ps.effectUsed?.[effectKey]) return null;
   if (clause.condition && !evaluateCondition(state, targetOwner, clause.condition)) return null;
 
-  // Derive cost description from the action list (supports REST or DISCARD costs).
+  // Derive cost description from the action list (supports REST, DON_RETURN_FROM_FIELD, or DISCARD costs).
   const restCostAction = clause.actions.find(a => a.type === 'REST' && a.filter?.owner === 'self');
+  const donReturnAction = clause.actions.find(a => a.type === 'DON_RETURN_FROM_FIELD');
   const costDescription = restCostAction
     ? `置${restCostAction.count > 1 ? restCostAction.count : '1'}張自己的卡片為休息狀態`
+    : donReturnAction
+    ? `將${donReturnAction.count ?? 1}張自己場上的咚‼卡放回咚‼卡組`
     : '廢棄1張手牌';
 
-  if (targetOwner === PLAYER.HUMAN || state.pvpMode) {
+  if (targetOwner === PLAYER.HOST || state.pvpMode) {
     return {
       type: 'HUMAN_PENDING',
       state: {
@@ -5492,8 +5799,9 @@ export function checkLeaveFieldReplacement(state, targetOwner, charIndex, leaveC
     };
   }
 
-  // AI: execute the cost actions; detect success by hand or rested-card change.
+  // AI: execute the cost actions; detect success by hand, rested-card, or DON!! area change.
   const handBefore = state[targetOwner].hand.length;
+  const donAreaBefore = state[targetOwner].costArea.length;
   const restedBefore = (state[targetOwner].characterArea ?? []).filter(fc2 => fc2.state === 'rest').length
     + (state[targetOwner].leader?.state === 'rest' ? 1 : 0);
   const result = executeActionSequence(state, targetOwner, clause.actions, fc.card, effectKey, { target: charIndex });
@@ -5501,6 +5809,8 @@ export function checkLeaveFieldReplacement(state, targetOwner, charIndex, leaveC
     + (result[targetOwner].leader?.state === 'rest' ? 1 : 0);
   const success = restCostAction
     ? restedAfter > restedBefore
+    : donReturnAction
+    ? result[targetOwner].costArea.length < donAreaBefore
     : result[targetOwner].hand.length < handBefore;
   if (!success) return null; // cost payment failed
 

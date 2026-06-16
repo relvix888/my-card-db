@@ -15,7 +15,19 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const CARD_DATA_DIR = '/Users/rexchan/opc-uploader/data';
+
+// constants.js exports PLAYER as { HOST, GUEST }; this harness was written against the older
+// HUMAN/AI seat names. Alias them: HOST = deck under test (driven by the coverage heuristic),
+// GUEST = opponent (driven by aiPlayer.planMainPhase). This matches createInitialState's
+// (hostLeader, hostCards, guestLeader, guestCards) signature used by runGame below.
+PLAYER.HUMAN = PLAYER.HOST;
+PLAYER.AI = PLAYER.GUEST;
+// Card JSON was reorganised into ZH/ and EN/ subdirs; the flat dir now holds only promo files.
+// Read cards_*.json from the flat dir (legacy) and the ZH subdir, ZH taking precedence.
+const CARD_DATA_DIRS = [
+  '/Users/rexchan/opc-uploader/data',
+  '/Users/rexchan/opc-uploader/data/ZH',
+];
 
 // ─── Arg Parsing ──────────────────────────────────────────────────────────────
 
@@ -34,10 +46,18 @@ if (!deckLeaderId) {
 // ─── Data Loading ─────────────────────────────────────────────────────────────
 
 function loadAllCards() {
-  const files = readdirSync(CARD_DATA_DIR).filter(f => f.startsWith('cards_') && f.endsWith('.json'));
-  const all = [];
-  for (const f of files) all.push(...JSON.parse(readFileSync(join(CARD_DATA_DIR, f), 'utf-8')));
-  return all;
+  const byId = new Map();
+  for (const dir of CARD_DATA_DIRS) {
+    let files;
+    try { files = readdirSync(dir).filter(f => f.startsWith('cards_') && f.endsWith('.json')); }
+    catch { continue; }
+    for (const f of files) {
+      for (const card of JSON.parse(readFileSync(join(dir, f), 'utf-8'))) {
+        byId.set(card.id, card); // later dir (ZH) wins on duplicate id
+      }
+    }
+  }
+  return [...byId.values()];
 }
 
 function parseDeckString(deckStr, cardById) {

@@ -20,8 +20,9 @@ export const PHASE_COLORS = {
 
 export default function PhaseBar({
   state, onEndTurn, onSkipBlock, onSkipCounter, onUnblock,
-  myRole = PLAYER.HUMAN,
+  myRole = PLAYER.HOST,
   selectedCard, cardActions = [], onAction, onClearCard,
+  lastAiAction = null,
 }) {
   const { i18n } = useTranslation();
   const isEn = i18n.language.startsWith('en');
@@ -59,9 +60,13 @@ export default function PhaseBar({
                 : ({ Leader: '領', Character: '角', Stage: '台', Event: '事' }[selectedCard.category] ?? selectedCard.category)}
             </span>
           </>
+        ) : lastAiAction && !inBattle ? (
+          <span className={`text-[11px] truncate ${lastAiAction.type === 'battle' ? 'text-orange-400' : 'text-slate-400'}`}>
+            {lastAiAction.type === 'battle' ? '⚡' : '⚔'} {lastAiAction.text}
+          </span>
         ) : inBattle ? (
           <>
-            <span className={`flex items-center gap-1 min-w-0 shrink ${battle.attackerOwner === 'human' ? 'text-blue-400' : 'text-red-400'}`}>
+            <span className={`flex items-center gap-1 min-w-0 shrink ${battle.attackerOwner === 'host' ? 'text-blue-400' : 'text-red-400'}`}>
               <span className="truncate text-xs font-black">{atkName}</span>
               <span className="flex-shrink-0 text-xs font-black">{battle.atkPower.toLocaleString()}</span>
             </span>
