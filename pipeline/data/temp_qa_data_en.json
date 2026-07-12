@@ -1,408 +1,44 @@
 [
   {
-    "qaNum": "Q1284",
-    "title": "OP16-001 Portgas.D.Ace",
-    "cardId": "OP16-001",
-    "question": "Can I use this [Activate: Main] effect to give 1 of my \"Whitebeard Pirates\" Characters with 7000 power or less [Rush]?",
+    "qaNum": "Q1360",
+    "title": "ST36-001 Cavendish",
+    "cardId": "ST36-001",
+    "question": "If I have no cards in my hand, can I use this [On K.O.] effect to add 1 card from the top of my deck to the top of my Life cards without trashing 1 card from my hand?",
     "answer": "No, you cannot."
   },
   {
-    "qaNum": "Q1285",
-    "title": "OP16-002 Izo",
-    "cardId": "OP16-002",
-    "question": "Does \"Character card with 8000 power\" also include Character cards with 7000 power or less or Character cards with 9000 power or more?",
-    "answer": "No, it must be a Character card with exactly 8000 power."
-  },
-  {
-    "qaNum": "Q1286",
-    "title": "OP16-003 Edward.Newgate",
-    "cardId": "OP16-003",
-    "question": "Does \"Character cards with 8000 power\" also include Character cards with 7000 power or less or Character cards with 9000 power or more?",
-    "answer": "No, they must be Character cards with exactly 8000 power."
-  },
-  {
-    "qaNum": "Q1287",
-    "title": "OP16-003 Edward.Newgate",
-    "cardId": "OP16-003",
-    "question": "If I play this card while my Leader already has [Double Attack], what happens to this Card's [Your Turn] effect?",
-    "answer": "In this case, your Leader keeps its [Double Attack] and gains +2000 power during your turn."
-  },
-  {
-    "qaNum": "Q1288",
-    "title": "OP16-007 Jozu",
-    "cardId": "OP16-007",
-    "question": "Does \"Character card with 8000 power\" also include Character cards with 7000 power or less or Character cards with 9000 power or more?",
-    "answer": "No, it must be a Character card with exactly 8000 power."
-  },
-  {
-    "qaNum": "Q1289",
-    "title": "OP16-008 Squard",
-    "cardId": "OP16-008",
-    "question": "For this [On Play] effect, does \"Characters with 10000 base power\" also include Characters with 9000 base power or less and Characters with 11000 base power or more?",
-    "answer": "No, they must be Characters with exactly 10000 base power."
-  },
-  {
-    "qaNum": "Q1290",
-    "title": "OP16-009 Speed Jil",
-    "cardId": "OP16-009",
-    "question": "Does \"Character card with 8000 power\" also include Character cards with 7000 power or less or Character cards with 9000 power or more?",
-    "answer": "No, it must be a Character card with exactly 8000 power."
-  },
-  {
-    "qaNum": "Q1291",
-    "title": "OP16-010 Namule",
-    "cardId": "OP16-010",
-    "question": "Does \"Character card with 8000 power\" also include Character cards with 7000 power or less or Character cards with 9000 power or more?",
-    "answer": "No, it must be a Character card with exactly 8000 power."
-  },
-  {
-    "qaNum": "Q1292",
-    "title": "OP16-011 Vista",
-    "cardId": "OP16-011",
-    "question": "Does \"Character card with 8000 power\" also include Character cards with 7000 power or less or Character cards with 9000 power or more?",
-    "answer": "No, it must be a Character card with exactly 8000 power."
-  },
-  {
-    "qaNum": "Q1293",
-    "title": "OP16-014 Marco",
-    "cardId": "OP16-014",
-    "question": "Does \"Character card with 8000 power\" also include Character cards with 7000 power or less or Character cards with 9000 power or more?",
-    "answer": "No, it must be a Character card with exactly 8000 power."
-  },
-  {
-    "qaNum": "Q1294",
-    "title": "OP16-014 Marco",
-    "cardId": "OP16-014",
-    "question": "When this Character and one of my other Characters would be removed from the field at the same time, can I use the \"If one of your Characters would be removed from the field by your opponent's effect, you may K.O. this Character instead\" effect to only K.O. this Character instead?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1295",
-    "title": "OP16-015 Monkey.D.Luffy",
-    "cardId": "OP16-015",
-    "question": "Does \"Character card with 8000 power\" also include Character cards with 7000 power or less or Character cards with 9000 power or more?",
-    "answer": "No, it must be a Character card with exactly 8000 power."
-  },
-  {
-    "qaNum": "Q1296",
-    "title": "OP16-018 Rockstar",
-    "cardId": "OP16-018",
-    "question": "If my {Red-Haired Pirates} type Character would be K.O.'d, but I don't have any Character cards with 6000 power or more in my hand, can I activate this [Once Per Turn] effect to trash a different card from my hand instead?",
-    "answer": "No, you cannot. In this situation, your Character would be K.O.'d."
-  },
-  {
-    "qaNum": "Q1297",
-    "title": "OP16-019 Let's Show 'Em What We're Made Of!!",
-    "cardId": "OP16-019",
-    "question": "Does \"Character cards with 8000 power\" also include Character cards with 7000 power or less or Character cards with 9000 power or more?",
-    "answer": "No, it must be a Character card with exactly 8000 power."
-  },
-  {
-    "qaNum": "Q1298",
-    "title": "OP16-020 If You're Coming with Me... Kiss Your Lives Goodbye!!",
-    "cardId": "OP16-020",
-    "question": "Does \"Character card with 8000 power\" also include Character cards with 7000 power or less or Character cards with 9000 power or more?",
-    "answer": "No, it must be a Character card with exactly 8000 power."
-  },
-  {
-    "qaNum": "Q1299",
-    "title": "OP16-022 Monkey.D.Luffy",
-    "cardId": "OP16-022",
-    "question": "Can I use this [Activate: Main] effect to set my DON!! cards as active if there are no Characters on my field?",
+    "qaNum": "Q1361",
+    "title": "ST36-002 Killer",
+    "cardId": "ST36-002",
+    "question": "Can I activate this [On Play] effect during my opponent's turn?",
     "answer": "No, you cannot."
   },
   {
-    "qaNum": "Q1300",
-    "title": "OP16-025 Bunkov",
-    "cardId": "OP16-025",
-    "question": "If my Leader has an effect that reads \"is treated as a card with all card names, types, and attributes,\" but I do not have [Antlerkov], can I still play up to 1 Character card with a cost of 2 or less from my hand?",
-    "answer": "Yes, you can."
+    "qaNum": "Q1362",
+    "title": "ST36-003 Scratchmen Apoo",
+    "cardId": "ST36-003",
+    "question": "Can I still use this [Trigger] effect to draw 1 card even if my Leader doesn't have the {Supernovas} type?",
+    "answer": "Yes, you can. In this case, you will be unable to change your Leader's base power to 7000 after drawing 1 card."
   },
   {
-    "qaNum": "Q1301",
-    "title": "OP16-026 Emporio.Ivankov",
-    "cardId": "OP16-026",
-    "question": "If I do not add up to 1 {Impel Down} type card to my hand using this [On Play] effect, can I still play up to 1 Character card with a cost of 2 or less from my hand?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1302",
-    "title": "OP16-029 Antlerkov",
-    "cardId": "OP16-029",
-    "question": "If my Leader has an effect that reads \"is treated as a card with all card names, types, and attributes,\" but I do not have [Bunkov], can I still play up to 1 Character card with a cost of 2 or less from my hand?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1303",
-    "title": "OP16-033 Morley",
-    "cardId": "OP16-033",
-    "question": "If this Character would be K.O.'d while active, can I choose to rest this Character itself and 1 of my other cards instead?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1304",
-    "title": "OP16-034 Monkey.D.Luffy",
-    "cardId": "OP16-034",
-    "question": "If this is my only Character, and it also has 1 DON!! given to it, will this [Your Turn] effect still give it +1000 power?",
-    "answer": "Yes, this [Your Turn] effect would give it +1000 power."
-  },
-  {
-    "qaNum": "Q1305",
-    "title": "OP16-034 Monkey.D.Luffy",
-    "cardId": "OP16-034",
-    "question": "If I have 1 of this Character on my field as well as 1 \"EB04-038 Rosinante & Law\", which has the effect \"under the rules of this game, also treat this card's name as [Trafalgar Law] and [Donquixote Rosinante]\", does that mean that since my Characters have a total of 4 different card names, this Character gains +4000 power from this card's [Your Turn] effect?",
-    "answer": "No, it does not. As there are two cards in play with different card names, it will gain +2000 power."
-  },
-  {
-    "qaNum": "Q1306",
-    "title": "OP16-034 Monkey.D.Luffy",
-    "cardId": "OP16-034",
-    "question": "If I have 1 of this Character on my field as well as 2 \"EB04-038 Rosinante & Law\", which have the effect \"under the rules of this game, also treat this card's name as [Trafalgar Law] and [Donquixote Rosinante]\", for a total of 3 Characters, does that mean that this Character gains +3000 power from this [Your Turn] effect?",
-    "answer": "No, it does not. As there are 2 cards in play with different card names, it will gain +2000 power. Even if you have 2 \"EB04-038 Rosinante & Law\", they are not considered to have different card names."
-  },
-  {
-    "qaNum": "Q1307",
-    "title": "OP16-034 Monkey.D.Luffy",
-    "cardId": "OP16-034",
-    "question": "If I have 1 of this Character on my field as well as 1 \"OP13-031 Trafalgar Law] and 1 \"EB04-038 Rosinante & Law\", the latter of which has the effect \"under the rules of this game, also treat this card's name as [Trafalgar Law] and [Donquixote Rosinante]\", for a total of 3 Characters, does that mean that this Character gains +3000 power from this [Your Turn] effect?",
-    "answer": "Yes, it does. In this case, since there are 3 cards in play with different card names, it will gain +3000 power."
-  },
-  {
-    "qaNum": "Q1308",
-    "title": "OP16-035 Roronoa Zoro",
-    "cardId": "OP16-035",
-    "question": "If I do not rest 1 of my opponent's cards with this effect, can I still trash 1 card from my hand and give up to 3 rested DON!! cards to my Leader?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1309",
-    "title": "OP16-040 Gum-Gum Hammer Rifle",
-    "cardId": "OP16-040",
-    "question": "If my opponent has [Mr.3(Galdino)] on his field, and I have [Monkey.D.Luffy] on mine, can I use this card's [Main] effect to ensure up to 1 of my opponent's rested Characters with a cost of 6 or less will not become active in my opponent's next Refresh Phase?",
+    "qaNum": "Q1363",
+    "title": "ST36-004 Bartolomeo",
+    "cardId": "ST36-004",
+    "question": "If I have no {Supernovas} type cards in my hand, can I still use this [On Play] effect to draw 2 cards?",
     "answer": "No, you cannot."
   },
   {
-    "qaNum": "Q1310",
-    "title": "OP16-041 Buggy",
-    "cardId": "OP16-041",
-    "question": "Imagine I have 1 DON!! attached to this Leader and 5 Characters on my field. Then, in order to play a new Character card, I trash one of my Characters with the {Impel Down} type to play it. Can I still use this card's effect to play 1 [Prisoner of Impel Down] card from my hand?",
+    "qaNum": "Q1364",
+    "title": "ST36-005 Eustass\"Captain\"Kid",
+    "cardId": "ST36-005",
+    "question": "Can I still activate this [On Your Opponent's Attack] effect if both the top and bottom cards of my Life cards are already face-down?",
     "answer": "No, you cannot."
   },
   {
-    "qaNum": "Q1311",
-    "title": "OP16-041 Buggy",
-    "cardId": "OP16-041",
-    "question": "Imagine I have 1 DON!! attached to this Leader, and one of my {Impel Down} type Character cards is returned to my hand due to the effect of \"OP07-056 Slave Arrow\" or another effect. Can I use this Leader's effect to play 1 [Prisoner of Impel Down] from my hand?",
-    "answer": "Yes, you can. You can activate this card's effect even if an {Impel Down} type Character was removed from the field due to your own effect."
-  },
-  {
-    "qaNum": "Q1312",
-    "title": "OP16-045 Crocodile",
-    "cardId": "OP16-045",
-    "question": "Can I use this Character's [On Play] effect to return this Character itself to my hand and play 1 {Impel Down} type Character card with a cost of 2 or less from my hand?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1313",
-    "title": "OP16-047 Donquixote Doflamingo",
-    "cardId": "OP16-047",
-    "question": "Which player chooses what cards are placed at the bottom of the deck when this card's effect is activated?",
-    "answer": "The owner of the cards being placed at the bottom of their deck is the one who chooses them and places them at the bottom of their deck in the order they choose."
-  },
-  {
-    "qaNum": "Q1314",
-    "title": "OP16-048 Buggy",
-    "cardId": "OP16-048",
-    "question": "If I activate this [Once Per Turn] effect when my opponent attacks one of my [Prisoner of Impel Down] Characters and I give the attacked card [Blocker], can that [Prisoner of Impel Down] Character use [Blocker] against that attack?",
-    "answer": "Yes, it can."
-  },
-  {
-    "qaNum": "Q1315",
-    "title": "OP16-050 Miss Olive",
-    "cardId": "OP16-050",
-    "question": "Can I use this [On Play] effect to return this card itself to my hand and then draw 2 cards and trash 1 card from my hand?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1316",
-    "title": "OP16-057 Captain Buggy's Our Savior!!",
-    "cardId": "OP16-057",
-    "question": "If my Leader has an effect that reads \"is treated as a card with all card names, types, and attributes,\" and I only have 1 [Prisoner of Impel Down] card, can I use this card's effect to give my Leader or up to 1 Character card +4000 power during this battle?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1317",
-    "title": "OP16-058 The Prisoners Are Rioting!!",
-    "cardId": "OP16-058",
-    "question": "If my Leader has an effect that reads \"is treated as a card with all card names, types, and attributes,\" does this [Main] effect make my Leader's base power become 7000 during this turn?",
-    "answer": "Yes, it does."
-  },
-  {
-    "qaNum": "Q1318",
-    "title": "OP16-060 Sengoku",
-    "cardId": "OP16-060",
-    "question": "Can I use this card's [Activate: Main] effect to only play 1 or 2 {Admiral} type Character cards from my hand?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1319",
-    "title": "OP16-063 Kuzan",
-    "cardId": "OP16-063",
-    "question": "Can I use this card's [Activate: Main] effect to choose an opponent's Character that doesn't have [Blocker]?",
-    "answer": "Yes, you can. In this case, if the chosen Character gains [Blocker] during that turn, it still won't be able to activate [Blocker] during that turn."
-  },
-  {
-    "qaNum": "Q1320",
-    "title": "OP16-067 Tsuru",
-    "cardId": "OP16-067",
-    "question": "Even if I do not add 1 {Navy} type card to my hand when using this card's [On Play] effect, do I still trash 1 card from my hand?",
-    "answer": "Yes, you do."
-  },
-  {
-    "qaNum": "Q1321",
-    "title": "OP16-073 Borsalino",
-    "cardId": "OP16-073",
-    "question": "If this Character is already active, can it still gain [Blocker] from this [End of Your Turn] effect?",
-    "answer": "Yes, it can."
-  },
-  {
-    "qaNum": "Q1322",
-    "title": "OP16-074 Magellan",
-    "cardId": "OP16-074",
-    "question": "Who chooses the DON!! cards that get returned due to this card's effects?",
-    "answer": "The owner of the DON!! cards that get returned to their DON!! deck is the one who chooses which DON!! cards get returned."
-  },
-  {
-    "qaNum": "Q1323",
-    "title": "OP16-077 Buddha Sengoku",
-    "cardId": "OP16-077",
-    "question": "When using this card's [Main] effect, if I only add 1 {Navy} type card to my hand after revealing it, or I don't reveal any cards and add them to my hand at all, do I still trash 1 card from my hand?",
-    "answer": "Yes, you do."
-  },
-  {
-    "qaNum": "Q1324",
-    "title": "OP16-079 Yamato",
-    "cardId": "OP16-079",
-    "question": "If I play a {Land of Wano} type Character card from my trash, and it is then affected by another effect such as one which negates card effects, can this Character still attack during that turn?",
-    "answer": "Yes, it can."
-  },
-  {
-    "qaNum": "Q1325",
-    "title": "OP16-080 Marshall.D.Teach",
-    "cardId": "OP16-080",
-    "question": "Imagine my Leader is this card, and my opponent's Leader is \"OP12-020 Roronoa Zoro\". My opponent uses their Leader to attack one of my Characters, and I use this [On Your Opponent's Attack] effect to change their target to my Leader. Can my opponent use the [Activate: Main] effect of their \"OP12-020 Roronoa Zoro\" to set \"OP12-020 Roronoa Zoro\" as active?",
-    "answer": "No, they cannot."
-  },
-  {
-    "qaNum": "Q1326",
-    "title": "OP16-081 Otama",
-    "cardId": "OP16-081",
-    "question": "If I don't have a Character with a cost of 8 or higher, but my opponent does have a Character with a cost of 8 or higher, can I still use this [Activate: Main] effect to choose up to 1 of my opponent's Characters to give −2000 to during this turn?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1327",
-    "title": "OP16-084 Kouzuki Momonosuke",
-    "cardId": "OP16-084",
-    "question": "If this Character has a cost of 19 or less, can I use its [Activate: Main] effect to trash it?",
-    "answer": "No, you cannot. You also won't be able to use its effect to play up to 1 [Kouzuki Momonosuke] with a cost of 9 from your trash."
-  },
-  {
-    "qaNum": "Q1328",
-    "title": "OP16-087 Shinobu",
-    "cardId": "OP16-087",
-    "question": "If I don't have a [Kouzuki Momonosuke], can I still use this [On Play] effect to trash this Character and draw 1 card?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1329",
-    "title": "OP16-094 Portgas.D.Ace",
-    "cardId": "OP16-094",
-    "question": "Can I use this [Activate: Main] effect to give 1 rested DON!! card to a Character without the {Land of Wano} type?",
+    "qaNum": "Q1365",
+    "title": "ST36-005 Eustass\"Captain\"Kid",
+    "cardId": "ST36-005",
+    "question": "Can I still activate this [Activate: Main] effect if both the top and bottom cards of my Life cards are already face-up?",
     "answer": "No, you cannot."
-  },
-  {
-    "qaNum": "Q1330",
-    "title": "OP16-097 Yamato",
-    "cardId": "OP16-097",
-    "question": "If I do not add up to 1 {Impel Down} type card from my trash to my hand using this [On Play] effect, can I still play up to 1 Character card with a cost of 2 or less from my hand?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1331",
-    "title": "OP16-098 Yamato",
-    "cardId": "OP16-098",
-    "question": "When using this card's [Activate: Main] effect to play 1 black [Yamato] with a cost of 8, can I also choose to play a [Yamato] with a cost of 7 or less, or a cost of 9 or more?",
-    "answer": "No, you cannot."
-  },
-  {
-    "qaNum": "Q1332",
-    "title": "OP16-100 Hallowed Glacier Slash",
-    "cardId": "OP16-100",
-    "question": "If my opponent's Character is K.O.'d by their own effect during my turn, can I set my Leader [Yamato] as active?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1333",
-    "title": "OP16-101 Mahoroba",
-    "cardId": "OP16-101",
-    "question": "I activated this card's [Main] effect when I had 9 cards in my trash, bringing the number of cards in my trash to 10 cards. In this situation, can I still use this card's [Main] effect to K.O. up to 1 of my opponent's Characters with a cost of 2 or less?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1334",
-    "title": "OP16-103 Van Augur",
-    "cardId": "OP16-103",
-    "question": "If my Leader takes damage during my turn and I activate this card's [Trigger], what happens to this [On K.O.] effect?",
-    "answer": "In this case, the [On K.O.] effect does not activate and this card trashed."
-  },
-  {
-    "qaNum": "Q1335",
-    "title": "OP16-107 Jesus Burgess",
-    "cardId": "OP16-107",
-    "question": "If I have 0 cards in my hand, can I still use this card's [Trigger] to play it?",
-    "answer": "No, you cannot."
-  },
-  {
-    "qaNum": "Q1336",
-    "title": "OP16-111 Boa Sandersonia",
-    "cardId": "OP16-111",
-    "question": "If I have 3 Life cards including this card, can I still play this Character card using this card's [Trigger] effect?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1337",
-    "title": "OP16-115 Black Vortex",
-    "cardId": "OP16-115",
-    "question": "Can I use this [Main] effect to add \"OP09-097 Black Vortex\" from my trash to my hand?",
-    "answer": "No, you cannot."
-  },
-  {
-    "qaNum": "Q1338",
-    "title": "OP16-116 Zehahahahaha!!!",
-    "cardId": "OP16-116",
-    "question": "If I have 10 DON!! cards on my field but my opponent has 0 Life cards, can I still use this [Main] effect to play up to 1 [Marshall.D.Teach] from my hand?",
-    "answer": "Yes, you can."
-  },
-  {
-    "qaNum": "Q1339",
-    "title": "OP16-118 Portgas.D.Ace",
-    "cardId": "OP16-118",
-    "question": "If this Character is on the field, and I have a Character in my hand with 8000 power and [Counter +1000], can I use the latter Character's counter as [Counter +1000] when my opponent attacks?",
-    "answer": "No, you cannot. In this case, you will use it as [Counter +2000]."
-  },
-  {
-    "qaNum": "Q1340",
-    "title": "OP16-118 Portgas.D.Ace",
-    "cardId": "OP16-118",
-    "question": "If I have 2 or more of this Character on the field, does the counter of my Character cards with 8000 power in my hand become [Counter +4000]?",
-    "answer": "No, it doesn't. It remains [Counter +2000]."
-  },
-  {
-    "qaNum": "Q1341",
-    "title": "OP16-119 Marshall.D.Teach",
-    "cardId": "OP16-119",
-    "question": "Do I reveal the card I add to my Life cards using this card's [On Play] effect to my opponent?",
-    "answer": "No, you add it to your Life cards without revealing it to your opponent."
   }
 ]

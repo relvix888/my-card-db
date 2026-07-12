@@ -5352,6 +5352,873 @@
     "trigger": "[Trigger] Activate this card's [Main] effect.",
     "pack_id": "556030"
   },
+  "OP01-016_p8": {
+    "name": "Nami",
+    "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Straw Hat Crew} type card other than [Nami] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+    "types": [
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "OP04-016_p3": {
+    "name": "Bad Manners Kick Course",
+    "effect": "[Counter] You may trash 1 card from your hand: Up to 1 of your Leader or Character cards gains +3000 power during this battle.",
+    "types": [
+      "Alabasta",
+      "Straw Hat Crew"
+    ],
+    "trigger": "[Trigger] Give up to 1 of your opponent's Leader or Character cards −3000 power during this turn.",
+    "pack_id": "556031"
+  },
+  "OP11-003_r1": {
+    "name": "Usopp",
+    "effect": "-",
+    "types": [
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "OP11-009_r1": {
+    "name": "Nico Robin",
+    "effect": "[DON!! x2] [When Attacking] Give up to 1 of your opponent's Characters −2000 power until the end of your opponent's next turn.",
+    "types": [
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "OP11-012_r1": {
+    "name": "Franky",
+    "effect": "[Your Turn] [Once Per Turn] When your opponent activates an Event, all of your Characters gain +2000 power during this turn.",
+    "types": [
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "OP13-021_r1": {
+    "name": "Gum-Gum Gatling Gun",
+    "effect": "[Main] Give up to 1 rested DON!! card to 1 of your [Monkey.D.Luffy] cards. Then, give up to 1 of your opponent's Characters −2000 power during this turn.",
+    "types": [
+      "Straw Hat Crew"
+    ],
+    "trigger": "[Trigger] Give up to 1 of your opponent's Characters −2000 power during this turn.",
+    "pack_id": "556031"
+  },
+  "OP14-015_r1": {
+    "name": "Roronoa Zoro",
+    "effect": "[Rush] (This card can attack on the turn in which it is played.)<br>[When Attacking] Give up to 1 of your opponent's Characters −1000 power during this turn.",
+    "types": [
+      "Supernovas",
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "P-101_r1": {
+    "name": "Tony Tony.Chopper",
+    "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)<br>[On Play] Give up to 1 rested DON!! card to your Leader.",
+    "types": [
+      "Animal",
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "ST21-001_r1": {
+    "name": "Monkey.D.Luffy",
+    "effect": "[DON!! x1] [Activate: Main] [Once Per Turn] Give up to 2 rested DON!! cards to 1 of your Characters.",
+    "types": [
+      "The Four Emperors",
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "ST23-004_r1": {
+    "name": "Monkey.D.Luffy",
+    "effect": "[Activate: Main] You may rest 1 of your DON!! cards and this Character: Give up to 1 of your opponent's Characters −1000 power during this turn.",
+    "types": [
+      "Animal",
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "ST31-001": {
+    "name": "Sanji",
+    "effect": "[DON!! x2] This Character gains [Rush].<br>(This card can attack on the turn in which it is played.)<br>[On Play] Draw 1 card and play up to 1 {Straw Hat Crew} type Character card with a cost of 5 or less other than [Sanji] from your hand.",
+    "types": [
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "ST31-002": {
+    "name": "Jinbe",
+    "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)<br>[On Play] Draw 1 card and play up to 1 {Straw Hat Crew} type card with a cost of 1 from your hand.",
+    "types": [
+      "Fish-Man",
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "ST31-003": {
+    "name": "Brook",
+    "effect": "[Opponent's Turn] If you have a total of 3 or more given DON!! cards, this Character gains [Blocker] and +3000 power.<br>(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+    "types": [
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "ST31-004": {
+    "name": "Monkey.D.Luffy",
+    "effect": "If you have a total of 3 or more given DON!! cards, this Character gains [Rush].<br>(This card can attack on the turn in which it is played.)<br>[On Play] For every {Straw Hat Crew} type card on your field, give up to 1 of your opponent's Characters −1000 power during this turn.",
+    "types": [
+      "The Four Emperors",
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "ST31-005": {
+    "name": "Thousand Sunny",
+    "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Straw Hat Crew} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.<br>[Activate: Main] You may rest this Stage: Give up to 1 rested DON!! card to 1 of your [Monkey.D.Luffy] cards.",
+    "types": [
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556031"
+  },
+  "OP10-036_r1": {
+    "name": "Perona",
+    "effect": "[Your Turn] [Once Per Turn] If a Character is rested by your effect, set up to 1 of your DON!! cards as active.",
+    "types": [
+      "ODYSSEY",
+      "Muggy Kingdom",
+      "Thriller Bark Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "OP12-020_p4": {
+    "name": "Roronoa Zoro",
+    "effect": "[DON!! x3] [Activate: Main] [Once Per Turn] If this Leader battles your opponent's Character during this turn, set this Leader as active. Then, this Leader cannot attack your opponent's Characters with a base cost of 7 or less during this turn.",
+    "types": [
+      "Supernovas",
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "OP12-023_r1": {
+    "name": "Kawamatsu",
+    "effect": "-",
+    "types": [
+      "Fish-Man",
+      "Land of Wano",
+      "The Akazaya Nine"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "OP12-026_r1": {
+    "name": "Kuina",
+    "effect": "[Activate: Main] You may rest this Character: Rest up to 1 of your opponent's Characters with a base cost of 4 or less. Then, give up to 3 rested DON!! cards to your [Roronoa Zoro] Leader.",
+    "types": [
+      "East Blue",
+      "Frost Moon Village"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "OP12-027_r1": {
+    "name": "Koushirou",
+    "effect": "If your <slash> attribute Character with a cost of 5 or less other than this Character would be K.O.'d by your opponent's effect, you may rest this Character instead.<br>[Blocker]</slash>",
+    "types": [
+      "East Blue",
+      "Frost Moon Village"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "OP12-028_r1": {
+    "name": "Kouzuki Hiyori",
+    "effect": "[Activate: Main] You may rest 1 of your DON!! cards and this Character: If your Leader is [Roronoa Zoro], look at 5 cards from the top of your deck; reveal up to 1 <slash> attribute card or green Event and add it to your hand. Then, place the rest at the bottom of your deck in any order.</slash>",
+    "types": [
+      "Land of Wano",
+      "Kouzuki Clan"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "OP12-031_r1": {
+    "name": "Tashigi",
+    "effect": "[On Play] Rest up to 1 of your opponent's Characters with a base cost of 6 or less. Then, give up to 3 rested DON!! cards to your [Roronoa Zoro] Leader.",
+    "types": [
+      "East Blue",
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "OP12-039_p1": {
+    "name": "Luffy Is the Man Who Will Become the King of Pirates!!!",
+    "effect": "[Main] Set your [Roronoa Zoro] Leader as active.",
+    "types": [
+      "Straw Hat Crew"
+    ],
+    "trigger": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+    "pack_id": "556032"
+  },
+  "OP15-036_r1": {
+    "name": "Ryuma",
+    "effect": "[On Play]/[When Attacking] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+    "types": [
+      "Land of Wano",
+      "Thriller Bark Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "ST24-005_r1": {
+    "name": "X.Drake",
+    "effect": "[On Play] If your Leader has the {Supernovas} type, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, set up to 1 of your DON!! cards as active at the end of this turn.",
+    "types": [
+      "Supernovas",
+      "Navy",
+      "Drake Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "ST32-001": {
+    "name": "Kin'emon",
+    "effect": "[On Play] You may rest your <slash> attribute Leader or 1 of your DON!! cards: Draw 2 cards and trash 1 card from your hand.</slash>",
+    "types": [
+      "Land of Wano",
+      "The Akazaya Nine"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "ST32-002": {
+    "name": "Kouzuki Oden",
+    "effect": "[On Play] Draw 1 card and up to 1 of your opponent's Characters with a base cost of 6 or less cannot be rested until the end of your opponent's next End Phase.",
+    "types": [
+      "Land of Wano",
+      "Kouzuki Clan"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "ST32-003": {
+    "name": "Dracule Mihawk",
+    "effect": "[Your Turn] When this Character becomes rested, draw 1 card and trash 1 card from your hand.<br>[On Play] If your Leader has the <slash> attribute, play up to 1 Character card with a cost of 5 or less that is either [Perona] or has the <slash> attribute from your hand.</slash></slash>",
+    "types": [
+      "Muggy Kingdom",
+      "The Seven Warlords of the Sea"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "ST32-004": {
+    "name": "Silvers Rayleigh",
+    "effect": "If your Leader has the <slash> attribute, this Character gains [Rush: Character].<br>(This card can attack Characters on the turn in which it is played.)<br>[On Play] Rest up to 2 of your opponent's Characters with a cost of 2 or less.</slash>",
+    "types": [
+      "Former Roger Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "ST32-005": {
+    "name": "Roronoa Zoro",
+    "effect": "[Rush: Character] (This card can attack Characters on the turn in which it is played.)<br>[On Play] If your Leader has the <slash> attribute, rest up to 1 of your opponent's Characters with a cost of 2 or less.</slash>",
+    "types": [
+      "Supernovas",
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556032"
+  },
+  "EB04-026_r1": {
+    "name": "Bluegrass",
+    "effect": "[On Play] Place up to 1 of your opponent's Characters with a cost of 1 or less at the bottom of the owner's deck.<br>[When Attacking] Draw 1 card and trash 1 card from your hand.",
+    "types": [
+      "Egghead",
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "EB04-028_p2": {
+    "name": "Ice Time",
+    "effect": "[Main] You may trash 1 card from your hand: If your Leader has the {Navy} type, up to 2 of your opponent's Characters with 10000 power or less cannot attack until the end of your opponent's next End Phase.",
+    "types": [
+      "Navy"
+    ],
+    "trigger": "[Trigger] Return up to 1 Character with a cost of 5 or less to the owner's hand.",
+    "pack_id": "556033"
+  },
+  "OP12-040_p2": {
+    "name": "Kuzan",
+    "effect": "When a card is trashed from your hand by your {Navy} type card's effect, draw cards equal to the number of cards trashed.",
+    "types": [
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "OP12-043_r1": {
+    "name": "Kuzan",
+    "effect": "If you have 5 or more cards in your hand, this Character gains +1 cost.<br>[On Play] You may trash 1 card from your hand: Up to 1 of your opponent's Characters cannot attack until the end of your opponent's next End Phase.",
+    "types": [
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "OP12-045_r1": {
+    "name": "Jango",
+    "effect": "-",
+    "types": [
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "OP12-046_r1": {
+    "name": "Zephyr(Navy)",
+    "effect": "[On Play] Trash 2 cards from your hand.<br>[Activate: Main] You may trash this Character: Return up to 1 Character with a cost of 5 or less to the owner's hand.",
+    "types": [
+      "FILM",
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "OP12-047_r1": {
+    "name": "Sengoku",
+    "effect": "[On Play] You may trash 1 card from your hand: Look at 5 cards from the top of your deck; reveal up to 2 {Navy} type cards other than [Sengoku] and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+    "types": [
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "OP12-050_r1": {
+    "name": "Jaguar.D.Saul",
+    "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+    "types": [
+      "Giant",
+      "Ohara",
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "OP12-052_r1": {
+    "name": "Fullbody",
+    "effect": "-",
+    "types": [
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "OP12-057_r1": {
+    "name": "Ice Block Pheasant Peck",
+    "effect": "[Counter] Up to 1 of your Leader or Character cards gains +4000 power during this battle. Then, trash 1 card from your hand.",
+    "types": [
+      "Navy"
+    ],
+    "trigger": "[Trigger] You may trash 1 card from your hand: Draw 1 card.",
+    "pack_id": "556033"
+  },
+  "ST33-001": {
+    "name": "Koby",
+    "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)<br>[On Play] You may trash 1 card from your hand: Draw 1 card.",
+    "types": [
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "ST33-002": {
+    "name": "Sakazuki",
+    "effect": "[When Attacking] You may trash 1 card from your hand: If your opponent has 6 or more cards in their hand, your opponent trashes 1 card from their hand.<br>[On K.O.] Play up to 1 {Navy} type Character card with a cost of 4 or less from your hand.",
+    "types": [
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "ST33-003": {
+    "name": "Smoker",
+    "effect": "[On Play] You may trash 1 card from your hand: Place up to 2 of your opponent's Characters with a cost of 2 or less at the bottom of the owner's deck.",
+    "types": [
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "ST33-004": {
+    "name": "Borsalino",
+    "effect": "During the turn in which a card in your hand is trashed by an effect, give this card in your hand −3 cost.<br>[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+    "types": [
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "ST33-005": {
+    "name": "Monkey.D.Garp",
+    "effect": "[On Play] If your Leader has the {Navy} type, play up to 1 blue {Navy} type Character card with 8000 power or less other than [Monkey.D.Garp] from your hand.",
+    "types": [
+      "Navy"
+    ],
+    "trigger": null,
+    "pack_id": "556033"
+  },
+  "EB03-032_r1": {
+    "name": "Charlotte Flampe",
+    "effect": "[Your Turn] [On Play] Up to 1 of your [Charlotte Katakuri] cards gains +2000 power during this turn.",
+    "types": [
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "EB03-035_r1": {
+    "name": "Charlotte Pudding",
+    "effect": "[Blocker]<br>[On Play] If the number of DON!! cards on your field is equal to or less than the number on your opponent's field, add up to 1 DON!! card from your DON!! deck and rest it.",
+    "types": [
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "OP11-062_p2": {
+    "name": "Charlotte Katakuri",
+    "effect": "[When Attacking]/[On Your Opponent's Attack] [Once Per Turn] DON!! −1: Look at 1 card from the top of your opponent's deck. Then, this Leader gains +1000 power during this battle.",
+    "types": [
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "OP11-065_r1": {
+    "name": "Charlotte Anana",
+    "effect": "If you have a purple {Big Mom Pirates} type Character other than [Charlotte Anana], this Character gains [Blocker].<br>(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+    "types": [
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "OP11-066_r1": {
+    "name": "Charlotte Oven",
+    "effect": "[Activate: Main] You may rest this Character: Choose a cost and reveal 1 card from the top of your opponent's deck. If the revealed card has the chosen cost, K.O. up to 1 of your opponent's Characters with a base cost of 3 or less. Then, add up to 1 DON!! card from your DON!! deck and rest it.",
+    "types": [
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "OP11-068_r1": {
+    "name": "Charlotte Daifuku",
+    "effect": "-",
+    "types": [
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "OP11-071_r1": {
+    "name": "Charlotte Perospero",
+    "effect": "[Activate: Main] [Once Per Turn] You may trash 1 card from your hand: Choose a cost and reveal 1 card from the top of your opponent's deck. If the revealed card has the chosen cost, draw 1 card and add up to 1 DON!! card from your DON!! deck and set it as active.",
+    "types": [
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "OP11-079_r1": {
+    "name": "When Two Men Are Fighting the Last Thing I Need Is Some Half-Hearted Assistance!!!!",
+    "effect": "[Counter] Choose a cost and reveal 1 card from the top of your opponent's deck. If the revealed card has the chosen cost, up to 1 of your Leader or Character cards gains +5000 power during this battle.",
+    "types": [
+      "Big Mom Pirates"
+    ],
+    "trigger": "[Trigger] Draw 1 card.",
+    "pack_id": "556034"
+  },
+  "OP11-081_r1": {
+    "name": "Cognac Mama-Mash",
+    "effect": "[Main] Choose a cost and reveal 1 card from the top of your opponent's deck. If the revealed card has the chosen cost, K.O. up to 1 of your opponent's Characters with a base cost of 8 or less.",
+    "types": [
+      "The Four Emperors",
+      "Big Mom Pirates"
+    ],
+    "trigger": "[Trigger] Add up to 1 DON!! card from your DON!! deck and set it as active.",
+    "pack_id": "556034"
+  },
+  "P-090_r1": {
+    "name": "Charlotte Smoothie",
+    "effect": "[Opponent's Turn] [On K.O.] DON!! −1: Play up to 1 {Big Mom Pirates} type Character card with a cost equal to or less than the number of DON!! cards on your opponent's field other than [Charlotte Smoothie] from your hand.",
+    "types": [
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "ST34-001": {
+    "name": "Charlotte Katakuri",
+    "effect": "[Your Turn] [Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, if your Leader has the {Big Mom Pirates} type, add up to 2 DON!! cards from your DON!! deck and rest them.<br>[On K.O.] Play up to 1 Character card with 8000 power or less from your hand.",
+    "types": [
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "ST34-002": {
+    "name": "Charlotte Cracker",
+    "effect": "[On Play] If your Leader has the {Big Mom Pirates} type, add up to 1 DON!! card from your DON!! deck and rest it. Then, K.O. up to 1 of your opponent's Characters with a cost of 2 or less.",
+    "types": [
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "ST34-003": {
+    "name": "Charlotte Brulee",
+    "effect": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Big Mom Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+    "types": [
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "ST34-004": {
+    "name": "Charlotte Linlin",
+    "effect": "[On Play] DON!! −4, you may trash 1 card from your hand: Add up to 1 card from the top of your deck to the top of your Life cards. Then, up to 1 of your opponent's Characters' base power becomes 0 during this turn.",
+    "types": [
+      "The Four Emperors",
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "ST34-005": {
+    "name": "Baron Tamago & Pekoms",
+    "effect": "[When Attacking] DON!! −1: K.O. up to 1 of your opponent's Characters with 2000 base power or less.",
+    "types": [
+      "Minks",
+      "Big Mom Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556034"
+  },
+  "OP12-090_r1": {
+    "name": "Belo Betty",
+    "effect": "[When Attacking] You may trash 2 cards from the top of your deck: Give up to 1 of your opponent's Characters −2 cost during this turn.",
+    "types": [
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "OP12-093_r1": {
+    "name": "Morley",
+    "effect": "If your Leader has the {Revolutionary Army} type, this Character gains +4 cost.",
+    "types": [
+      "Giant",
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "OP12-098_r1": {
+    "name": "Hair Removal Fist",
+    "effect": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if you have a {Revolutionary Army} type Character with a cost of 8 or more, that card gains an additional +2000 power during this battle.",
+    "types": [
+      "Impel Down",
+      "Revolutionary Army"
+    ],
+    "trigger": "[Trigger] Draw 1 card and trash 1 card from the top of your deck.",
+    "pack_id": "556035"
+  },
+  "OP13-004_p2": {
+    "name": "Sabo",
+    "effect": "If you have 4 or more Life cards, give this Leader −1000 power.<br>[DON!! x1] If you have a Character with a cost of 8 or more, your Leader and all of your Characters gain +1000 power.",
+    "types": [
+      "Dressrosa",
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "OP13-005_r1": {
+    "name": "Inazuma",
+    "effect": "[On Play] Give up to 1 rested DON!! card to your Leader.",
+    "types": [
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "OP13-008_r1": {
+    "name": "Emporio.Ivankov",
+    "effect": "If your {Revolutionary Army} type Character would be K.O.'d by your opponent's effect, you may trash this Character instead.",
+    "types": [
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "OP13-017_r1": {
+    "name": "Monkey.D.Dragon",
+    "effect": "[Once Per Turn] If your {Revolutionary Army} type Character would be removed from the field by your opponent's effect, you may give this Character −2000 power during this turn instead.",
+    "types": [
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "OP13-019_p2": {
+    "name": "But Ace Here Said You Deserved It!!",
+    "effect": "[Main] You may rest 4 of your DON!! cards: Give up to 1 of your opponent's Characters −3000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 3000 power or less.<br>[Counter] Your Leader gains +3000 power during this battle.",
+    "types": [
+      "Dressrosa",
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "OP13-081_r1": {
+    "name": "Koala",
+    "effect": "If your Leader has the {Revolutionary Army} type, this Character gains +3 cost.<br>[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+    "types": [
+      "Dressrosa",
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "P-105_r1": {
+    "name": "Sabo",
+    "effect": "If your Leader has the {Revolutionary Army} type, this Character gains [Blocker] and +4 cost.<br>[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+    "types": [
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "ST35-001": {
+    "name": "Hack",
+    "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)<br>[On Play] K.O. up to 1 of your opponent's Characters with 2000 base power or less.",
+    "types": [
+      "Fish-Man",
+      "Dressrosa",
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "ST35-002": {
+    "name": "Lindbergh",
+    "effect": "[On Play] Give up to 1 of your opponent's Characters −3000 power during this turn.",
+    "types": [
+      "Minks",
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "ST35-003": {
+    "name": "Karasu",
+    "effect": "[When Attacking] You may trash 2 cards from the top of your deck: If your opponent has 7 or more cards in their hand, your opponent trashes 1 card from their hand.",
+    "types": [
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "ST35-004": {
+    "name": "Koala",
+    "effect": "This Character gains [Blocker] and +1 cost.<br>[On Play] Give up to 1 rested DON!! card to your Leader. Then, play up to 1 Character card with 4000 power or less and the {Revolutionary Army} type from your hand or trash.",
+    "types": [
+      "Dressrosa",
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "ST35-005": {
+    "name": "Bartholomew Kuma",
+    "effect": "This Character gains +3 cost.<br>[On Play] Give up to 1 rested DON!! card to your Leader. Then, play up to 1 Character card with 4000 power or less and the {Revolutionary Army} type from your hand or trash.",
+    "types": [
+      "Revolutionary Army"
+    ],
+    "trigger": null,
+    "pack_id": "556035"
+  },
+  "OP10-099_p2": {
+    "name": "Eustass\"Captain\"Kid",
+    "effect": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your {Supernovas} type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.<br>",
+    "types": [
+      "Supernovas",
+      "Kid Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556036"
+  },
+  "OP10-101_r1": {
+    "name": "Urouge",
+    "effect": "-",
+    "types": [
+      "Supernovas",
+      "Fallen Monk Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556036"
+  },
+  "OP10-103_r1": {
+    "name": "Capone\"Gang\"Bege",
+    "effect": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 {Supernovas} type Character card from your hand to the top of your Life cards face-up.",
+    "types": [
+      "Supernovas",
+      "Firetank Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556036"
+  },
+  "OP10-109_r2": {
+    "name": "Basil Hawkins",
+    "effect": "[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.",
+    "types": [
+      "Supernovas",
+      "Hawkins Pirates"
+    ],
+    "trigger": "[Trigger] Draw 2 cards and trash 1 card from your hand.",
+    "pack_id": "556036"
+  },
+  "OP10-111_r1": {
+    "name": "Monkey.D.Luffy",
+    "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Supernovas} type card other than [Monkey.D.Luffy] and add it to your hand. Then, place the rest at the bottom of your deck in any order.<br>",
+    "types": [
+      "Supernovas",
+      "Straw Hat Crew"
+    ],
+    "trigger": null,
+    "pack_id": "556036"
+  },
+  "OP10-114_r2": {
+    "name": "X.Drake",
+    "effect": "[Activate: Main] You may rest this Character: If the number of your Life cards is equal to or less than the number of your opponent's Life cards, rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+    "types": [
+      "Supernovas",
+      "Navy",
+      "Drake Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556036"
+  },
+  "OP12-113_r1": {
+    "name": "Roronoa Zoro",
+    "effect": "[On K.O.] If your Leader has the {Supernovas} type, play up to 1 {Supernovas} type Character card with a cost of 4 or less from your hand rested.",
+    "types": [
+      "Supernovas",
+      "Straw Hat Crew"
+    ],
+    "trigger": "[Trigger] K.O. up to 1 of your opponent's Characters with a cost of 1 or less and add this card to your hand.",
+    "pack_id": "556036"
+  },
+  "OP13-116_r1": {
+    "name": "The One Who Is the Most Free Is the Pirate King!!!",
+    "effect": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 {Supernovas} type Character card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+    "types": [
+      "Supernovas",
+      "Straw Hat Crew"
+    ],
+    "trigger": "[Trigger] Activate this card's [Main] effect.",
+    "pack_id": "556036"
+  },
+  "P-085_r2": {
+    "name": "Jewelry Bonney",
+    "effect": "[On Play] If your Leader has the {Supernovas} type and the number of your Life cards is equal to or less than the number of your opponent's Life cards, add up to 1 of your opponent's Characters with a cost of 4 or less to the top or bottom of the owner's Life cards face-up.",
+    "types": [
+      "Supernovas",
+      "Bonney Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556036"
+  },
+  "P-088_r2": {
+    "name": "Trafalgar Law",
+    "effect": "-",
+    "types": [
+      "Supernovas",
+      "Heart Pirates"
+    ],
+    "trigger": "[Trigger] If your Leader has the {Supernovas} type and you and your opponent have a total of 5 or less Life cards, play this card.<br>",
+    "pack_id": "556036"
+  },
+  "ST36-001": {
+    "name": "Cavendish",
+    "effect": "[On K.O.] You may trash 1 card from your hand: Add up to 1 card from the top of your deck to the top of your Life cards.",
+    "types": [
+      "Dressrosa",
+      "Supernovas",
+      "Beautiful Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556036"
+  },
+  "ST36-002": {
+    "name": "Killer",
+    "effect": "[Your Turn] [On Play] If your Leader has the {Kid Pirates} type, add up to 1 card from the top of your deck to the top of your Life cards.",
+    "types": [
+      "Supernovas",
+      "Kid Pirates"
+    ],
+    "trigger": "[Trigger] If your opponent has 3 or less Life cards, play this card.",
+    "pack_id": "556036"
+  },
+  "ST36-003": {
+    "name": "Scratchmen Apoo",
+    "effect": "-",
+    "types": [
+      "Supernovas",
+      "On-Air Pirates"
+    ],
+    "trigger": "[Trigger] Draw 1 card and your {Supernovas} type Leader's base power becomes 7000 during this turn.",
+    "pack_id": "556036"
+  },
+  "ST36-004": {
+    "name": "Bartolomeo",
+    "effect": "[On Play] You may trash 1 {Supernovas} type card from your hand: Draw 2 cards.",
+    "types": [
+      "Dressrosa",
+      "Supernovas",
+      "Barto Club"
+    ],
+    "trigger": null,
+    "pack_id": "556036"
+  },
+  "ST36-005": {
+    "name": "Eustass\"Captain\"Kid",
+    "effect": "[On Your Opponent's Attack] [Once Per Turn] You may turn 1 card from the top or bottom of your Life cards face-down: Change the target of the attack to your [Eustass\"Captain\"Kid] with 5000 base power or more.<br>[Activate: Main] [Once Per Turn] You may turn 1 card from the top or bottom of your Life cards face-up: Give up to 1 rested DON!! card to your Leader.",
+    "types": [
+      "Supernovas",
+      "Kid Pirates"
+    ],
+    "trigger": null,
+    "pack_id": "556036"
+  },
   "OP01-001": {
     "name": "Roronoa Zoro",
     "effect": "[DON!! x1] [Your Turn] All of your Characters gain +1000 power.",

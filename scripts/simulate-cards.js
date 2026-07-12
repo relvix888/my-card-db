@@ -112,12 +112,12 @@ function drainPendingEffects(state, maxIter = 12) {
 // ─── Base state builder ───────────────────────────────────────────────────────
 
 function buildBaseState() {
-  const humanDeck = Array.from({ length: 50 }, (_, i) => dummyFiller(i));
-  const aiDeck    = Array.from({ length: 50 }, (_, i) => dummyFiller(i + 100));
+  const hostDeck  = Array.from({ length: 50 }, (_, i) => dummyFiller(i));
+  const guestDeck = Array.from({ length: 50 }, (_, i) => dummyFiller(i + 100));
 
-  let s = createInitialState(DUMMY_LEADER, humanDeck, DUMMY_LEADER, aiDeck);
-  // Force human first so the first MAIN phase is always human's turn
-  s = { ...s, firstPlayer: PLAYER.HUMAN, activePlayer: PLAYER.HUMAN, waitingFor: PLAYER.HUMAN };
+  let s = createInitialState(DUMMY_LEADER, hostDeck, DUMMY_LEADER, guestDeck);
+  // Force host first so the first MAIN phase is always host's turn
+  s = { ...s, firstPlayer: PLAYER.HOST, activePlayer: PLAYER.HOST, waitingFor: PLAYER.HOST };
   s = gameReducer(s, { type: 'MULLIGAN_KEEP' });
   s = gameReducer(s, { type: 'REFRESH' });
   s = gameReducer(s, { type: 'DRAW' });
@@ -128,11 +128,11 @@ function buildBaseState() {
 
   // Give plenty of DON (12 active)
   const extraDon = Array.from({ length: 12 }, (_, i) => ({ _donId: `test-don-${i}`, state: 'active' }));
-  s = { ...s, human: { ...s.human, costArea: [...s.human.costArea, ...extraDon] } };
+  s = { ...s, host: { ...s.host, costArea: [...s.host.costArea, ...extraDon] } };
 
   // Pre-populate AI with 3 active dummy characters (targets for KO/REST effects)
   const oppChars = Array.from({ length: 3 }, (_, i) => makeFieldCard(dummyOpp(i)));
-  s = { ...s, ai: { ...s.ai, characterArea: oppChars } };
+  s = { ...s, guest: { ...s.guest, characterArea: oppChars } };
 
   // Advance to turn 2 so attacks are allowed
   s = { ...s, turn: 2 };
@@ -148,7 +148,7 @@ const SUPPORTED_TIMINGS = new Set([
 ]);
 
 function simulateTiming(card, baseState, timing, clause) {
-  const owner = PLAYER.HUMAN;
+  const owner = PLAYER.HOST;
   const donGate = clause.donGate ?? 0;
   let before = baseState;
   let after  = baseState;
@@ -158,43 +158,43 @@ function simulateTiming(card, baseState, timing, clause) {
     if (timing === '登場時') {
       if (card.category === 'Leader') {
         // Leader on-play: it's already the leader field card
-        const s = { ...before, human: { ...before.human, leader: makeFieldCard(card) } };
+        const s = { ...before, host: { ...before.host, leader: makeFieldCard(card) } };
         after = resolveOnPlayEffect(card, s, owner);
         before = s;
       } else if (card.category === 'Character') {
         // Add to hand then play via game action
-        const handWithCard = [...before.human.hand, card];
-        before = { ...before, human: { ...before.human, hand: handWithCard } };
+        const handWithCard = [...before.host.hand, card];
+        before = { ...before, host: { ...before.host, hand: handWithCard } };
         after = gameReducer(before, { type: 'PLAY_CHARACTER', handIndex: handWithCard.length - 1 });
       } else if (card.category === 'Event') {
-        const handWithCard = [...before.human.hand, card];
-        before = { ...before, human: { ...before.human, hand: handWithCard } };
+        const handWithCard = [...before.host.hand, card];
+        before = { ...before, host: { ...before.host, hand: handWithCard } };
         after = gameReducer(before, { type: 'PLAY_EVENT', handIndex: handWithCard.length - 1 });
       } else if (card.category === 'Stage') {
-        const handWithCard = [...before.human.hand, card];
-        before = { ...before, human: { ...before.human, hand: handWithCard } };
+        const handWithCard = [...before.host.hand, card];
+        before = { ...before, host: { ...before.host, hand: handWithCard } };
         after = gameReducer(before, { type: 'PLAY_STAGE', handIndex: handWithCard.length - 1 });
       }
 
     } else if (timing === '攻擊時') {
       if (card.category === 'Leader') {
         const leaderFc = makeFieldCard(card, { attachedDon: donGate });
-        before = { ...before, human: { ...before.human, leader: leaderFc } };
+        before = { ...before, host: { ...before.host, leader: leaderFc } };
         after = resolveOnAttackEffect(card, before, owner, 'leader', null);
       } else {
         const fc = makeFieldCard(card, { attachedDon: donGate });
-        before = { ...before, human: { ...before.human, characterArea: [fc] } };
+        before = { ...before, host: { ...before.host, characterArea: [fc] } };
         after = resolveOnAttackEffect(card, before, owner, 'character', 0);
       }
 
     } else if (timing === '啟動主要' || timing === '起動メイン') {
       if (card.category === 'Leader') {
         const leaderFc = makeFieldCard(card, { attachedDon: donGate });
-        before = { ...before, human: { ...before.human, leader: leaderFc } };
+        before = { ...before, host: { ...before.host, leader: leaderFc } };
         after = resolveActivatedMainEffect(card, before, owner, 'leader', null);
       } else {
         const fc = makeFieldCard(card, { attachedDon: donGate });
-        before = { ...before, human: { ...before.human, characterArea: [fc] } };
+        before = { ...before, host: { ...before.host, characterArea: [fc] } };
         after = resolveActivatedMainEffect(card, before, owner, 'character', 0);
       }
 
@@ -202,7 +202,7 @@ function simulateTiming(card, baseState, timing, clause) {
       if (card.category === 'Leader') {
         // Leader KO-watch: set up leader with donGate DON!! and pass a matching dummy KO'd card
         const leaderFc = makeFieldCard(card, { attachedDon: donGate });
-        before = { ...before, human: { ...before.human, leader: leaderFc } };
+        before = { ...before, host: { ...before.host, leader: leaderFc } };
         // Dummy KO'd card — use generic 6000+ power character to satisfy typical koFilters
         const koCard = { id: 'DUMMY-KO', name: 'Dummy KO', category: 'Character', cost: 3, power: 6000, effect: '-', color: 'Red', type: [] };
         after = resolveLeaderKOWatchEffect(koCard, before, owner, 'self');
@@ -214,16 +214,16 @@ function simulateTiming(card, baseState, timing, clause) {
     } else if (timing === '受到傷害時') {
       // Damage-taken effects are always leader effects; set donGate DON!! on leader field card
       const leaderFc = makeFieldCard(card, { attachedDon: donGate });
-      before = { ...before, human: { ...before.human, leader: leaderFc } };
+      before = { ...before, host: { ...before.host, leader: leaderFc } };
       after = resolveOnDamageTakenEffect(card, before, owner);
 
     } else if (timing === '我方回合結束時') {
       if (card.category === 'Leader') {
         const leaderFc = makeFieldCard(card, { attachedDon: donGate });
-        before = { ...before, human: { ...before.human, leader: leaderFc } };
+        before = { ...before, host: { ...before.host, leader: leaderFc } };
       } else {
         const fc = makeFieldCard(card, { attachedDon: donGate });
-        before = { ...before, human: { ...before.human, characterArea: [fc] } };
+        before = { ...before, host: { ...before.host, characterArea: [fc] } };
       }
       after = resolveEndOfTurnEffects(before, owner);
 
@@ -234,17 +234,17 @@ function simulateTiming(card, baseState, timing, clause) {
       if (card.category === 'Leader') {
         // Leader: already in leader slot; just ensure donGate DON!! attached
         const leaderFc = makeFieldCard(card, { attachedDon: donGate });
-        before = { ...before, human: { ...before.human, leader: leaderFc } };
+        before = { ...before, host: { ...before.host, leader: leaderFc } };
         after = resolveOnOpponentAttackEffect(card, before, owner); // default {target:'leader'}
       } else {
         const fc = makeFieldCard(card, { attachedDon: donGate });
-        before = { ...before, human: { ...before.human, characterArea: [fc] } };
+        before = { ...before, host: { ...before.host, characterArea: [fc] } };
         after = resolveOnOpponentAttackEffect(card, before, owner, { target: 0 });
       }
 
     } else if (timing === '防禦時') {
       const fc = makeFieldCard(card, { attachedDon: donGate });
-      before = { ...before, human: { ...before.human, characterArea: [fc] } };
+      before = { ...before, host: { ...before.host, characterArea: [fc] } };
       after = resolveOnBlockEffect(card, before, owner, 0);
 
     } else if (timing === '反擊') {
@@ -318,10 +318,10 @@ function assertResults(card, clause, result) {
         const isOnPlay = result.timing === '登場時' && card.category !== 'Event';
         const deployOffset = isOnPlay ? -1 : 0; // card removed from hand when deployed
         const expectedCount = typeof action.count === 'number' ? action.count : 1;
-        const deckSize = before.human.deck.length;
+        const deckSize = before.host.deck.length;
         const possibleDraw = Math.min(expectedCount, deckSize);
         if (possibleDraw > 0) {
-          const delta = after.human.hand.length - before.human.hand.length - deployOffset;
+          const delta = after.host.hand.length - before.host.hand.length - deployOffset;
           if (delta < possibleDraw) {
             issues.push({
               type: 'WRONG_COUNT',
@@ -333,9 +333,9 @@ function assertResults(card, clause, result) {
       }
 
       case 'KO': {
-        const beforeTrash = before.ai.trash.length;
-        const afterTrash  = after.ai.trash.length;
-        const availTargets = before.ai.characterArea.length;
+        const beforeTrash = before.guest.trash.length;
+        const afterTrash  = after.guest.trash.length;
+        const availTargets = before.guest.characterArea.length;
         if (availTargets > 0 && afterTrash <= beforeTrash && !hadPending) {
           issues.push({
             type: 'WRONG_COUNT',
@@ -346,9 +346,9 @@ function assertResults(card, clause, result) {
       }
 
       case 'REST': {
-        const beforeRested = before.ai.characterArea.filter(fc => fc.state === 'rest').length;
-        const afterRested  = after.ai.characterArea.filter(fc => fc.state === 'rest').length;
-        const availActive  = before.ai.characterArea.filter(fc => fc.state === 'active').length;
+        const beforeRested = before.guest.characterArea.filter(fc => fc.state === 'rest').length;
+        const afterRested  = after.guest.characterArea.filter(fc => fc.state === 'rest').length;
+        const availActive  = before.guest.characterArea.filter(fc => fc.state === 'active').length;
         if (availActive > 0 && afterRested <= beforeRested && !hadPending) {
           issues.push({
             type: 'WRONG_COUNT',
@@ -366,11 +366,11 @@ function assertResults(card, clause, result) {
         // friendly characters exist in the base state — not a bug in that case.
         const targetsOpponent = action.filter?.owner === 'opponent';
         const availTargets = targetsOpponent
-          ? before.ai.characterArea.length
-          : before.human.characterArea.length;
+          ? before.guest.characterArea.length
+          : before.host.characterArea.length;
         if (availTargets === 0) break; // no targets in test state; skip assertion
-        const beforeMods = before.human.powerMods.length + before.ai.powerMods.length;
-        const afterMods  = after.human.powerMods.length  + after.ai.powerMods.length;
+        const beforeMods = before.host.powerMods.length + before.guest.powerMods.length;
+        const afterMods  = after.host.powerMods.length  + after.guest.powerMods.length;
         if (afterMods <= beforeMods && !hadPending) {
           issues.push({
             type: 'NO_STATE_CHANGE',
@@ -439,7 +439,7 @@ function simulateCard(card, baseState) {
 function pad(str, len) { return String(str).padEnd(len); }
 
 function setReport(setId, allCards) {
-  const prefix = setId.toUpperCase() + '-';
+  const prefix = setId.toUpperCase().replace(/-/g, '') + '-';
   const setCards = allCards.filter(c =>
     c.id.toUpperCase().startsWith(prefix) && !c.id.includes('_p')
   );

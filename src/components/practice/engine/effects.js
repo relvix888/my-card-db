@@ -3,8 +3,8 @@
 // Resolvers use effectParser + effectActions for full structured execution.
 
 import { PLAYER } from './constants';
-import { parseEffect, parseEffectForCard } from './effectParser';
-import { evaluateCondition, executeActionSequence, applyDonReturnSelection, matchesFilter, checkLeaveFieldReplacement, shiftModsAfterRemoval } from './effectActions';
+import { parseEffectForCard } from './effectParser';
+import { evaluateCondition, executeActionSequence, applyDonReturnSelection, matchesFilter, checkLeaveFieldReplacement, shiftModsAfterRemoval, fireDonReturnEffects } from './effectActions';
 import { getLeaderProfile } from './leaderProfiles';
 
 // Maps CN timing strings to their EN equivalents so resolvers that pass a CN
@@ -1313,14 +1313,6 @@ export function resolveOnSelfAnyCharDeployEffect(deployedCard, state, owner) {
   return s;
 }
 
-// Fire '咚‼卡被放回時' on the active player's leader when DON!! cards are returned to the deck.
-// Called from applyRefresh (attached DON!! returned) and after donReturn cost payments.
-export function resolveOnDonReturnTrigger(state, owner) {
-  const leader = state[owner]?.leader;
-  if (!leader?.card?.effect) return state;
-  return resolveAtTiming(leader.card, state, owner, '咚‼卡被放回時', { target: 'leader' });
-}
-
 export function resolveCounterEffect(card, state, owner) {
   if (!card?.effect) return state;
   const clauses = parseEffectForCard(card);
@@ -1877,37 +1869,6 @@ function getFieldCard(state, owner, fieldPos) {
   return ps.characterArea[fieldPos.target] ?? null;
 }
 
-// Remove N active DON!! from cost area and attach them to the field card at fieldPos.
-// Returns null when there aren't enough active DON!!.
-function attachDonFromCostArea(state, owner, fieldPos, count) {
-  const ps = state[owner];
-  const actives = ps.costArea.filter(d => d.state === 'active');
-  if (actives.length < count) return null;
-
-  const toAttach  = actives.slice(0, count);
-  const attachIds = new Set(toAttach.map(d => d._donId));
-  const newCostArea = ps.costArea.filter(d => !attachIds.has(d._donId));
-
-  let newLeader  = ps.leader;
-  let newChars   = ps.characterArea;
-  const cardName = fieldPos.target === 'leader'
-    ? cn(ps.leader.card)
-    : cn(ps.characterArea[fieldPos.target]?.card);
-
-  if (fieldPos.target === 'leader') {
-    newLeader = { ...ps.leader, attachedDon: ps.leader.attachedDon + count };
-  } else {
-    newChars = ps.characterArea.map((fc, i) =>
-      i === fieldPos.target ? { ...fc, attachedDon: fc.attachedDon + count } : fc
-    );
-  }
-
-  return addLog({
-    ...state,
-    [owner]: { ...ps, costArea: newCostArea, leader: newLeader, characterArea: newChars },
-  }, `Attached ${count} DON!! to ${cardName}.`, 'action');
-}
-
 // Build flat list of every DON!! card currently in play (cost area + attached).
 function buildDonReturnOptions(ps) {
   const opts = [];
@@ -2008,5 +1969,5 @@ function returnDon(state, owner, count, card, effectKey, continuation, fieldPos 
     };
   }
   const afterReturn = applyDonReturnSelection(state, owner, autoSelectDon(opts, count, ps));
-  return resolveOnDonReturnTrigger(afterReturn, owner);
+  return fireDonReturnEffects(afterReturn, owner, count);
 }

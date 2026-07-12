@@ -356,8 +356,8 @@ function parseBlock(raw) {
     s.includes("可以") ||
     (colonPosRaw >= 0 && s.includes("可") && s.indexOf("可") < colonPosRaw);
 
-  // Condition: 若...時[，,]
-  const condM = s.match(/若(.+?)時[，,]/);
+  // Condition: 若...時[，,]  OR  在...的回合中[，,] (turn-scoped event condition, e.g. "在因效果而廢棄自己手牌的回合中")
+  const condM = s.match(/若(.+?)時[，,]/) ?? s.match(/^在(.+?)的回合中[，,]/);
   let condition = condM ? parseCondition(condM[1]) : null;
   // "手牌在N張以下" — hand-size pre-condition outside the 若...時 brackets (e.g. OP01-062 Crocodile)
   const handMaxM = s.match(/手牌在(\d+)張以下/);
@@ -960,7 +960,10 @@ function parseCondition(text) {
     return { raw: text, subject: "lastDeployed" };
   }
 
-  if (text.includes("發動") && text.includes("事件卡")) {
+  if (text.includes("因效果而廢棄") && text.includes("手牌")) {
+    // "因效果而廢棄自己手牌" — turn-scoped: a hand card was trashed by an effect this turn
+    c.subject = "handTrashedByEffect";
+  } else if (text.includes("發動") && text.includes("事件卡")) {
     // "發動原本費用N以上的事件卡" — reactive event-play trigger condition
     c.subject = "event_play";
     const costM2 = text.match(/費用(\d+)(以下|以上)/);
@@ -1315,9 +1318,23 @@ function parseSentences(text) {
         const parts = s.split(/，(?=最多\d+張)/).map(p => p.trim()).filter(Boolean);
         if (parts.length >= 2) return parts;
       }
+      // Split "抽N張卡片，自己擁有《X》特徵的領航卡，在這個回合，原本的力量值變更成N" into DRAW + POWER_SET
+      // (trait-targeted leader, no 最多 quantifier). e.g. ST36-003.
+      if (/抽\d+張/.test(s) && /自己擁有《[^》]+》特徵的領航卡/.test(s) && s.includes("原本的力量值變更成")) {
+        const parts = s.split(/，(?=自己擁有《[^》]+》特徵的領航卡)/).map(p => p.trim()).filter(Boolean);
+        if (parts.length >= 2) return parts;
+      }
       // Split "抽N張...，最多N張...無法進行攻擊" into DRAW + ATTACK_LOCK (plain ，, no 並 connector).
       // e.g. OP16-056: "抽2張卡片，最多1張對手費用9以下的角色卡，在下一個對手結束階段結束前，無法進行攻擊"
       if (/抽\d+張/.test(s) && /，最多\d+張/.test(s) && s.includes("無法進行攻擊")) {
+        const parts = s.split(/，(?=最多\d+張)/).map(p => p.trim()).filter(Boolean);
+        if (parts.length >= 2) return parts;
+      }
+      // Split "抽N張...，最多N張...無法置為休息狀態" into DRAW + PREVENT_REST (plain ，, no 並 connector).
+      // e.g. ST32-002: "抽1張卡片，最多1張對手原本費用6以下的角色卡，在下一個對手結束階段結束前，無法置為休息狀態"
+      // Without this split, the greedy DRAW regex in parseSentence matches first and silently
+      // discards the PREVENT_REST tail — no UNKNOWN is emitted, so static audits miss it too.
+      if (/抽\d+張/.test(s) && /，最多\d+張/.test(s) && s.includes("無法置為休息狀態")) {
         const parts = s.split(/，(?=最多\d+張)/).map(p => p.trim()).filter(Boolean);
         if (parts.length >= 2) return parts;
       }
@@ -1642,7 +1659,7 @@ function parseSentence(s) {
 
   // REST bare-count form — "(最多)N張(filter)置為休息狀態" with no 將 prefix.
   // Produced e.g. by replacement-effect strips ("…替換成1張…角色卡置為休息狀態" → "1張…置為休息狀態").
-  const restBareCountM = s.match(/^(?:最多)?(\d+)張(.+?)置為休息狀態$/);
+  const restBareCountM = !s.includes("無法置為休息狀態") && s.match(/^(?:最多)?(\d+)張(.+?)置為休息狀態$/);
   if (restBareCountM)
     return {
       type: "REST",
@@ -1916,6 +1933,24 @@ function parseSentence(s) {
     }
   }
 
+  // POWER_MOD_PER_FIELD_COUNT — one-time (not continuous) power mod whose magnitude scales
+  // with the count of own field cards matching a trait, applied to up to N targets this turn.
+  // e.g. ST31-004: "自己場上每有1張擁有《草帽一行人》特徵的卡片，最多1張對手的角色卡，在這個回合，力量值-1000"
+  // Must be checked before the generic POWER_MOD regex, which otherwise drops the "每有…" prefix
+  // and silently treats this as a flat, unscaled delta.
+  const perFieldCountM = s.match(/自己場上每有(\d+)張(.+?)[，,]最多(\d+)張(.+?)[，,]在這個回合[，,]力量值([+＋\-－]\d+)/);
+  if (perFieldCountM) {
+    return {
+      type: "POWER_MOD_PER_FIELD_COUNT",
+      perCount: parseInt(perFieldCountM[1]),
+      countFilter: { owner: "self", ...parseCardFilter(perFieldCountM[2]) },
+      count: parseInt(perFieldCountM[3]),
+      filter: parseCardFilter(perFieldCountM[4]),
+      deltaPerCount: parseInt(perFieldCountM[5].replace("＋", "+").replace("－", "-")),
+      until: "turn",
+    };
+  }
+
   // POWER_PER_DISCARD — "每廢棄1張卡片，力量值+N" — must be checked before POWER_MOD
   if (s.includes("每廢棄") && s.includes("力量值")) {
     const perM = s.match(/力量值[+＋](\d+)/);
@@ -2054,6 +2089,19 @@ function parseSentence(s) {
       value: parseInt(setLeaderPowerOppTurnM[1]),
       filter: { category: "Leader" },
       opponentTurnOnly: true,
+    };
+
+  // POWER_SET (trait leader, this turn) — "自己擁有《X》特徵的領航卡，在這個回合，原本的力量值變更成N"
+  // e.g. ST36-003: "自己擁有《超新星》特徵的領航卡，在這個回合，原本的力量值變更成7000"
+  const traitLeaderPowerSetM = s.match(
+    /自己擁有《([^》]+)》特徵的領航卡[，,]在這個回合[，,]原本的力量值變更成(\d+)/,
+  );
+  if (traitLeaderPowerSetM)
+    return {
+      type: "POWER_SET",
+      power: parseInt(traitLeaderPowerSetM[2]),
+      until: "turn",
+      filter: { category: "Leader", trait: traitLeaderPowerSetM[1] },
     };
 
   // SET_BASE_POWER — "自己擁有《X》特徵的領航卡，原本的力量值變更成N"
@@ -2826,6 +2874,12 @@ function parseSentence(s) {
   if (leaderAndCharM)
     return { type: "SELECT_LEADER_AND_CHAR", count: parseInt(leaderAndCharM[1]) };
 
+  // REDIRECT_ATTACK_TARGET — "將攻擊的對象換成自己原本力量值N以上的「name」"
+  // e.g. ST36-005: change attack target to own named Character with base power N or more (leader not included)
+  const redirectNamePowerM = s.match(/將攻擊的對象換成自己原本力量值(\d+)以上的「([^」]+)」/);
+  if (redirectNamePowerM)
+    return { type: "REDIRECT_ATTACK_TARGET", filter: { name: redirectNamePowerM[2], power: parseInt(redirectNamePowerM[1]), powerOp: "gte" } };
+
   // REDIRECT_ATTACK_TARGET — "將該攻擊的對象換成這張領航卡或自己擁有《trait》特徵的角色卡"
   // e.g. OP16-080: change attack target to this leader or own Blackbeard Pirates character
   const redirectChangeM = s.match(/將該攻擊的對象換成這張領航卡或自己擁有《([^》]+)》特徵的角色卡/);
@@ -3295,7 +3349,7 @@ function parseSentence(s) {
   if (s.includes("生命值卡全數翻成背面朝上") || s.includes("生命值卡全數置為背面朝上"))
     return { type: "FLIP_LIFE_FACE_DOWN", count: Infinity };
   const flipFaceDownM = s.match(
-    /可?將(\d+)張自己(?:正面朝上的)?生命值卡?(?:區上面的卡片)?(?:翻成|置為)背面朝上/,
+    /可?將(\d+)張自己.*?(?:翻成|置為)背面朝上/,
   );
   if (flipFaceDownM)
     return { type: "FLIP_LIFE_FACE_DOWN", count: parseInt(flipFaceDownM[1]) };
@@ -3995,6 +4049,16 @@ export function parseCardFilter(text) {
     else if (text.includes("領航卡")) f.category = "Leader";
   }
 
+  // "(ATTR)屬性的領航卡或N張(自己的)咚‼卡" — Leader-or-DON rest cost with an attribute
+  // qualifier on the Leader branch (e.g. ST32-001). Scoped to this exact idiom so it
+  // doesn't affect other "(ATTR)屬性" phrasing used elsewhere.
+  const leaderAttrOrDonM = text.match(/[（(]([^）)]+)[）)]屬性的領航卡或\d+張(?:自己的)?咚‼卡/);
+  if (leaderAttrOrDonM) {
+    const _leaderAttrMap = { 斬: "Slash", 打: "Strike", 射: "Ranged", 特: "Special", 知: "Wisdom" };
+    const attrName = _leaderAttrMap[leaderAttrOrDonM[1]];
+    if (attrName) f.attribute = attrName;
+  }
+
   // Dynamic cost bound: "費用數值在對手的生命值卡張數以下" — cost ≤ opponent's current life count, resolved at runtime
   if (text.includes("費用數值在對手的生命值卡張數以下") || text.includes("費用數值在對方的生命值卡張數以下")) {
     f.maxCostByOpponentLifeCount = true;
@@ -4088,6 +4152,32 @@ export function parseCardFilter(text) {
       ];
       delete f.category;
       delete f.trait;
+    }
+  }
+
+  // "擁有(ATTR)屬性的角色卡或「NAME」" → OR: (char with attribute + cost constraint) OR (named char)
+  // e.g. ST32-003: "費用5以下、擁有(斬)屬性的角色卡或「培羅娜」"
+  if (!f.orFilters) {
+    const attrOrNameM = text.match(/擁有[（(]([^）)]+)[）)]屬性的角色卡或「([^」]+)」/);
+    if (attrOrNameM) {
+      const _attrOrNameMap = { 斬: "Slash", 打: "Strike", 射: "Ranged", 特: "Special", 知: "Wisdom" };
+      const attrName = _attrOrNameMap[attrOrNameM[1]];
+      const costBranch = {};
+      if (f.maxCostByFieldDonCount) {
+        costBranch.maxCostByFieldDonCount = true;
+        delete f.maxCostByFieldDonCount;
+      }
+      if (f.cost !== undefined) {
+        costBranch.cost = f.cost;
+        costBranch.costOp = f.costOp;
+        delete f.cost;
+        delete f.costOp;
+      }
+      f.orFilters = [
+        { category: "Character", ...(attrName ? { attribute: attrName } : {}), ...costBranch },
+        { category: "Character", name: attrOrNameM[2] },
+      ];
+      delete f.category;
     }
   }
 
@@ -4281,8 +4371,8 @@ function parseCardFilterEN(text) {
   if (/equal to or less than the number of DON(?:!!|‼) cards? on (?:your|their) field/i.test(text)) {
     f.maxCostByFieldDonCount = true;
   }
-  const costLeM = text.match(/(?:with (?:a )?cost of |cost )(\d+) or less/i);
-  const costGeM = text.match(/(?:with (?:a )?cost of |cost )(\d+) or more/i);
+  const costLeM = text.match(/(?:with (?:a )?(?:base )?cost of |cost )(\d+) or less/i);
+  const costGeM = text.match(/(?:with (?:a )?(?:base )?cost of |cost )(\d+) or more/i);
   if (!f.maxCostByFieldDonCount) {
     if (costLeM)      { f.cost = parseInt(costLeM[1]); f.costOp = 'lte'; }
     else if (costGeM) { f.cost = parseInt(costGeM[1]); f.costOp = 'gte'; }
@@ -4333,8 +4423,29 @@ function parseCardFilterEN(text) {
   }
 
   // --- Attribute: <Slash>, <Strike>, etc. ---
+  // Source text sometimes wraps this in lowercase markup (e.g. "<slash>"), which
+  // never matches card.attributes (proper-cased, e.g. "Slash") — normalize casing.
   const attrM = text.match(/<([^>]+)>(?:\s+attribute)?/i);
-  if (attrM) f.attribute = attrM[1];
+  if (attrM) {
+    const _attrCaseMap = { slash: 'Slash', strike: 'Strike', ranged: 'Ranged', special: 'Special', wisdom: 'Wisdom' };
+    f.attribute = _attrCaseMap[attrM[1].toLowerCase()] ?? attrM[1];
+  }
+
+  // "[NAME] or has the <ATTR> attribute" → OR: named card OR attribute-matching card
+  // (e.g. ST32-003: "...that is either [Perona] or has the <slash> attribute")
+  if (!f.orFilters && f.name && f.attribute) {
+    const nameOrAttrM = text.match(/\[([^\]]+)\] or has the <([^>]+)>/i);
+    if (nameOrAttrM && !SKIP_BRACKETS.has(nameOrAttrM[1])) {
+      const costBranch = {};
+      if (f.cost !== undefined) { costBranch.cost = f.cost; costBranch.costOp = f.costOp; delete f.cost; delete f.costOp; }
+      f.orFilters = [
+        { ...(f.category ? { category: f.category } : {}), attribute: f.attribute, ...costBranch },
+        { ...(f.category ? { category: f.category } : {}), name: f.name },
+      ];
+      delete f.name;
+      delete f.attribute;
+    }
+  }
 
   // --- State ---
   if (/\brested\b/i.test(text)) f.state = 'rest';
@@ -4358,11 +4469,23 @@ function parseConditionEN(text) {
   if (!text) return null;
   const c = { raw: text };
 
+  // "a card in your hand is trashed by an effect" — turn-scoped hand-discard-by-effect condition
+  if (/a card in your hand is trashed by an effect/i.test(text)) {
+    c.subject = 'handTrashedByEffect'; c.owner = 'self';
+    return c;
+  }
+
   // "your Leader's type includes {X}" / "your Leader has the {X} type" / "your Leader is [Name]"
+  // / "your Leader has the <ATTR> attribute"
   if (/\byour Leader'?s?\b/i.test(text)) {
     c.subject = 'leader'; c.owner = 'self'; c.predicate = 'has';
     const traitM = text.match(/\{([^}]+)\}/);
     if (traitM) c.trait = traitM[1];
+    const attrCondM = text.match(/<([^>]+)>(?:\s+attribute)?/i);
+    if (attrCondM) {
+      const _attrCaseMap = { slash: 'Slash', strike: 'Strike', ranged: 'Ranged', special: 'Special', wisdom: 'Wisdom' };
+      c.attribute = _attrCaseMap[attrCondM[1].toLowerCase()] ?? attrCondM[1];
+    }
     const nameM = [...text.matchAll(/\[([^\]]+)\]/g)]
       .map(m => m[1])
       .find(n => !TIMING_KW.has(n) && !PASSIVE_KW.has(n));
@@ -4493,6 +4616,14 @@ function parseSentenceEN(s) {
     { type: 'DRAW', count: parseInt(drawTrashM[1]) },
     { type: 'DISCARD', count: parseInt(drawTrashM[2]), filter: { owner: 'self', zone: 'hand' } },
   ];
+  // "Draw N card(s) and up to M of your opponent's X cannot be rested until ..." (compound)
+  // e.g. ST32-002: "Draw 1 card and up to 1 of your opponent's Characters with a base cost of
+  // 6 or less cannot be rested until the end of your opponent's next End Phase."
+  const drawPreventRestM = s.match(/^[Dd]raw (\d+) cards? and up to (\d+) of (your (?:opponent'?s? )?)(.+?) cannot be rested/i);
+  if (drawPreventRestM) return [
+    { type: 'DRAW', count: parseInt(drawPreventRestM[1]) },
+    { type: 'PREVENT_REST', count: parseInt(drawPreventRestM[2]), filter: parseCardFilterEN(drawPreventRestM[3] + drawPreventRestM[4]) },
+  ];
   const drawM = s.match(/^[Dd]raw (\d+) cards?/i);
   if (drawM) return { type: 'DRAW', count: parseInt(drawM[1]) };
   // "Draw up to N cards" — treat up-to as exact
@@ -4533,6 +4664,22 @@ function parseSentenceEN(s) {
   const koNM = s.match(/^K\.O\. (\d+) of (your (?:opponent'?s? )?)(.*)/i);
   if (koNM) return { type: 'KO', count: parseInt(koNM[1]), filter: parseCardFilterEN(koNM[2] + koNM[3]) };
 
+  // POWER_MOD_PER_FIELD_COUNT — "For every {TRAIT} type card on your field, give up to N of
+  // your opponent's X ±M power [during this turn]" — one-time mod scaled by own field trait count.
+  // Must be checked before the generic "Give ... power" patterns below. (e.g. ST31-004)
+  const perFieldCountEnM = s.match(/^For every (.+?) (?:type )?cards? on your field, ?[Gg]ive up to (\d+) of (your (?:opponent'?s? )?)(.+?) ([+−\-?][\d,]+) power(?: during this turn)?/i);
+  if (perFieldCountEnM) {
+    return {
+      type: 'POWER_MOD_PER_FIELD_COUNT',
+      perCount: 1,
+      countFilter: { owner: 'self', ...parseCardFilterEN(perFieldCountEnM[1]) },
+      count: parseInt(perFieldCountEnM[2]),
+      filter: parseCardFilterEN(perFieldCountEnM[3] + perFieldCountEnM[4]),
+      deltaPerCount: parseENDelta(perFieldCountEnM[5]),
+      until: 'turn',
+    };
+  }
+
   // ── POWER_MOD (Give +/-N power) ──
   const giveAllPwrM = s.match(/^Give all of (your (?:opponent'?s? )?)(.+?) ([+−\-?][\d,]+) power/i);
   if (giveAllPwrM) {
@@ -4547,13 +4694,13 @@ function parseSentenceEN(s) {
   }
 
   // ── COST_MOD (Give +/-N cost) ──
-  const giveCostAllM = s.match(/^Give all of (your (?:opponent'?s? )?)(.+?) ([+−\-]\d+) cost/i);
+  const giveCostAllM = s.match(/^Give all of (your (?:opponent'?s? )?)(.+?) ([+−-]\d+) cost/i);
   if (giveCostAllM) {
     return { type: 'COST_MOD', delta: parseENDelta(giveCostAllM[3]), count: Infinity,
       filter: parseCardFilterEN(giveCostAllM[1] + giveCostAllM[2]) };
   }
 
-  const giveCostM = s.match(/^Give (?:up to (\d+) of )?(your (?:opponent'?s? )?)(.+?) ([+−\-]\d+) cost/i);
+  const giveCostM = s.match(/^Give (?:up to (\d+) of )?(your (?:opponent'?s? )?)(.+?) ([+−-]\d+) cost/i);
   if (giveCostM) {
     return { type: 'COST_MOD', delta: parseENDelta(giveCostM[4]),
       count: giveCostM[1] ? parseInt(giveCostM[1]) : Infinity,
@@ -4561,12 +4708,12 @@ function parseSentenceEN(s) {
   }
 
   // "Up to N of your X gains +N cost until..." pattern
-  const upToCostM = s.match(/^Up to (\d+) of (your (?:opponent'?s? )?)(.+?) gains? ([+−\-]\d+) cost/i);
+  const upToCostM = s.match(/^Up to (\d+) of (your (?:opponent'?s? )?)(.+?) gains? ([+−-]\d+) cost/i);
   if (upToCostM) {
     return { type: 'COST_MOD', delta: parseENDelta(upToCostM[4]), count: parseInt(upToCostM[1]),
       filter: parseCardFilterEN(upToCostM[2] + upToCostM[3]) };
   }
-  const allGainCostM = s.match(/^All of (your (?:opponent'?s? )?)(.+?) gains? ([+−\-]\d+) cost/i);
+  const allGainCostM = s.match(/^All of (your (?:opponent'?s? )?)(.+?) gains? ([+−-]\d+) cost/i);
   if (allGainCostM) {
     return { type: 'COST_MOD', delta: parseENDelta(allGainCostM[3]), count: Infinity,
       filter: parseCardFilterEN(allGainCostM[1] + allGainCostM[2]) };
@@ -4576,7 +4723,7 @@ function parseSentenceEN(s) {
   if (typePlayCostReduceM) return { type: 'COST_MOD', delta: -parseInt(typePlayCostReduceM[2]),
     filter: parseCardFilterEN(typePlayCostReduceM[1]) };
   // "Give blue Events in your hand −N cost" — hand cost mod
-  const colorHandCostM = s.match(/^Give (\w+) (?:Events?|Characters?|Stages?) in your hand ([+−\-]\d+) cost/i);
+  const colorHandCostM = s.match(/^Give (\w+) (?:Events?|Characters?|Stages?) in your hand ([+−-]\d+) cost/i);
   if (colorHandCostM) return { type: 'HAND_COST_MOD', delta: parseENDelta(colorHandCostM[2]), filter: { zone: 'hand' } };
 
   // ── POWER_MOD (Up to N gain, All gain) ──
@@ -4638,13 +4785,13 @@ function parseSentenceEN(s) {
   if (namedLeaderAndAllPwrM) return { type: 'POWER_MOD', delta: parseENDelta(namedLeaderAndAllPwrM[2]), count: Infinity, filter: { owner: 'self' } };
 
   // ── COST_MOD on self ──
-  const selfGainsCostM = s.match(/^This (?:Leader|Character|card) gains? ([+−\-]\d+) cost/i);
+  const selfGainsCostM = s.match(/^This (?:Leader|Character|card) gains? ([+−-]\d+) cost/i);
   if (selfGainsCostM) {
     return { type: 'COST_MOD', delta: parseENDelta(selfGainsCostM[1]), count: 1, filter: { self: true } };
   }
 
   // ── HAND_COST_MOD ("give this card in your hand -N cost") ──
-  const handCostM = s.match(/^Give this card in your hand ([+−\-]\d+) cost/i);
+  const handCostM = s.match(/^Give this card in your hand ([+−-]\d+) cost/i);
   if (handCostM) return { type: 'HAND_COST_MOD', delta: parseENDelta(handCostM[1]), filter: { self: true } };
 
   const selfGainsKwM = s.match(/^[Tt]his (?:Leader|Character|card) gains? \[([^\]]+)\]/i);
@@ -4673,7 +4820,7 @@ function parseSentenceEN(s) {
         restriction: kw.includes(':') ? kw.split(':')[1].trim() : null,
         filter: kwFilter, until };
       // "Your Leader gains [Keyword] and +N power" — also emit POWER_MOD
-      const andPwrM = s.match(/\[[^\]]+\] and ([+−\-][\d,]+) power/i);
+      const andPwrM = s.match(/\[[^\]]+\] and ([+−-][\d,]+) power/i);
       if (andPwrM) {
         const pwrUntil = /during this (?:turn|battle)/i.test(s) ? 'turn' : 'continuous';
         return [grantKwAction, { type: 'POWER_MOD', delta: parseENDelta(andPwrM[1]), count: 1,
@@ -4757,6 +4904,19 @@ function parseSentenceEN(s) {
   if (/^Give up to \d+ of your currently given DON(?:!!|‼)/i.test(s)) return { type: 'NULL_EFFECT' };
 
   // ── REST ──
+  // "Rest your <ATTR> attribute Leader or N of your DON!! cards" — Leader-or-DON rest cost
+  // with an attribute qualifier on the Leader branch (e.g. ST32-001).
+  const leaderAttrOrDonM = s.match(/^[Rr]est your <([a-zA-Z]+)>(?:\s*attribute)? Leader or (\d+) of your DON(?:!!|‼) cards?$/i);
+  if (leaderAttrOrDonM) {
+    const _leaderAttrMapEN = { slash: 'Slash', strike: 'Strike', ranged: 'Ranged', special: 'Special', wisdom: 'Wisdom' };
+    const attrName = _leaderAttrMapEN[leaderAttrOrDonM[1].toLowerCase()];
+    return {
+      type: 'REST',
+      count: parseInt(leaderAttrOrDonM[2]),
+      filter: { owner: 'self', zone: 'field', category: 'Leader', cardType: 'don', ...(attrName ? { attribute: attrName } : {}) },
+    };
+  }
+
   // Compound cost: "rest N of your DON!! cards and [other-action]" — split into two actions
   const restDonAndM = s.match(/^[Rr]est (\d+) of your DON(?:!!|‼) cards? and (?!you may rest\b)(.+)/i);
   if (restDonAndM) return [
@@ -4871,11 +5031,11 @@ function parseSentenceEN(s) {
     return { type: 'LOOK_ARRANGE_LIFE', count: Infinity };
 
   // ── FLIP_LIFE (turn Life card face-up/down) ──
-  const flipLifeUpM = s.match(/^(?:You may )?turn (?:up to )?(\d+) cards? from the top of (?:your|their) Life cards? face-up/i);
+  const flipLifeUpM = s.match(/^(?:You may )?turn (?:up to )?(\d+) cards? from the top(?: or bottom)? of (?:your|their) Life cards? face-up/i);
   if (flipLifeUpM) return { type: 'FLIP_LIFE_FACE_UP', count: parseInt(flipLifeUpM[1]) };
   // "Turn all of your Life cards face-down"
   if (/^Turn all (?:of )?(?:your|their) Life cards? face-down/i.test(s)) return { type: 'FLIP_LIFE_FACE_DOWN', count: Infinity };
-  const flipLifeDownM = s.match(/^(?:You may )?turn (?:up to )?(\d+) cards? from the top of (?:your|their) Life cards? face-down/i);
+  const flipLifeDownM = s.match(/^(?:You may )?turn (?:up to )?(\d+) cards? from the top(?: or bottom)? of (?:your|their) Life cards? face-down/i);
   if (flipLifeDownM) return { type: 'FLIP_LIFE_FACE_DOWN', count: parseInt(flipLifeDownM[1]) };
 
   // ── ADD TO HAND ──
@@ -5069,6 +5229,13 @@ function parseSentenceEN(s) {
   const allNamedBasePowerM = s.match(/^All of your (.+?) base power becomes (\d[\d,]*) during this turn/i);
   if (allNamedBasePowerM) return { type: 'POWER_SET', power: parseInt(allNamedBasePowerM[2].replace(/,/g, '')), until: 'turn', filter: { owner: 'self', ...parseCardFilterEN('your ' + allNamedBasePowerM[1]) } };
 
+  // "Up to N of your opponent's Characters' base power becomes 0 during this turn" (power set to zero)
+  const powerZeroENM = s.match(/^Up to (\d+) of (your (?:opponent'?s? )?)(.+?)'?s? base power becomes 0(?: during this turn)?/i);
+  if (powerZeroENM) return { type: 'POWER_MOD', setToZero: true,
+    until: /during this turn/i.test(s) ? 'turn' : 'continuous',
+    count: parseInt(powerZeroENM[1]),
+    filter: parseCardFilterEN(powerZeroENM[2] + powerZeroENM[3]) };
+
   // ── ALTERNATE NAMES ──
   const altNamesM = s.match(/treat this card'?s? name as \[([^\]]+)\](?:\s+and \[([^\]]+)\])?/i);
   if (altNamesM) return { type: 'ALTERNATE_NAMES', names: [altNamesM[1], altNamesM[2]].filter(Boolean) };
@@ -5131,7 +5298,7 @@ function parseSentenceEN(s) {
   const selfDamageM = s.match(/^You take (\d+) damage/i);
   if (selfDamageM) return { type: 'SELF_DAMAGE', count: parseInt(selfDamageM[1]) };
   // "Give −N power during this turn to up to N of your opponent's Characters" — inverted power mod syntax
-  const givePwrInvM = s.match(/^Give ([+−\-][\d,]+) power (?:during this (?:turn|battle) )?to (?:up to )?(\d+) of (your (?:opponent'?s? )?)(.+)/i);
+  const givePwrInvM = s.match(/^Give ([+−-][\d,]+) power (?:during this (?:turn|battle) )?to (?:up to )?(\d+) of (your (?:opponent'?s? )?)(.+)/i);
   if (givePwrInvM) return { type: 'POWER_MOD', delta: parseENDelta(givePwrInvM[1]), count: parseInt(givePwrInvM[2]), filter: parseCardFilterEN(givePwrInvM[3] + givePwrInvM[4]) };
   if (/^You cannot play cards/i.test(s)) return { type: 'NULL_EFFECT' };
   if (/^You cannot play any (?:Character|Event|Stage) cards/i.test(s)) return { type: 'NULL_EFFECT' };
@@ -5159,7 +5326,7 @@ function parseSentenceEN(s) {
   if (/give (?:up to )?\d+ (?:rested )?DON(?:!!|‼)(?! card.*from)/i.test(s)) return { type: 'NULL_EFFECT' };
   // "Select up to N of OWNER FILTER, and give 1 CATEGORY DELTA1 power and the other DELTA2 power [until DURATION]"
   // e.g. OP08-118: multi-target split power reduction — must be checked BEFORE the generic Select…give guard.
-  const selectSplitPwrM2 = s.match(/^Select up to \d+ of (your (?:opponent'?s? )?)(.+?), and give 1 (?:Character|card|Leader) ([+−\-][\d,]+) power and the other ([+−\-][\d,]+) power/i);
+  const selectSplitPwrM2 = s.match(/^Select up to \d+ of (your (?:opponent'?s? )?)(.+?), and give 1 (?:Character|card|Leader) ([+−-][\d,]+) power and the other ([+−-][\d,]+) power/i);
   if (selectSplitPwrM2) {
     const until = /until the end of your opponent'?s? next turn/i.test(s) ? 'opponent_turn_end'
       : /until the end of this turn/i.test(s) ? 'turn' : 'continuous';
@@ -5253,6 +5420,10 @@ function parseSentenceEN(s) {
   const placeHandBottomM = s.match(/^Place (\d+) cards? from your hand at the bottom of (?:your|their) deck/i);
   if (placeHandBottomM) return { type: 'BOTTOM_DECK', count: parseInt(placeHandBottomM[1]),
     filter: { owner: 'self', zone: 'hand' } };
+  // "Place N card from your trash at the bottom of your deck" (recycle cost)
+  const placeTrashBottomM = s.match(/^Place (\d+) cards? from your trash at the bottom of (?:your|their) deck/i);
+  if (placeTrashBottomM) return { type: 'BOTTOM_DECK', count: parseInt(placeTrashBottomM[1]),
+    filter: { owner: 'self', zone: 'trash' } };
   // "Place all Characters with a cost of N or less at the bottom of the owner's deck"
   const placeAllCostBottomM = s.match(/^Place all (?:Characters?|cards?) with a cost of (\d+) or less/i);
   if (placeAllCostBottomM) return { type: 'BOTTOM_DECK', count: Infinity,
@@ -5347,6 +5518,11 @@ function parseSentenceEN(s) {
   // OP16-080 (Blackbeard leader): "Change the target of that attack to this Leader or to one of your {X} type Character cards"
   const changeAttackTargetM = s.match(/^Change the target of that attack to this Leader or to one of your (\{[^}]+\}) type Character cards?/i);
   if (changeAttackTargetM) return { type: 'REDIRECT_ATTACK_TARGET', trait: changeAttackTargetM[1].slice(1, -1) };
+
+  // ST36-005: "Change the target of the attack to your [name] with N base power or more" (named Character, leader not included)
+  const changeAttackTargetNamePowerM = s.match(/^Change the target of the attack to (?:your|their) \[([^\]]+)\] with (\d+) base power or more/i);
+  if (changeAttackTargetNamePowerM)
+    return { type: 'REDIRECT_ATTACK_TARGET', filter: { name: changeAttackTargetNamePowerM[1], power: parseInt(changeAttackTargetNamePowerM[2]), powerOp: 'gte' } };
 
   // OP16-118 (Ace): "The counter of all of your Character cards with N power in your hand becomes +N" — hand counter modification not implemented
   if (/^The counter of all of your Character cards.+in your hand becomes/i.test(s)) return { type: 'NULL_EFFECT' };
@@ -5513,10 +5689,17 @@ function parseBlockEN(raw) {
   let condition = null;
   let conditionRaw = null;
   const ifCondM = actionText.match(/^If (.+?), (?=[A-Za-z])/);
+  // "During the turn in which ..., [action]" — turn-scoped event condition
+  // (e.g. "During the turn in which a card in your hand is trashed by an effect, ...")
+  const duringTurnCondM = !ifCondM && actionText.match(/^During the turn in which (.+?), (?=[A-Za-z])/i);
   if (ifCondM) {
     conditionRaw = ifCondM[0];
     condition = parseConditionEN(ifCondM[1]);
     actionText = actionText.slice(ifCondM[0].length).trim();
+  } else if (duringTurnCondM) {
+    conditionRaw = duringTurnCondM[0];
+    condition = parseConditionEN(duringTurnCondM[1]);
+    actionText = actionText.slice(duringTurnCondM[0].length).trim();
   }
 
   const rawActions = parseSentencesEN(actionText);
@@ -5554,7 +5737,7 @@ function parseChooseOneBlockEN(headerBlock, optionBlocks) {
   const donGate  = donGateKw ? parseInt(donGateKw.match(/\d+/)[0]) : null;
   const oncePerTurn = keywords.some(k => /^Once Per Turn$/i.test(k));
   const options  = optionBlocks.map(ob => {
-    const rawText = ob.replace(/^[•·\-]\s*/, '').trim();
+    const rawText = ob.replace(/^[•·-]\s*/, '').trim();
     return { label: rawText, actions: parseSentencesEN(rawText) };
   });
   return {
@@ -5582,7 +5765,7 @@ export function parseEffectEN(text) {
   while (i < blocks.length) {
     const b = blocks[i].trim();
     if (b.startsWith('(') && b.endsWith(')')) { i++; continue; }
-    if (/(?:Your opponent )?[Cc]hooses? one(?: of the following)?[:\.]?$/i.test(b)) {
+    if (/(?:Your opponent )?[Cc]hooses? one(?: of the following)?[:.]?$/i.test(b)) {
       const optionBlocks = [];
       let j = i + 1;
       while (j < blocks.length) {

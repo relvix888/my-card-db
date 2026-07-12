@@ -9182,5 +9182,173 @@
     "cardId": "OP16-119",
     "question": "Do I reveal the card I add to my Life cards using this card's [On Play] effect to my opponent?",
     "answer": "No, you add it to your Life cards without revealing it to your opponent."
+  },
+  {
+    "qaNum": "Q1342",
+    "title": "ST31-002 Jinbe",
+    "cardId": "ST31-002",
+    "question": "Can I use this [On Play] effect to play \"ST31-005 Thousand Sunny\"?",
+    "answer": "Yes, you can."
+  },
+  {
+    "qaNum": "Q1343",
+    "title": "ST31-003 Brook",
+    "cardId": "ST31-003",
+    "question": "Does the condition \"if you have a total of 3 or more given DON!! cards\" count both the DON!! cards given to this Character and the DON!! cards given to my other Characters and Leader?",
+    "answer": "Yes, it counts both the DON!! cards given to this Character and the ones given to your other Characters and Leader."
+  },
+  {
+    "qaNum": "Q1344",
+    "title": "ST31-003 Brook",
+    "cardId": "ST31-003",
+    "question": "My opponent declared an attack when I had a total of 3 or more given DON!! cards. They then used their [When Attacking] effect to remove another of my Characters with given DON!! cards from the field, causing my total number of given DON!! cards to drop to 2 or less. Can I still activate this Character's [Blocker] to block that attack?",
+    "answer": "No, you cannot."
+  },
+  {
+    "qaNum": "Q1345",
+    "title": "ST31-004 Monkey.D.Luffy",
+    "cardId": "ST31-004",
+    "question": "Does the condition \"if you have a total of 3 or more given DON!! cards\" count both the DON!! cards given to this Character and the DON!! cards given to my other Characters and Leader?",
+    "answer": "Yes, it counts both the DON!! cards given to this Character and the ones given to your other Characters and Leader."
+  },
+  {
+    "qaNum": "Q1346",
+    "title": "ST32-003 Dracule Mihawk",
+    "cardId": "ST32-003",
+    "question": "Can I use this [On Play] effect to play a Character card with a cost of 6 or more?",
+    "answer": "No, you cannot. This effect allows you to either play up to 1 [Perona] with a cost of 5 or less from your hand, or up to 1 Character card with a cost of 5 or less and the attribute from your hand."
+  },
+  {
+    "qaNum": "Q1347",
+    "title": "ST32-005 Roronoa Zoro",
+    "cardId": "ST32-005",
+    "question": "Can I use this Character to attack Characters during my first turn?",
+    "answer": "No, you cannot."
+  },
+  {
+    "qaNum": "Q1348",
+    "title": "ST33-001 Koby",
+    "cardId": "ST33-001",
+    "question": "I play this card and activate its [On Play] effect when I only have this card in my hand. Can I draw 1 card without trashing 1 card from my hand?",
+    "answer": "No, you cannot."
+  },
+  {
+    "qaNum": "Q1349",
+    "title": "ST33-002 Sakazuki",
+    "cardId": "ST33-002",
+    "question": "If I have no cards in my hand, can I use this [When Attacking] effect to make my opponent trash 1 card from their hand without trashing 1 from mine?",
+    "answer": "No, you cannot."
+  },
+  {
+    "qaNum": "Q1350",
+    "title": "ST33-002 Sakazuki",
+    "cardId": "ST33-002",
+    "question": "If my opponent has 5 or less cards in their hand, can I still use this card's [When Attacking] effect to trash 1 card from my hand?",
+    "answer": "Yes, you can. In this case, since your opponent does not have 6 or more cards in their hand, your opponent will not trash any cards from their hand."
+  },
+  {
+    "qaNum": "Q1351",
+    "title": "ST33-003 Smoker",
+    "cardId": "ST33-003",
+    "question": "I play this card and activate its [On Play] effect when I only have this card in my hand. Can I place up to 2 of my opponent's Characters with a cost of 2 or less at the bottom of the owner's deck without trashing 1 card from my hand?",
+    "answer": "No, you cannot."
+  },
+  {
+    "qaNum": "Q1352",
+    "title": "ST33-004 Borsalino",
+    "cardId": "ST33-004",
+    "question": "If a card in my hand is trashed by my opponent's effect, will this card in my hand be given −3 cost during that turn?",
+    "answer": "Yes, it will be given −3 cost."
+  },
+  {
+    "qaNum": "Q1353",
+    "title": "ST34-001 Charlotte Katakuri",
+    "cardId": "ST34-001",
+    "question": "Imagine that I have two \"ST34-001 Charlotte Katakuri\" and 10 DON!! cards on my field during my turn. I return 1 DON!! card to my DON!! deck, and activate the effect of one of my \"ST34-001 Charlotte Katakuri\" to add 1 DON!! card from my DON!! deck and rest it. Can I then use another card's effect to return 1 of the DON!! cards on my field to my DON!! deck, activate the effect of the other \"ST34-001 Charlotte Katakuri\", and add 1 more DON!! card from my DON!! deck and rest it?",
+    "answer": "No, you cannot."
+  },
+  {
+    "qaNum": "Q1354",
+    "title": "ST34-002 Charlotte Cracker",
+    "cardId": "ST34-002",
+    "question": "Can still I use this [On Play] effect to add 1 DON!! card from my DON!! deck and rest it if my opponent has no Characters with a cost of 2 or less on their field?",
+    "answer": "Yes, you can."
+  },
+  {
+    "qaNum": "Q1355",
+    "title": "ST34-002 Charlotte Cracker",
+    "cardId": "ST34-002",
+    "question": "If I have no cards in my DON!! deck, can I still use this [On Play] effect to K.O. 1 of my opponent's Characters with a cost of 2 or less?",
+    "answer": "Yes, you can."
+  },
+  {
+    "qaNum": "Q1356",
+    "title": "ST34-004 Charlotte Linlin",
+    "cardId": "ST34-004",
+    "question": "If the base power of my opponent's Character chosen as the target of this [On Play] effect has been changed to base power 6000 by another effect, what happens to that Character's base power?",
+    "answer": "In this case, the effect that applies the highest base power between the effects that modify base power will be applied to that Character."
+  },
+  {
+    "qaNum": "Q1357",
+    "title": "ST34-004 Charlotte Linlin",
+    "cardId": "ST34-004",
+    "question": "Can I still play this card and activate its [On Play] effect if this card is the only card in my hand?",
+    "answer": "No, you cannot. In this case, you will also be unable to DON!! −4, and will be unable to resolve the \"Add up to 1 card from the top of your deck to the top of your Life cards. Then, up to 1 of your opponent's Characters' base power becomes 0 during this turn.\" part of the effect."
+  },
+  {
+    "qaNum": "Q1358",
+    "title": "ST35-003 Karasu",
+    "cardId": "ST35-003",
+    "question": "Which player chooses what cards are trashed when this card's [When Attacking] effect is activated?",
+    "answer": "The opponent of the player who used this [When Attacking] effect will choose 1 card to trash from their hand."
+  },
+  {
+    "qaNum": "Q1359",
+    "title": "ST35-003 Karasu",
+    "cardId": "ST35-003",
+    "question": "If my opponent has 6 or less cards in their hand, can I still use this card's [When Attacking] effect to trash 2 cards from the top of my deck?",
+    "answer": "Yes, you can. In this case, since your opponent does not have 7 or more cards in their hand, your opponent will not trash any cards from their hand."
+  },
+  {
+    "qaNum": "Q1360",
+    "title": "ST36-001 Cavendish",
+    "cardId": "ST36-001",
+    "question": "If I have no cards in my hand, can I use this [On K.O.] effect to add 1 card from the top of my deck to the top of my Life cards without trashing 1 card from my hand?",
+    "answer": "No, you cannot."
+  },
+  {
+    "qaNum": "Q1361",
+    "title": "ST36-002 Killer",
+    "cardId": "ST36-002",
+    "question": "Can I activate this [On Play] effect during my opponent's turn?",
+    "answer": "No, you cannot."
+  },
+  {
+    "qaNum": "Q1362",
+    "title": "ST36-003 Scratchmen Apoo",
+    "cardId": "ST36-003",
+    "question": "Can I still use this [Trigger] effect to draw 1 card even if my Leader doesn't have the {Supernovas} type?",
+    "answer": "Yes, you can. In this case, you will be unable to change your Leader's base power to 7000 after drawing 1 card."
+  },
+  {
+    "qaNum": "Q1363",
+    "title": "ST36-004 Bartolomeo",
+    "cardId": "ST36-004",
+    "question": "If I have no {Supernovas} type cards in my hand, can I still use this [On Play] effect to draw 2 cards?",
+    "answer": "No, you cannot."
+  },
+  {
+    "qaNum": "Q1364",
+    "title": "ST36-005 Eustass\"Captain\"Kid",
+    "cardId": "ST36-005",
+    "question": "Can I still activate this [On Your Opponent's Attack] effect if both the top and bottom cards of my Life cards are already face-down?",
+    "answer": "No, you cannot."
+  },
+  {
+    "qaNum": "Q1365",
+    "title": "ST36-005 Eustass\"Captain\"Kid",
+    "cardId": "ST36-005",
+    "question": "Can I still activate this [Activate: Main] effect if both the top and bottom cards of my Life cards are already face-up?",
+    "answer": "No, you cannot."
   }
 ]

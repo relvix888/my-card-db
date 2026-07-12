@@ -19,6 +19,7 @@ ALL_SET_CODES = [
     "op07", "st14", "op08", "st15", "st16", "st17", "st18", "st19", "st20", "prb01",
     "op09", "op10", "st21", "eb02", "prb02", "op11", "st22", "op12", "st23", "st24",
     "st25", "st26", "st27", "st28", "op13", "eb03", "op14", "st29", "eb04", "op15", "st30", "op16",
+    "st31", "st32", "st33", "st34", "st35", "st36",
     "promo-100", "promo-200",
     "promo-op10", "promo-op20", "promo-st10", "promo-eb10",
 ]

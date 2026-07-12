@@ -11,12 +11,12 @@ import {
   interceptOnPlayOrder, resolveOnPlayOrderChoice, resumeOnPlayOrderSequence,
   resolveOnOpponentAttackEffect, evaluateContinuousKeywords, evaluateGlobalContinuousPower,
   evaluateLeaderBasePowerOverride, evaluateCharBasePowerOverride, resolveOnLifeZeroEffect, resolveOnLifeLeaveEffect, resolveOnDamageTakenEffect, resolveOnDealDamageEffect,
-  fcHasDoubleAtk, fcEffectiveHasDoubleAtk, fcHasBanish, fcHasUnblock, leaderHasDeployRestPassive, leaderHasRushCharsPassive,
+  fcEffectiveHasDoubleAtk, fcHasBanish, fcHasUnblock, leaderHasDeployRestPassive, leaderHasRushCharsPassive,
   resolveOpponentEventOrCounterEffect, resolveAutoKOInBattle, resolveOnOpponentCharDeployEffect,
-  resolveOnDonAttachTrigger, resolveOnSelfNoEffectCharDeployEffect, resolveOnSelfAnyCharDeployEffect, resolveOnDonReturnTrigger,
+  resolveOnDonAttachTrigger, resolveOnSelfNoEffectCharDeployEffect, resolveOnSelfAnyCharDeployEffect,
   getEffectiveCounter, computeEventTargets, computeFieldEffectTargets,
 } from './effects';
-import { resolveEffectChoice, executeActionSequence, clearPowerMods, clearCostMods, clearHandCostMods, matchesFilter, getSelfCondHandCostDelta, shiftModsAfterRemoval } from './effectActions';
+import { resolveEffectChoice, executeActionSequence, clearPowerMods, clearCostMods, clearHandCostMods, matchesFilter, getSelfCondHandCostDelta, shiftModsAfterRemoval, fireDonReturnEffects } from './effectActions';
 import { getLeaderProfile } from './leaderProfiles';
 
 // ---------------------------------------------------------------------------
@@ -72,6 +72,7 @@ function buildPlayerState(leader, deckCards) {
     costMods: [],       // [{ target: charIndex, delta, until: 'turn'|'battle'|'opponent_turn_end' }]
     handCostMods: [],   // [{ filter, delta, until: 'turn'|'battle'|'opponent_turn_end' }] — modifies play cost of matching hand cards
     effectUsed: {},     // { [effectKey]: true } — once-per-turn tracking; cleared on Refresh
+    handTrashedByEffectThisTurn: false, // true once a hand card is trashed by an effect this turn; cleared on Refresh
   };
 }
 
@@ -362,6 +363,7 @@ export function applyRefresh(state) {
       onEventTriggers: [],
       eventsPlayedThisTurn: [],
       lastDiscardCount: 0,
+      handTrashedByEffectThisTurn: false,
       deployBlockedThisTurn: false,
       deployBlockCost: null,
       donUnrestByCharLocked: false,
@@ -392,7 +394,7 @@ export function applyRefresh(state) {
 
   s = addLog({ ...s, sotEffectsDone: false }, `Refresh Phase.`, 'phase');
   // Fire '咚‼卡被放回時' if any attached DON!! was returned (e.g. OP02-071 Magellan)
-  if (returnedDon > 0) s = resolveOnDonReturnTrigger(s, p);
+  if (returnedDon > 0) s = fireDonReturnEffects(s, p, returnedDon);
   return s;
 }
 
@@ -1732,8 +1734,9 @@ export function gameReducer(state, action) {
       }
       const wasDonReturn = state.pendingEffect?.choices?.type === 'CHOOSE_DON_RETURN';
       const donReturnOwner = state.pendingEffect?.owner;
+      const donReturnCount = state.pendingEffect?.choices?.count ?? 0;
       let s = drainOnPlayTriggers(resolveEffectChoice(state, action));
-      if (wasDonReturn && !s.pendingEffect) s = resolveOnDonReturnTrigger(s, donReturnOwner);
+      if (wasDonReturn && !s.pendingEffect) s = fireDonReturnEffects(s, donReturnOwner, donReturnCount);
       // If a pending KO replacement just resolved (confirmed or rejected), clear battle-duration mods.
       if (state.pendingKOReplacement && !s.pendingKOReplacement) {
         s = clearPowerMods(s, PLAYER.HOST, 'battle');

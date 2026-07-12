@@ -38,7 +38,7 @@ Use the Agent tool with `subagent_type: "haiku"` to find the card. Pass this exa
 > import json, glob, sys
 > target = '$ARGUMENTS'.strip()
 > cn, en = None, None
-> for path in sorted(glob.glob('/Users/rexchan/opc-uploader/data/cards_*.json')):
+> for path in sorted(glob.glob('/Users/rexchan/opc-uploader/data/ZH/cards_*.json')):
 >     with open(path) as f:
 >         cards = json.load(f)
 >     for c in cards:

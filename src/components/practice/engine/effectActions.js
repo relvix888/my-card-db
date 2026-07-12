@@ -298,6 +298,9 @@ export function evaluateCondition(state, owner, cond, fieldCard = null, skipCont
         return cond.countOp === 'gte' ? handSize >= cond.count : handSize <= cond.count;
       return true;
     }
+    case 'handTrashedByEffect': {
+      return ps?.handTrashedByEffectThisTurn === true;
+    }
     case 'trash': {
       const trash = ps?.trash ?? [];
       const trashSize = cond.category
@@ -538,7 +541,7 @@ function fireLifeLeaveEffects(state, owner) {
 }
 
 // Fire '咚‼卡被放回時' clauses on all field cards owned by `owner` when `count` DON!! were returned.
-function fireDonReturnEffects(state, owner, count) {
+export function fireDonReturnEffects(state, owner, count) {
   const ps = state[owner];
   if (!ps) return state;
   let s = state;
@@ -740,6 +743,19 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       if (trashIndex === -1) return state;
       const s = execDeployFromTrash(state, owner, trashIndex, sourceCard.name, action.deployState);
       return executeActionSequence(s, owner, continuation, sourceCard, effectKey, fieldPos);
+    }
+
+    case 'POWER_MOD_PER_FIELD_COUNT': {
+      // One-time power mod whose magnitude scales with the count of own field cards
+      // matching countFilter, computed once at resolution time (e.g. ST31-004).
+      const cps = state[owner];
+      let matchedCount = 0;
+      if (cps.leader?.card && matchesFilter(cps.leader.card, action.countFilter)) matchedCount++;
+      cps.characterArea.forEach(fc => { if (matchesFilter(fc.card, action.countFilter, fc)) matchedCount++; });
+      if (cps.stageArea?.card && matchesFilter(cps.stageArea.card, action.countFilter)) matchedCount++;
+      if (!matchedCount) return state;
+      const computedDelta = (action.deltaPerCount ?? 0) * matchedCount;
+      return executeAction(state, owner, { ...action, type: 'POWER_MOD', delta: computedDelta }, sourceCard, effectKey, continuation, fieldPos);
     }
 
     case 'POWER_MOD': {
@@ -1053,6 +1069,33 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
           i === idx ? { ...fc, state: 'rest' } : fc
         );
         return addLog({ ...state, [owner]: { ...tps, characterArea: newChars } }, `${cn(sourceCard)}: rested itself.`, 'action');
+      }
+
+      // Leader-or-own-DON!! cost: "rest your <attribute> Leader or N of your DON!! cards" (e.g. ST32-001).
+      // Must be checked before the generic DON!! fast path below, which would otherwise swallow
+      // this filter (cardType:'don') and silently drop the Leader alternative + attribute gate.
+      if (action.filter?.category === 'Leader' && action.filter?.cardType === 'don'
+          && (!action.filter?.owner || action.filter?.owner === 'self')) {
+        const tps = state[owner];
+        const leaderOk = tps.leader?.state === 'active'
+          && (!action.filter?.attribute || (tps.leader.card?.attributes ?? []).includes(action.filter.attribute));
+        const allTargets = [];
+        if (leaderOk) allTargets.push({ zone: 'leader', card: tps.leader.card });
+        tps.costArea.filter(d => d.state === 'active').forEach(d =>
+          allTargets.push({ zone: 'don', donId: d._donId })
+        );
+        if (!allTargets.length) return state;
+        if (shouldPrompt(owner, state)) {
+          return setPendingEffect(state, owner, sourceCard, effectKey, action, continuation, {
+            type: 'CHOOSE_REST_TARGET',
+            targetOwner: owner,
+            targets: allTargets,
+            max: action.count ?? 1,
+          }, fieldPos);
+        }
+        // AI: prefer resting a DON!! over the Leader (keep Leader active for blocking)
+        const aiPick = allTargets.find(t => t.zone === 'don') ?? allTargets[0];
+        return execRestTarget(state, owner, aiPick, sourceCard.name);
       }
 
       // DON!! rest: own active DON!! cards from the cost area.
@@ -1797,6 +1840,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
             ...ps,
             hand:  ps.hand.filter((_, i) => !discardSet.has(i)),
             trash: [...ps.trash, ...toDiscard.map(t => t.c)],
+            ...(toDiscard.length ? { handTrashedByEffectThisTurn: true } : {}),
           },
         }, `${cn(sourceCard)}: randomly discarded ${toDiscard.length} card(s) from opponent's hand.`, 'action');
       }
@@ -1818,6 +1862,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
           ...ps,
           hand:  ps.hand.filter((_, i) => !discardSet.has(i)),
           trash: [...ps.trash, ...toDiscard.map(t => t.c)],
+          ...(toDiscard.length ? { handTrashedByEffectThisTurn: true } : {}),
         },
       }, `${cn(sourceCard)}: discarded ${toDiscard.length} card(s).`, 'action');
       const compTrait1 = leaderDiscardCompensationTrait(s1, owner);
@@ -1973,6 +2018,7 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
           hand:  ps.hand.filter((_, i) => !discardSet.has(i)),
           trash: [...ps.trash, ...toDiscard.map(t => t.c)],
           lastDiscardCount: toDiscard.length,
+          ...(toDiscard.length ? { handTrashedByEffectThisTurn: true } : {}),
         },
       }, `${cn(sourceCard)}: discarded ${toDiscard.length} card(s).`, 'action');
     }
@@ -3177,12 +3223,18 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
     case 'REDIRECT_ATTACK_TARGET': {
       if (!state.battle) return state;
       const ps = state[owner]; // owner = defending player
-      // Include leader plus any characters matching the required trait
-      const targets = [{ zone: 'leader', index: -1 }];
+      // A name/power filter (e.g. ST36-005) restricts targets to matching characters only —
+      // the leader isn't a valid target since it can't match a named-character filter.
+      // Without a filter, include the leader plus any characters matching the required trait.
+      const targets = action.filter ? [] : [{ zone: 'leader', index: -1 }];
       ps.characterArea.forEach((fc, i) => {
-        if (!action.trait || (fc.card.types ?? []).some(t => t.includes(action.trait)))
+        if (action.filter) {
+          if (matchesFilter(fc.card, action.filter, fc)) targets.push({ zone: 'character', index: i });
+        } else if (!action.trait || (fc.card.types ?? []).some(t => t.includes(action.trait))) {
           targets.push({ zone: 'character', index: i });
+        }
       });
+      if (!targets.length) return state;
       if (shouldPrompt(owner, state)) {
         return setPendingEffect(state, owner, sourceCard, effectKey, action, continuation, {
           type: 'CHOOSE_REDIRECT_ATTACK_TARGET',
@@ -3412,10 +3464,6 @@ export function executeAction(state, owner, action, sourceCard, effectKey, conti
       const kwLabel = action.keyword === 'RUSH_CHARS_ONLY'
         ? '速攻：角色'
         : action.keyword + (action.restriction ? '：' + action.restriction : '');
-      const patch = {
-        justDeployed: false,
-        ...(action.restriction === '角色' ? { rushCharOnly: true } : {}),
-      };
 
       // Build the fc-level patch for a non-速攻 keyword grant: append to tempKeywords or opponentTurnEndKeywords
       // "startOfOwnTurn" == "opponent_turn_end" — both mean "cleared at the start of my next turn"
@@ -4664,7 +4712,7 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
 
       let hand = [...ps.hand], trash = [...ps.trash];
       for (const idx of sorted) { trash.push(hand[idx]); hand.splice(idx, 1); }
-      s = addLog(appendFlash({ ...s, [owner]: { ...ps, hand, trash } }, trash[trash.length - 1], 'DISCARD'),
+      s = addLog(appendFlash({ ...s, [owner]: { ...ps, hand, trash, ...(sorted.length ? { handTrashedByEffectThisTurn: true } : {}) } }, trash[trash.length - 1], 'DISCARD'),
         `Discarded ${sorted.length} card(s).`, 'action');
       const compTrait = leaderDiscardCompensationTrait(s, owner);
       if (sorted.length && compTrait && (sourceCard?.types ?? []).some(t => t.includes(compTrait)))
@@ -4696,7 +4744,7 @@ export function resolveEffectChoice(state, { selectedIndices, selectedZone }) {
       let hand = [...ps.hand], trash = [...ps.trash];
       for (const idx of sorted) { trash.push(hand[idx]); hand.splice(idx, 1); }
       s = addLog(
-        { ...s, [owner]: { ...ps, hand, trash, lastDiscardCount: sorted.length } },
+        { ...s, [owner]: { ...ps, hand, trash, lastDiscardCount: sorted.length, ...(sorted.length ? { handTrashedByEffectThisTurn: true } : {}) } },
         sorted.length ? `Discarded ${sorted.length} card(s).` : `Skipped discard.`, 'action'
       );
       break;

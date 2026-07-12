@@ -186,6 +186,51 @@ const packData = {
   },
 
   // --- STARTER DECKS (ST Series) ---
+  "ST-36": {
+    code: "ST-36",
+    en: {
+      id: "556036",
+      title: 'STARTER DECK -Yellow Eustass"Captain"Kid- [ST-36]',
+    },
+    ja: { id: "550036", title: "スタートデッキ 黄 ユースタス・キッド【ST-36】" },
+    zh: { id: "554036", title: "起始牌組 黃 尤斯塔斯・基德【ST-36】" },
+  },
+  "ST-35": {
+    code: "ST-35",
+    en: { id: "556035", title: "STARTER DECK -Red/Black Sabo- [ST-35]" },
+    ja: { id: "550035", title: "スタートデッキ 赤黒 サボ【ST-35】" },
+    zh: { id: "554035", title: "起始牌組 紅黑 薩波【ST-35】" },
+  },
+  "ST-34": {
+    code: "ST-34",
+    en: {
+      id: "556034",
+      title: "STARTER DECK -Purple Charlotte Katakuri- [ST-34]",
+    },
+    ja: {
+      id: "550034",
+      title: "スタートデッキ 紫 シャーロット・カタクリ【ST-34】",
+    },
+    zh: { id: "554034", title: "起始牌組 紫 夏洛特・卡塔克利【ST-34】" },
+  },
+  "ST-33": {
+    code: "ST-33",
+    en: { id: "556033", title: "STARTER DECK -Blue Kuzan- [ST-33]" },
+    ja: { id: "550033", title: "スタートデッキ 青 クザン【ST-33】" },
+    zh: { id: "554033", title: "起始牌組 藍 庫山【ST-33】" },
+  },
+  "ST-32": {
+    code: "ST-32",
+    en: { id: "556032", title: "STARTER DECK -Green Roronoa Zoro- [ST-32]" },
+    ja: { id: "550032", title: "スタートデッキ 緑 ロロノア・ゾロ【ST-32】" },
+    zh: { id: "554032", title: "起始牌組 綠 羅羅亞・索隆【ST-32】" },
+  },
+  "ST-31": {
+    code: "ST-31",
+    en: { id: "556031", title: "STARTER DECK -Red Monkey.D.Luffy- [ST-31]" },
+    ja: { id: "550031", title: "スタートデッキ 赤 モンキー・D・ルフィ【ST-31】" },
+    zh: { id: "554031", title: "起始牌組 紅 蒙其・D・魯夫【ST-31】" },
+  },
   "ST-30": {
     code: "ST-30",
     en: { id: "556030", title: "STARTER DECK EX -Luffy & Ace- [ST-30]" },
@@ -462,6 +507,12 @@ const packOrder = [
   "OP-03",
   "OP-02",
   "OP-01",
+  "ST-36",
+  "ST-35",
+  "ST-34",
+  "ST-33",
+  "ST-32",
+  "ST-31",
   "ST-30",
   "ST-29",
   "ST-28",
